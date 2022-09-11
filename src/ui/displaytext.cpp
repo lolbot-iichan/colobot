@@ -30,6 +30,7 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/interface/movable_object.h"
@@ -120,12 +121,11 @@ bool CDisplayText::EventProcess(const Event &event)
 
 void CDisplayText::DisplayError(Error err, CObject* pObj, float time)
 {
-    if (pObj == nullptr)
-        return;
+    if (pObj == nullptr)  return;
 
     Math::Vector pos = pObj->GetPosition();
-    float h = GetIdealHeight(pObj);
-    float d = GetIdealDist(pObj);
+    float h = GetIdealHeight(pObj->GetType());
+    float d = GetIdealDist(pObj->GetType());
     DisplayError(err, pos, h, d, time);
 }
 
@@ -163,8 +163,8 @@ void CDisplayText::DisplayText(const char *text, CObject* pObj,
     if (pObj == nullptr)  return;
 
     Math::Vector pos = pObj->GetPosition();
-    float h = GetIdealHeight(pObj);
-    float d = GetIdealDist(pObj);
+    float h = GetIdealHeight(pObj->GetType());
+    float d = GetIdealDist(pObj->GetType());
     DisplayText(text, pos, h, d, time, type);
 }
 
@@ -449,49 +449,16 @@ float CDisplayText::GetVisitHeight(EventType event)
 
 // Ranges from ideal visit for a given object.
 
-float CDisplayText::GetIdealDist(CObject* pObj)
+float CDisplayText::GetIdealDist(ObjectType type)
 {
-    ObjectType  type;
-
-    if ( pObj == nullptr )  return 40.0f;
-
-    type = pObj->GetType();
-    if ( type == OBJECT_PORTICO )  return 200.0f;
-    if ( type == OBJECT_BASE    )  return 200.0f;
-    if ( type == OBJECT_NUCLEAR )  return 100.0f;
-    if ( type == OBJECT_PARA    )  return 100.0f;
-    if ( type == OBJECT_SAFE    )  return 100.0f;
-    if ( type == OBJECT_TOWER   )  return  80.0f;
-
-    return 60.0f;
+    return GetObjectDetails().GetVisitCameraDistance(type);
 }
 
 // Returns the height of ideal visit for a given object.
 
-float CDisplayText::GetIdealHeight(CObject* pObj)
+float CDisplayText::GetIdealHeight(ObjectType type)
 {
-    ObjectType  type;
-
-    if ( pObj == nullptr )  return 5.0f;
-
-    type = pObj->GetType();
-    if ( type == OBJECT_DERRICK  )  return 35.0f;
-    if ( type == OBJECT_FACTORY  )  return 22.0f;
-    if ( type == OBJECT_REPAIR   )  return 30.0f;
-    if ( type == OBJECT_DESTROYER)  return 30.0f;
-    if ( type == OBJECT_STATION  )  return 13.0f;
-    if ( type == OBJECT_CONVERT  )  return 20.0f;
-    if ( type == OBJECT_TOWER    )  return 30.0f;
-    if ( type == OBJECT_RESEARCH )  return 22.0f;
-    if ( type == OBJECT_RADAR    )  return 19.0f;
-    if ( type == OBJECT_INFO     )  return 19.0f;
-    if ( type == OBJECT_ENERGY   )  return 20.0f;
-    if ( type == OBJECT_LABO     )  return 16.0f;
-    if ( type == OBJECT_NUCLEAR  )  return 40.0f;
-    if ( type == OBJECT_PARA     )  return 40.0f;
-    if ( type == OBJECT_SAFE     )  return 20.0f;
-
-    return 15.0f;
+    return GetObjectDetails().GetVisitCameraHeight(type);
 }
 
 

@@ -23,127 +23,24 @@
 #include "app/app.h"
 
 #include "object/object_type.h"
+#include "object/object_details.h"
 
 #include <string.h>
 
 
 // Seeking the name of an object.
 
-const char* GetObjectName(ObjectType type)
+std::string GetObjectName(ObjectType type)
 {
-    if ( type == OBJECT_PORTICO     )  return "Portico";
-    if ( type == OBJECT_BASE        )  return "SpaceShip";
-    if ( type == OBJECT_DERRICK     )  return "Derrick";
-    if ( type == OBJECT_FACTORY     )  return "BotFactory";
-    if ( type == OBJECT_STATION     )  return "PowerStation";
-    if ( type == OBJECT_CONVERT     )  return "Converter";
-    if ( type == OBJECT_REPAIR      )  return "RepairCenter";
-    if ( type == OBJECT_DESTROYER   )  return "Destroyer";
-    if ( type == OBJECT_TOWER       )  return "DefenseTower";
-    if ( type == OBJECT_NEST        )  return "AlienNest";
-    if ( type == OBJECT_RESEARCH    )  return "ResearchCenter";
-    if ( type == OBJECT_RADAR       )  return "RadarStation";
-    if ( type == OBJECT_INFO        )  return "ExchangePost";
-    if ( type == OBJECT_ENERGY      )  return "PowerPlant";
-    if ( type == OBJECT_LABO        )  return "AutoLab";
-    if ( type == OBJECT_NUCLEAR     )  return "NuclearPlant";
-    if ( type == OBJECT_PARA        )  return "PowerCaptor";
-    if ( type == OBJECT_SAFE        )  return "Vault";
-    if ( type == OBJECT_HUSTON      )  return "Houston";
-    if ( type == OBJECT_TARGET1     )  return "Target1";
-    if ( type == OBJECT_TARGET2     )  return "Target2";
-    if ( type == OBJECT_START       )  return "StartArea";
-    if ( type == OBJECT_END         )  return "GoalArea";
-    if ( type == OBJECT_TEEN34      )  return "Stone";
-    if ( type == OBJECT_STONE       )  return "TitaniumOre";
-    if ( type == OBJECT_URANIUM     )  return "UraniumOre";
-    if ( type == OBJECT_METAL       )  return "Titanium";
-    if ( type == OBJECT_POWER       )  return "PowerCell";
-    if ( type == OBJECT_ATOMIC      )  return "NuclearCell";
-    if ( type == OBJECT_BULLET      )  return "OrgaMatter";
-    if ( type == OBJECT_BBOX        )  return "BlackBox";
-    if ( type == OBJECT_KEYa        )  return "KeyA";
-    if ( type == OBJECT_KEYb        )  return "KeyB";
-    if ( type == OBJECT_KEYc        )  return "KeyC";
-    if ( type == OBJECT_KEYd        )  return "KeyD";
-    if ( type == OBJECT_TNT         )  return "TNT";
-    if ( type == OBJECT_BOMB        )  return "Mine";
-    if ( type == OBJECT_BARRIER1    )  return "Barrier";
-    if ( type == OBJECT_WAYPOINT    )  return "WayPoint";
-    if ( type == OBJECT_FLAGb       )  return "BlueFlag";
-    if ( type == OBJECT_FLAGr       )  return "RedFlag";
-    if ( type == OBJECT_FLAGg       )  return "GreenFlag";
-    if ( type == OBJECT_FLAGy       )  return "YellowFlag";
-    if ( type == OBJECT_FLAGv       )  return "VioletFlag";
-    if ( type == OBJECT_MARKPOWER   )  return "PowerSpot";
-    if ( type == OBJECT_MARKSTONE   )  return "TitaniumSpot";
-    if ( type == OBJECT_MARKURANIUM )  return "UraniumSpot";
-    if ( type == OBJECT_MARKKEYa    )  return "KeyASpot";
-    if ( type == OBJECT_MARKKEYb    )  return "KeyBSpot";
-    if ( type == OBJECT_MARKKEYc    )  return "KeyCSpot";
-    if ( type == OBJECT_MARKKEYd    )  return "KeyDSpot";
-    if ( type == OBJECT_MOBILEwt    )  return "WheeledTrainer";
-    if ( type == OBJECT_MOBILEtt    )  return "TrackedTrainer";
-    if ( type == OBJECT_MOBILEft    )  return "WingedTrainer";
-    if ( type == OBJECT_MOBILEit    )  return "LeggedTrainer";
-    if ( type == OBJECT_MOBILErp    )  return "HeavyTrainer";
-    if ( type == OBJECT_MOBILEst    )  return "AmphibiousTrainer";
-    if ( type == OBJECT_MOBILEwa    )  return "WheeledGrabber";
-    if ( type == OBJECT_MOBILEta    )  return "TrackedGrabber";
-    if ( type == OBJECT_MOBILEfa    )  return "WingedGrabber";
-    if ( type == OBJECT_MOBILEia    )  return "LeggedGrabber";
-    if ( type == OBJECT_MOBILEwc    )  return "WheeledShooter";
-    if ( type == OBJECT_MOBILEtc    )  return "TrackedShooter";
-    if ( type == OBJECT_MOBILEfc    )  return "WingedShooter";
-    if ( type == OBJECT_MOBILEic    )  return "LeggedShooter";
-    if ( type == OBJECT_MOBILEwi    )  return "WheeledOrgaShooter";
-    if ( type == OBJECT_MOBILEti    )  return "TrackedOrgaShooter";
-    if ( type == OBJECT_MOBILEfi    )  return "WingedOrgaShooter";
-    if ( type == OBJECT_MOBILEii    )  return "LeggedOrgaShooter";
-    if ( type == OBJECT_MOBILEws    )  return "WheeledSniffer";
-    if ( type == OBJECT_MOBILEts    )  return "TrackedSniffer";
-    if ( type == OBJECT_MOBILEfs    )  return "WingedSniffer";
-    if ( type == OBJECT_MOBILEis    )  return "LeggedSniffer";
-    if ( type == OBJECT_MOBILEwb    )  return "WheeledBuilder";
-    if ( type == OBJECT_MOBILEtb    )  return "TrackedBuilder";
-    if ( type == OBJECT_MOBILEfb    )  return "WingedBuilder";
-    if ( type == OBJECT_MOBILEib    )  return "LeggedBuilder";
-    if ( type == OBJECT_MOBILErt    )  return "Thumper";
-    if ( type == OBJECT_MOBILErc    )  return "PhazerShooter";
-    if ( type == OBJECT_MOBILErr    )  return "Recycler";
-    if ( type == OBJECT_MOBILErs    )  return "Shielder";
-    if ( type == OBJECT_MOBILEsa    )  return "Subber";
-    if ( type == OBJECT_MOBILEtg    )  return "TargetBot";
-    if ( type == OBJECT_MOBILEdr    )  return "Scribbler";
-    if ( type == OBJECT_MOBILEpr    )  return "PracticeBot";
-    if ( type == OBJECT_HUMAN       )  return "Me";
-    if ( type == OBJECT_TECH        )  return "Tech";
-    if ( type == OBJECT_MOTHER      )  return "AlienQueen";
-    if ( type == OBJECT_EGG         )  return "AlienEgg";
-    if ( type == OBJECT_ANT         )  return "AlienAnt";
-    if ( type == OBJECT_SPIDER      )  return "AlienSpider";
-    if ( type == OBJECT_BEE         )  return "AlienWasp";
-    if ( type == OBJECT_WORM        )  return "AlienWorm";
-    if ( type == OBJECT_RUINmobilew1)  return "Wreck";
-    if ( type == OBJECT_RUINfactory )  return "Ruin";
-    if ( type == OBJECT_PLANT0      )  return "Bush";
-    if ( type == OBJECT_ROOT5       )  return "GraviPlant";
-    if ( type == OBJECT_QUARTZ0     )  return "Crystal";
-    if ( type == OBJECT_MUSHROOM1   )  return "BrownMushroom";
-    if ( type == OBJECT_MUSHROOM2   )  return "GreenMushroom";
-    return "";
+    return GetObjectDetails().GetNameInScriptFiles(type);
 }
 
 // Seeking the name of a secondary object.
 // (because Otto thinks that Germans do not like nuclear power)
 
-const char* GetObjectAlias(ObjectType type)
+std::string GetObjectAlias(ObjectType type)
 {
-    if ( type == OBJECT_NUCLEAR     )  return "FuelCellPlant";
-    if ( type == OBJECT_URANIUM     )  return "PlatinumOre";
-    if ( type == OBJECT_ATOMIC      )  return "FuelCell";
-    if ( type == OBJECT_MARKURANIUM )  return "PlatinumSpot";
-    return "";
+    return GetObjectDetails().GetAliasInScriptFiles(type);
 }
 
 
@@ -151,101 +48,7 @@ const char* GetObjectAlias(ObjectType type)
 
 std::string GetHelpFilename(ObjectType type)
 {
-    std::string helpfile = "";
-
-    if ( type == OBJECT_BASE        )  helpfile = "object/base";
-    if ( type == OBJECT_DERRICK     )  helpfile = "object/derrick";
-    if ( type == OBJECT_FACTORY     )  helpfile = "object/factory";
-    if ( type == OBJECT_STATION     )  helpfile = "object/station";
-    if ( type == OBJECT_CONVERT     )  helpfile = "object/convert";
-    if ( type == OBJECT_REPAIR      )  helpfile = "object/repair";
-    if ( type == OBJECT_DESTROYER   )  helpfile = "object/destroy";
-    if ( type == OBJECT_TOWER       )  helpfile = "object/tower";
-    if ( type == OBJECT_NEST        )  helpfile = "object/nest";
-    if ( type == OBJECT_RESEARCH    )  helpfile = "object/research";
-    if ( type == OBJECT_RADAR       )  helpfile = "object/radar";
-    if ( type == OBJECT_INFO        )  helpfile = "object/exchange";
-    if ( type == OBJECT_ENERGY      )  helpfile = "object/energy";
-    if ( type == OBJECT_LABO        )  helpfile = "object/labo";
-    if ( type == OBJECT_NUCLEAR     )  helpfile = "object/nuclear";
-    if ( type == OBJECT_PARA        )  helpfile = "object/captor";
-    if ( type == OBJECT_SAFE        )  helpfile = "object/safe";
-    if ( type == OBJECT_HUSTON      )  helpfile = "object/huston";
-    if ( type == OBJECT_START       )  helpfile = "object/start";
-    if ( type == OBJECT_END         )  helpfile = "object/goal";
-    if ( type == OBJECT_STONE       )  helpfile = "object/titanore";
-    if ( type == OBJECT_URANIUM     )  helpfile = "object/uranore";
-    if ( type == OBJECT_METAL       )  helpfile = "object/titan";
-    if ( type == OBJECT_POWER       )  helpfile = "object/power";
-    if ( type == OBJECT_ATOMIC      )  helpfile = "object/atomic";
-    if ( type == OBJECT_BULLET      )  helpfile = "object/bullet";
-    if ( type == OBJECT_BBOX        )  helpfile = "object/bbox";
-    if ( type == OBJECT_KEYa        )  helpfile = "object/key";
-    if ( type == OBJECT_KEYb        )  helpfile = "object/key";
-    if ( type == OBJECT_KEYc        )  helpfile = "object/key";
-    if ( type == OBJECT_KEYd        )  helpfile = "object/key";
-    if ( type == OBJECT_TNT         )  helpfile = "object/tnt";
-    if ( type == OBJECT_BOMB        )  helpfile = "object/mine";
-    if ( type == OBJECT_BARRIER1    )  helpfile = "object/barrier";
-    if ( type == OBJECT_WAYPOINT    )  helpfile = "object/waypoint";
-    if ( type == OBJECT_FLAGb       )  helpfile = "object/flag";
-    if ( type == OBJECT_FLAGr       )  helpfile = "object/flag";
-    if ( type == OBJECT_FLAGg       )  helpfile = "object/flag";
-    if ( type == OBJECT_FLAGy       )  helpfile = "object/flag";
-    if ( type == OBJECT_FLAGv       )  helpfile = "object/flag";
-    if ( type == OBJECT_MARKPOWER   )  helpfile = "object/enerspot";
-    if ( type == OBJECT_MARKSTONE   )  helpfile = "object/stonspot";
-    if ( type == OBJECT_MARKURANIUM )  helpfile = "object/uranspot";
-    if ( type == OBJECT_MOBILEwa    )  helpfile = "object/botgr";
-    if ( type == OBJECT_MOBILEta    )  helpfile = "object/botgc";
-    if ( type == OBJECT_MOBILEfa    )  helpfile = "object/botgj";
-    if ( type == OBJECT_MOBILEia    )  helpfile = "object/botgs";
-    if ( type == OBJECT_MOBILEws    )  helpfile = "object/botsr";
-    if ( type == OBJECT_MOBILEts    )  helpfile = "object/botsc";
-    if ( type == OBJECT_MOBILEfs    )  helpfile = "object/botsj";
-    if ( type == OBJECT_MOBILEis    )  helpfile = "object/botss";
-    if ( type == OBJECT_MOBILEwi    )  helpfile = "object/botor";
-    if ( type == OBJECT_MOBILEti    )  helpfile = "object/botoc";
-    if ( type == OBJECT_MOBILEfi    )  helpfile = "object/botoj";
-    if ( type == OBJECT_MOBILEii    )  helpfile = "object/botos";
-    if ( type == OBJECT_MOBILEwc    )  helpfile = "object/botfr";
-    if ( type == OBJECT_MOBILEtc    )  helpfile = "object/botfc";
-    if ( type == OBJECT_MOBILEfc    )  helpfile = "object/botfj";
-    if ( type == OBJECT_MOBILEic    )  helpfile = "object/botfs";
-    if ( type == OBJECT_MOBILEwb    )  helpfile = "object/botbr";
-    if ( type == OBJECT_MOBILEtb    )  helpfile = "object/botbc";
-    if ( type == OBJECT_MOBILEfb    )  helpfile = "object/botbj";
-    if ( type == OBJECT_MOBILEib    )  helpfile = "object/botbs";
-    if ( type == OBJECT_MOBILErt    )  helpfile = "object/bottump";
-    if ( type == OBJECT_MOBILErc    )  helpfile = "object/botphaz";
-    if ( type == OBJECT_MOBILErr    )  helpfile = "object/botrecy";
-    if ( type == OBJECT_MOBILErs    )  helpfile = "object/botshld";
-    if ( type == OBJECT_MOBILEsa    )  helpfile = "object/botsub";
-    if ( type == OBJECT_MOBILEwt    )  helpfile = "object/bottr";
-    if ( type == OBJECT_MOBILEtt    )  helpfile = "object/bottr";
-    if ( type == OBJECT_MOBILEft    )  helpfile = "object/bottr";
-    if ( type == OBJECT_MOBILEit    )  helpfile = "object/bottr";
-    if ( type == OBJECT_MOBILErp    )  helpfile = "object/bottr";
-    if ( type == OBJECT_MOBILEst    )  helpfile = "object/bottr";
-    if ( type == OBJECT_MOBILEtg    )  helpfile = "object/bottarg";
-    if ( type == OBJECT_MOBILEdr    )  helpfile = "object/botdraw";
-    if ( type == OBJECT_MOBILEpr    )  helpfile = "object/bottr";
-    if ( type == OBJECT_APOLLO2     )  helpfile = "object/lrv";
-    if ( type == OBJECT_HUMAN       )  helpfile = "object/human";
-    if ( type == OBJECT_MOTHER      )  helpfile = "object/mother";
-    if ( type == OBJECT_EGG         )  helpfile = "object/egg";
-    if ( type == OBJECT_ANT         )  helpfile = "object/ant";
-    if ( type == OBJECT_SPIDER      )  helpfile = "object/spider";
-    if ( type == OBJECT_BEE         )  helpfile = "object/wasp";
-    if ( type == OBJECT_WORM        )  helpfile = "object/worm";
-    if ( type == OBJECT_RUINmobilew1)  helpfile = "object/wreck";
-    if ( type == OBJECT_RUINfactory )  helpfile = "object/ruin";
-    if ( type == OBJECT_PLANT0      )  helpfile = "object/bush";
-    if ( type == OBJECT_ROOT5       )  helpfile = "object/gravi";
-    if ( type == OBJECT_QUARTZ0     )  helpfile = "object/crystal";
-    if ( type == OBJECT_MUSHROOM1   )  helpfile = "object/bromush";
-    if ( type == OBJECT_MUSHROOM2   )  helpfile = "object/gremush";
-
+    std::string helpfile = GetObjectDetails().GetHelpTopicPathName(type);
     if (helpfile.empty())
         return "";
 

@@ -30,6 +30,7 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "sound/sound.h"
@@ -142,60 +143,42 @@ void CDebugMenu::CreateSpawnInterface()
     ddim.y = dim.y*0.5f;
     pos.x += 2*ox;
     pos.y = oy+sy*9.0f;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_CANCEL);
+    pb = pw->CreateButton(pos, ddim, -1, EVENT_DBG_SPAWN_CANCEL);
     pb->SetName("Cancel");
     pos.y -= ddim.y;
+    float startX = pos.x;
 
-    pos.y -= dim.y;
-    pw->CreateButton(pos, dim, 128+8, EVENT_SPAWN_ME);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+9, EVENT_SPAWN_WHEELEDGRABBER);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+15, EVENT_SPAWN_WHEELEDSHOOTER);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+19, EVENT_SPAWN_PHAZERSHOOTER);
-    pos.x -= 3*dim.x;
-    pos.y -= dim.y;
-    pw->CreateButton(pos, dim, 128+32, EVENT_SPAWN_BOTFACTORY);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+34, EVENT_SPAWN_CONVERTER);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+33, EVENT_SPAWN_DERRICK);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+36, EVENT_SPAWN_POWERSTATION);
-    pos.x -= 3*dim.x;
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_TITANIUM);
-    pb->SetName("Titanium");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_TITANIUMORE);
-    pb->SetName("TitaniumOre");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_URANIUMORE);
-    pb->SetName("UraniumOre");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_POWERCELL);
-    pb->SetName("PowerCell");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_NUCLEARCELL);
-    pb->SetName("NuclearCell");
+    int n = 0;
+    for (int i = 0; i <= EVENT_DBG_SPAWN_14 - EVENT_DBG_SPAWN_01; i++)
+    {
+        auto item = GetObjectDetails().GetDebugMenuItem(i);
+        if (item.icon == -1) continue;
+
+        if (n % 4 == 0)
+        {
+            pos.x = startX;
+            pos.y -= dim.y;
+        }
+
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
+        pw->CreateButton(pos, dim, item.icon, ev);
+        pos.x += dim.x;
+        n++;
+    }
+
+    pos.x = startX;
+    for (int i = 0; i <= EVENT_DBG_SPAWN_14 - EVENT_DBG_SPAWN_01; i++)
+    {
+        auto item = GetObjectDetails().GetDebugMenuItem(i);
+        if (item.icon != -1) continue;
+        if (item.type == OBJECT_NULL) continue;
+
+        pos.y -= ddim.y;
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
+        pb = pw->CreateButton(pos, ddim, -1, ev);
+        pb->SetName(item.text);
+    }
 }
-
-const std::map<EventType, ObjectType> SPAWN_TYPES = {
-    {EVENT_SPAWN_ME,             OBJECT_HUMAN},
-    {EVENT_SPAWN_WHEELEDGRABBER, OBJECT_MOBILEwa},
-    {EVENT_SPAWN_WHEELEDSHOOTER, OBJECT_MOBILEwc},
-    {EVENT_SPAWN_PHAZERSHOOTER,  OBJECT_MOBILErc},
-    {EVENT_SPAWN_BOTFACTORY,     OBJECT_FACTORY},
-    {EVENT_SPAWN_CONVERTER,      OBJECT_CONVERT},
-    {EVENT_SPAWN_DERRICK,        OBJECT_DERRICK},
-    {EVENT_SPAWN_POWERSTATION,   OBJECT_STATION},
-    {EVENT_SPAWN_TITANIUM,       OBJECT_METAL},
-    {EVENT_SPAWN_TITANIUMORE,    OBJECT_STONE},
-    {EVENT_SPAWN_URANIUMORE,     OBJECT_URANIUM},
-    {EVENT_SPAWN_POWERCELL,      OBJECT_POWER},
-    {EVENT_SPAWN_NUCLEARCELL,    OBJECT_ATOMIC},
-};
 
 void CDebugMenu::UpdateInterface()
 {
@@ -248,12 +231,14 @@ void CDebugMenu::UpdateInterface()
         pc->SetState(STATE_CHECK, m_engine->GetDebugLights());
     }
 
-    for (const auto& it : SPAWN_TYPES)
+    for (int idx = 0; idx <= EVENT_DBG_SPAWN_14 - EVENT_DBG_SPAWN_01; idx++)
     {
-        pb = static_cast<CButton*>(pw->SearchControl(it.first));
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + idx);
+        pb = static_cast<CButton*>(pw->SearchControl(ev));
         if (pb != nullptr)
         {
-            pb->SetState(STATE_ENABLE, it.second != m_spawningType);
+            auto item = GetObjectDetails().GetDebugMenuItem(idx);
+            pb->SetState(STATE_ENABLE, item.type != m_spawningType);
         }
     }
 }
@@ -323,26 +308,31 @@ bool CDebugMenu::EventProcess(const Event &event)
             break;
 
 
-        case EVENT_SPAWN_CANCEL:
+        case EVENT_DBG_SPAWN_CANCEL:
             DestroyInterface();
             CreateInterface();
             break;
 
-        case EVENT_SPAWN_ME:
-        case EVENT_SPAWN_WHEELEDGRABBER:
-        case EVENT_SPAWN_WHEELEDSHOOTER:
-        case EVENT_SPAWN_PHAZERSHOOTER:
-        case EVENT_SPAWN_BOTFACTORY:
-        case EVENT_SPAWN_CONVERTER:
-        case EVENT_SPAWN_DERRICK:
-        case EVENT_SPAWN_POWERSTATION:
-        case EVENT_SPAWN_TITANIUM:
-        case EVENT_SPAWN_TITANIUMORE:
-        case EVENT_SPAWN_URANIUMORE:
-        case EVENT_SPAWN_POWERCELL:
-        case EVENT_SPAWN_NUCLEARCELL:
-            m_spawningType = SPAWN_TYPES.at(event.type);
-            UpdateInterface();
+        case EVENT_DBG_SPAWN_01:
+        case EVENT_DBG_SPAWN_02:
+        case EVENT_DBG_SPAWN_03:
+        case EVENT_DBG_SPAWN_04:
+        case EVENT_DBG_SPAWN_05:
+        case EVENT_DBG_SPAWN_06:
+        case EVENT_DBG_SPAWN_07:
+        case EVENT_DBG_SPAWN_08:
+        case EVENT_DBG_SPAWN_09:
+        case EVENT_DBG_SPAWN_10:
+        case EVENT_DBG_SPAWN_11:
+        case EVENT_DBG_SPAWN_12:
+        case EVENT_DBG_SPAWN_13:
+        case EVENT_DBG_SPAWN_14:
+            {
+                int idx = event.type - EVENT_DBG_SPAWN_01;
+                auto item = GetObjectDetails().GetDebugMenuItem(idx);
+                m_spawningType = item.type;
+                UpdateInterface();
+            }
             break;
 
         case EVENT_MOUSE_BUTTON_DOWN:

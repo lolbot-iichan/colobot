@@ -23,6 +23,7 @@
 
 #include "common/event.h"
 
+#include "object/object_details.h"
 #include "object/object_type.h"
 
 class CObject;
@@ -38,21 +39,6 @@ namespace Ui
 {
 
 const int MAPMAXOBJECT = 100;
-
-enum MapColor
-{
-    MAPCOLOR_NULL,
-    MAPCOLOR_BASE,
-    MAPCOLOR_FIX,
-    MAPCOLOR_MOVE,
-    MAPCOLOR_ALIEN,
-    MAPCOLOR_WAYPOINTb,
-    MAPCOLOR_WAYPOINTr,
-    MAPCOLOR_WAYPOINTg,
-    MAPCOLOR_WAYPOINTy,
-    MAPCOLOR_WAYPOINTv,
-    MAPCOLOR_BBOX,
-};
 
 struct MapObject
 {

@@ -29,6 +29,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -269,13 +270,9 @@ CObject* CAutoTower::SearchTarget(Math::Vector &impact)
         int oTeam=obj->GetTeam();
         int myTeam=m_object->GetTeam();
         ObjectType oType = obj->GetType();
-        if ( oType != OBJECT_MOTHER &&
-             oType != OBJECT_ANT    &&
-             oType != OBJECT_SPIDER &&
-             oType != OBJECT_BEE    &&
-             oType != OBJECT_WORM   &&
-             (oTeam == myTeam        ||
-             oTeam == 0)             )  continue;
+
+        // TODO: Maybe should not attack everything from other teams? You can easily discharge tower by using immune units...
+        if ( !GetObjectDetails().IsAutoTargetedByTower(oType) && (oTeam == myTeam || oTeam == 0) )  continue;
 
         if ( !obj->GetDetectable() )  continue;  // inactive?
 

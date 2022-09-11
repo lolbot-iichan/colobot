@@ -36,6 +36,7 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/interface/damageable_object.h"
@@ -55,21 +56,6 @@ namespace Gfx
 const float FOG_HSUP    = 10.0f;
 const float FOG_HINF    = 100.0f;
 
-
-//! Check if an object is a destroyable enemy
-static bool IsAlien(ObjectType type)
-{
-    return ( type == OBJECT_ANT      ||
-             type == OBJECT_SPIDER   ||
-             type == OBJECT_BEE      ||
-             type == OBJECT_WORM     ||
-             type == OBJECT_MOTHER   ||
-             type == OBJECT_NEST     ||
-             type == OBJECT_BULLET   ||
-             type == OBJECT_EGG      ||
-             type == OBJECT_TEEN28   ||
-             type == OBJECT_TEEN31   );
-}
 
 CParticle::CParticle(CEngine* engine)
     : m_engine(engine)
@@ -3517,26 +3503,27 @@ CObject* CParticle::SearchObjectGun(Math::Vector old, Math::Vector pos,
 
         ObjectType oType = obj->GetType();
 
-        if (oType == OBJECT_TOTO)  continue;
+        if (GetObjectDetails().IsNotPhysicalObject(oType))  continue;
 
         if (type == PARTIGUN1)  // fireball shooting?
         {
-            if (oType == OBJECT_MOTHER)  continue;
+            if (GetObjectDetails().GetImmuneToFireballs(oType))  continue;
         }
         else if (type == PARTIGUN2)  // shooting insect?
         {
-            if (IsAlien(obj->GetType()))  continue;
+            if (GetObjectDetails().GetImmuneToInsects(oType))  continue;
         }
         else if (type == PARTIGUN3)  // suiciding spider?
         {
-            if (IsAlien(obj->GetType()))  continue;
+            if (GetObjectDetails().GetImmuneToSpiders(oType))  continue;
         }
         else if (type == PARTIGUN4)  // orgaball shooting?
         {
-            if (oType == OBJECT_MOTHER)  continue;
+            if (GetObjectDetails().GetImmuneToOrgaballs(oType))  continue;
         }
         else if (type == PARTITRACK11)  // phazer shooting?
         {
+            if (GetObjectDetails().GetImmuneToPhazers(oType))  continue;
         }
         else
         {
@@ -3627,18 +3614,9 @@ CObject* CParticle::SearchObjectRay(Math::Vector pos, Math::Vector goal,
 
         ObjectType oType = obj->GetType();
 
-        if (oType == OBJECT_TOTO)  continue;
+        if (GetObjectDetails().IsNotPhysicalObject(oType))  continue;
 
-        if ( type  == PARTIRAY1       &&
-             oType != OBJECT_MOBILEtg &&
-             oType != OBJECT_TEEN28   &&
-             oType != OBJECT_TEEN31   &&
-             oType != OBJECT_ANT      &&
-             oType != OBJECT_SPIDER   &&
-             oType != OBJECT_BEE      &&
-             oType != OBJECT_WORM     &&
-             oType != OBJECT_MOTHER   &&
-             oType != OBJECT_NEST     )  continue;
+        if ( type  == PARTIRAY1 && GetObjectDetails().GetImmuneToTowerRays(oType) ) continue;
 
         Math::Vector oPos = obj->GetPosition();
 

@@ -41,6 +41,7 @@
 #include "math/all.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/auto/auto.h"
@@ -387,6 +388,7 @@ bool CScriptFunctions::rIsBusy(CBotVar* var, CBotVar* result, int& exception, vo
 
 bool CScriptFunctions::rDestroy(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
+    ObjectType  fType = GetObjectDetails().GetFunctionDestroyPerformerObject();
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
 
@@ -395,7 +397,7 @@ bool CScriptFunctions::rDestroy(CBotVar* var, CBotVar* result, int& exception, v
 
     CObject* obj;
     if (var == nullptr)
-        obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_DESTROYER);
+        obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
     else
         obj = static_cast<CObject*>(var->GetUserPtr());
 
@@ -415,7 +417,7 @@ bool CScriptFunctions::rDestroy(CBotVar* var, CBotVar* result, int& exception, v
         return false;
     }
 
-    if ( obj->GetType() == OBJECT_DESTROYER )
+    if ( obj->GetType() == fType )
         err = automat->StartAction(0);
     else
         err = ERR_WRONG_OBJ;
@@ -459,6 +461,7 @@ CBotTypResult CScriptFunctions::cFactory(CBotVar* &var, void* user)
 
 bool CScriptFunctions::rFactory(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
+    ObjectType  fType = GetObjectDetails().GetFunctionFactoryPerformerObject();
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
 
@@ -480,7 +483,7 @@ bool CScriptFunctions::rFactory(CBotVar* var, CBotVar* result, int& exception, v
 
     CObject* factory;
     if (var == nullptr)
-        factory = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_FACTORY);
+        factory = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
     else
         factory = static_cast<CObject*>(var->GetUserPtr());
 
@@ -498,7 +501,7 @@ bool CScriptFunctions::rFactory(CBotVar* var, CBotVar* result, int& exception, v
         return false;
     }
 
-    if ( factory->GetType() == OBJECT_FACTORY )
+    if ( factory->GetType() == fType )
     {
         CAutoFactory* automat = static_cast<CAutoFactory*>(factory->GetAuto());
         if (automat == nullptr)
@@ -566,11 +569,12 @@ bool CScriptFunctions::rResearch(CBotVar* var, CBotVar* result, int& exception, 
     exception = 0;
 
     ResearchType type = static_cast<ResearchType>(var->GetValInt());
+    ObjectType  fType = GetObjectDetails().GetFunctionResearchPerformerObject(type);
     var = var->GetNext();
 
     CObject* center;
     if (var == nullptr)
-        center = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_RESEARCH);
+        center = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
     else
         center = static_cast<CObject*>(var->GetUserPtr());
 
@@ -590,41 +594,20 @@ bool CScriptFunctions::rResearch(CBotVar* var, CBotVar* result, int& exception, 
         return false;
     }
 
-    if ( center->GetType() == OBJECT_RESEARCH ||
-         center->GetType() == OBJECT_LABO      )
+    if ( center->GetType() == fType )
     {
-        bool ok = false;
-        if ( type == RESEARCH_iPAW       ||
-             type == RESEARCH_iGUN       ||
-             type == RESEARCH_TARGET      )
+        bool bEnable = CRobotMain::GetInstancePointer()->IsResearchEnabled(type);
+        if ( bEnable )
         {
-            if ( center->GetType() != OBJECT_LABO )
-                err = ERR_WRONG_OBJ;
-            else
-                ok = true;
-        }
-        else
-        {
-            if ( center->GetType() != OBJECT_RESEARCH )
-                err = ERR_WRONG_OBJ;
-            else
-                ok = true;
-        }
-        if ( ok )
-        {
-            bool bEnable = CRobotMain::GetInstancePointer()->IsResearchEnabled(type);
-            if ( bEnable )
+            if ( automat != nullptr )
             {
-                if ( automat != nullptr )
-                {
-                    err = automat->StartAction(type);
-                }
-                else
-                    err = ERR_UNKNOWN;
+                err = automat->StartAction(type);
             }
             else
-                err = ERR_BUILD_DISABLED;
+                err = ERR_UNKNOWN;
         }
+        else
+            err = ERR_BUILD_DISABLED;
     }
     else
         err = ERR_WRONG_OBJ;
@@ -647,6 +630,7 @@ bool CScriptFunctions::rResearch(CBotVar* var, CBotVar* result, int& exception, 
 
 bool CScriptFunctions::rTakeOff(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
+    ObjectType  fType = GetObjectDetails().GetFunctionTakeOffPerformerObject();
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
 
@@ -655,7 +639,7 @@ bool CScriptFunctions::rTakeOff(CBotVar* var, CBotVar* result, int& exception, v
     exception = 0;
     CObject* base;
     if (var == nullptr)
-        base = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_BASE);
+        base = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
     else
         base = static_cast<CObject*>(var->GetUserPtr());
 
@@ -675,7 +659,7 @@ bool CScriptFunctions::rTakeOff(CBotVar* var, CBotVar* result, int& exception, v
         return false;
     }
 
-    if ( base->GetType() == OBJECT_BASE )
+    if ( base->GetType() == fType )
         err = (static_cast<CAutoBase*>(automat))->TakeOff(false);
     else
         err = ERR_WRONG_OBJ;
@@ -875,33 +859,23 @@ static bool runSearch(CBotVar* var, Math::Vector pos, int& exception, std::funct
     {
         while ( array != nullptr )
         {
-            if (array->GetValInt() == OBJECT_MOBILEpr)
+            ObjectType t = static_cast<ObjectType>(array->GetValInt());
+            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
             {
-                type_v.push_back(OBJECT_MOBILEwt);
-                type_v.push_back(OBJECT_MOBILEtt);
-                type_v.push_back(OBJECT_MOBILEft);
-                type_v.push_back(OBJECT_MOBILEit);
-                type_v.push_back(OBJECT_MOBILErp);
-                type_v.push_back(OBJECT_MOBILEst);
+                type_v.push_back(it);
             }
-            type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
             array = array->GetNext();
         }
     }
     else
     {
-        if (type != OBJECT_NULL && type != OBJECT_MOBILEpr)
+        if (type != OBJECT_NULL)
         {
-            type_v.push_back(static_cast<ObjectType>(type));
-        }
-        else if (type == OBJECT_MOBILEpr)
-        {
-           type_v.push_back(OBJECT_MOBILEwt);
-           type_v.push_back(OBJECT_MOBILEtt);
-           type_v.push_back(OBJECT_MOBILEft);
-           type_v.push_back(OBJECT_MOBILEit);
-           type_v.push_back(OBJECT_MOBILErp);
-           type_v.push_back(OBJECT_MOBILEst);
+            ObjectType t = static_cast<ObjectType>(type);
+            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
+            {
+                type_v.push_back(it);
+            }
         }
     }
 
@@ -1065,33 +1039,23 @@ static bool runRadar(CBotVar* var, std::function<bool(std::vector<ObjectType>, f
     {
         while ( array != nullptr )
         {
-            if (array->GetValInt() == OBJECT_MOBILEpr)
+            ObjectType t = static_cast<ObjectType>(array->GetValInt());
+            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
             {
-                type_v.push_back(OBJECT_MOBILEwt);
-                type_v.push_back(OBJECT_MOBILEtt);
-                type_v.push_back(OBJECT_MOBILEft);
-                type_v.push_back(OBJECT_MOBILEit);
-                type_v.push_back(OBJECT_MOBILErp);
-                type_v.push_back(OBJECT_MOBILEst);
+                type_v.push_back(it);
             }
-            type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
             array = array->GetNext();
         }
     }
     else
     {
-        if (type != OBJECT_NULL && type != OBJECT_MOBILEpr)
+        if (type != OBJECT_NULL)
         {
-            type_v.push_back(static_cast<ObjectType>(type));
-        }
-        else if (type == OBJECT_MOBILEpr)
-        {
-           type_v.push_back(OBJECT_MOBILEwt);
-           type_v.push_back(OBJECT_MOBILEtt);
-           type_v.push_back(OBJECT_MOBILEft);
-           type_v.push_back(OBJECT_MOBILEit);
-           type_v.push_back(OBJECT_MOBILErp);
-           type_v.push_back(OBJECT_MOBILEst);
+            ObjectType t = static_cast<ObjectType>(type);
+            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
+            {
+                type_v.push_back(it);
+            }
         }
     }
 
@@ -1254,33 +1218,23 @@ bool CScriptFunctions::rDetect(CBotVar* var, CBotVar* result, int& exception, vo
         {
             while ( array != nullptr )
             {
-                if (array->GetValInt() == OBJECT_MOBILEpr)
+                ObjectType t = static_cast<ObjectType>(array->GetValInt());
+                for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
                 {
-                    type_v.push_back(OBJECT_MOBILEwt);
-                    type_v.push_back(OBJECT_MOBILEtt);
-                    type_v.push_back(OBJECT_MOBILEft);
-                    type_v.push_back(OBJECT_MOBILEit);
-                    type_v.push_back(OBJECT_MOBILErp);
-                    type_v.push_back(OBJECT_MOBILEst);
+                    type_v.push_back(it);
                 }
-                type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
                 array = array->GetNext();
             }
         }
         else
         {
-            if (type != OBJECT_NULL && type != OBJECT_MOBILEpr)
+            if (type != OBJECT_NULL)
             {
-                type_v.push_back(static_cast<ObjectType>(type));
-            }
-            else if (type == OBJECT_MOBILEpr)
-            {
-                type_v.push_back(OBJECT_MOBILEwt);
-                type_v.push_back(OBJECT_MOBILEtt);
-                type_v.push_back(OBJECT_MOBILEft);
-                type_v.push_back(OBJECT_MOBILEit);
-                type_v.push_back(OBJECT_MOBILErp);
-                type_v.push_back(OBJECT_MOBILEst);
+                ObjectType t = static_cast<ObjectType>(type);
+                for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
+                {
+                    type_v.push_back(it);
+                }
             }
         }
 
@@ -1408,12 +1362,7 @@ bool CScriptFunctions::rBuild(CBotVar* var, CBotVar* result, int& exception, voi
 
     oType = pThis->GetType();
 
-    if ( oType != OBJECT_MOBILEfb &&  // allowed only for builder bots && humans
-         oType != OBJECT_MOBILEtb &&
-         oType != OBJECT_MOBILEwb &&
-         oType != OBJECT_MOBILEib &&
-         oType != OBJECT_HUMAN    &&
-         oType != OBJECT_TECH      )
+    if ( !GetObjectDetails().IsFunctionImplementedBuild(oType) )
     {
         err = ERR_WRONG_BOT; // Wrong object
     }
@@ -1462,12 +1411,7 @@ bool CScriptFunctions::rFlag(CBotVar* var, CBotVar* result, int& exception, void
     if ( !script->m_taskExecutor->IsForegroundTask() )
     {
         oType = pThis->GetType();
-        if ( oType != OBJECT_MOBILEfs &&  // allowed only for sniffer bots && humans
-             oType != OBJECT_MOBILEts &&
-             oType != OBJECT_MOBILEws &&
-             oType != OBJECT_MOBILEis &&
-             oType != OBJECT_HUMAN    &&
-             oType != OBJECT_TECH      )
+        if ( !GetObjectDetails().IsFunctionImplementedFlags(oType) )
         {
             err = ERR_WRONG_BOT; // Wrong object
         }
@@ -1514,12 +1458,7 @@ bool CScriptFunctions::rDeflag(CBotVar* var, CBotVar* result, int& exception, vo
     if ( !script->m_taskExecutor->IsForegroundTask() )
     {
         oType = pThis->GetType();
-        if ( oType != OBJECT_MOBILEfs &&  // allowed only for sniffer bots && humans
-             oType != OBJECT_MOBILEts &&
-             oType != OBJECT_MOBILEws &&
-             oType != OBJECT_MOBILEis &&
-             oType != OBJECT_HUMAN    &&
-             oType != OBJECT_TECH      )
+        if ( !GetObjectDetails().IsFunctionImplementedFlags(oType) )
         {
             err = ERR_WRONG_BOT; // Wrong object
         }
@@ -1664,42 +1603,40 @@ bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, v
 
     CObject* object = nullptr;
 
-    if ( params.type == OBJECT_ANT    ||
-        params.type == OBJECT_SPIDER ||
-        params.type == OBJECT_BEE    ||
-        params.type == OBJECT_WORM   )
+    if (GetObjectDetails().IsProduceAlreadyCharged(params.type) && params.power == -1.0f)
+    {
+        params.power = 1.0f;
+    }
+
+    bool exists = GetObjectDetails().IsValidObjectTypeId(params.type);
+    if (exists)
     {
         object = CObjectManager::GetInstancePointer()->CreateObject(params);
-        params.type = OBJECT_EGG;
+    }
+    if (object == nullptr)
+    {
+        result->SetValInt(1);  // error
+        return true;
+    }
+
+    ObjectType container = GetObjectDetails().GetProduceContainer(params.type);
+    if (container != OBJECT_NULL)
+    {
+        params.type = container;
         CObjectManager::GetInstancePointer()->CreateObject(params);
         if (object->Implements(ObjectInterfaceType::Programmable))
         {
             dynamic_cast<CProgrammableObject&>(*object).SetActivity(false);
         }
     }
-    else
+
+    if (GetObjectDetails().IsProduceManual(params.type))
     {
-        if ((params.type == OBJECT_POWER || params.type == OBJECT_ATOMIC) && params.power == -1.0f)
-        {
-            params.power = 1.0f;
-        }
-        bool exists = IsValidObjectTypeId(params.type) && params.type != OBJECT_NULL && params.type != OBJECT_MAX && params.type != OBJECT_MOBILEpr;
-        if (exists)
-        {
-            object = CObjectManager::GetInstancePointer()->CreateObject(params);
-        }
-        if (object == nullptr)
-        {
-            result->SetValInt(1);  // error
-            return true;
-        }
-        if (params.type == OBJECT_MOBILEdr)
-        {
-            assert(object->Implements(ObjectInterfaceType::Old)); // TODO: temporary hack
-            dynamic_cast<COldObject&>(*object).SetManual(true);
-        }
-        script->m_main->CreateShortcuts();
+        assert(object->Implements(ObjectInterfaceType::Old)); // TODO: temporary hack
+        dynamic_cast<COldObject&>(*object).SetManual(true);
     }
+
+    script->m_main->CreateShortcuts();
 
     if (!name.empty())
     {
@@ -2159,28 +2096,21 @@ bool CScriptFunctions::rGrab(CBotVar* var, CBotVar* result, int& exception, void
     CObject*    pThis = script->m_object;
     ObjectType  oType;
     TaskManipArm type;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
     exception = 0;
 
     if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
     {
-        if ( var == nullptr )
-        {
-            type = TMA_FFRONT;
-        }
-        else
-        {
-            type = static_cast<TaskManipArm>(var->GetValInt());
-        }
+        if ( var == nullptr )  type = TMA_FFRONT;
+        else             type = static_cast<TaskManipArm>(var->GetValInt());
 
         oType = pThis->GetType();
-        if ( oType == OBJECT_HUMAN ||
-            oType == OBJECT_TECH  )
+        if ( GetObjectDetails().IsFunctionImplementedGrabAsHuman(oType) )
         {
             err = script->m_taskExecutor->StartTaskTake();
         }
-        else
+        if ( GetObjectDetails().IsFunctionImplementedGrabAsRobot(oType) )
         {
             err = script->m_taskExecutor->StartTaskManip(TMO_GRAB, type);
         }
@@ -2208,7 +2138,7 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
     CObject*    pThis = script->m_object;
     ObjectType  oType;
     TaskManipArm type;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
     exception = 0;
 
@@ -2218,12 +2148,11 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
         else             type = static_cast<TaskManipArm>(var->GetValInt());
 
         oType = pThis->GetType();
-        if ( oType == OBJECT_HUMAN ||
-            oType == OBJECT_TECH  )
+        if ( GetObjectDetails().IsFunctionImplementedGrabAsHuman(oType) )
         {
             err = script->m_taskExecutor->StartTaskTake();
         }
-        else
+        if ( GetObjectDetails().IsFunctionImplementedGrabAsRobot(oType) )
         {
             err = script->m_taskExecutor->StartTaskManip(TMO_DROP, type);
         }
@@ -2399,7 +2328,8 @@ bool CScriptFunctions::rSend(CBotVar* var, CBotVar* result, int& exception, void
 
 CExchangePost* CScriptFunctions::FindExchangePost(CObject* object, float power)
 {
-    CObject* exchangePost = CObjectManager::GetInstancePointer()->FindNearest(object, OBJECT_INFO, power/g_unit);
+    ObjectType  fType = GetObjectDetails().GetFunctionReceivePerformerObject();
+    CObject* exchangePost = CObjectManager::GetInstancePointer()->FindNearest(object, fType, power/g_unit);
     return dynamic_cast<CExchangePost*>(exchangePost);
 }
 
@@ -2575,7 +2505,7 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
     Error       err;
 
     // only shielder can use shield()
-    if (pThis->GetType() != OBJECT_MOBILErs)
+    if ( !GetObjectDetails().IsFunctionImplementedShield(pThis->GetType()) )
     {
         result->SetValInt(ERR_WRONG_BOT);  // return error
         if (script->m_errMode == ERM_STOP)
@@ -2637,18 +2567,22 @@ CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
 
     type = pThis->GetType();
 
-    if ( type == OBJECT_ANT )
+    if ( GetObjectDetails().IsFunctionImplementedShootAsAnt(type) )
     {
         if ( var == nullptr ) return CBotTypResult(CBotErrLowParam);
         CBotTypResult ret = cPoint(var, user);
         if ( ret.GetType() != 0 )  return ret;
         if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        return CBotTypResult(CBotTypFloat);
     }
-    else if ( type == OBJECT_SPIDER )
+
+    if ( GetObjectDetails().IsFunctionImplementedShootAsSpider(type) )
     {
         if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        return CBotTypResult(CBotTypFloat);
     }
-    else
+    
+    if ( GetObjectDetails().IsFunctionImplementedShootAsRobot(type) )
     {
         if ( var != nullptr )
         {
@@ -2656,8 +2590,10 @@ CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
             var = var->GetNext();
             if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
         }
+        return CBotTypResult(CBotTypFloat);
     }
-    return CBotTypResult(CBotTypFloat);
+
+    return CBotTypResult(CBotErrNoFunc);
 }
 
 // Instruction "fire(delay)".
@@ -2668,7 +2604,7 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
     CObject*    pThis = script->m_object;
     float       delay;
     Math::Vector    impact;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
     ObjectType  type;
 
     exception = 0;
@@ -2677,25 +2613,29 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
     {
         type = pThis->GetType();
 
-        if ( type == OBJECT_ANT )
+        if ( GetObjectDetails().IsFunctionImplementedShootAsAnt(type) )
         {
             if ( !GetPoint(var, exception, impact) )  return true;
             float waterLevel = Gfx::CEngine::GetInstancePointer()->GetWater()->GetLevel();
             impact.y += waterLevel;
             err = script->m_taskExecutor->StartTaskFireAnt(impact);
         }
-        else if ( type == OBJECT_SPIDER )
+
+        if ( GetObjectDetails().IsFunctionImplementedShootAsSpider(type) )
         {
             err = script->m_taskExecutor->StartTaskSpiderExplo();
         }
-        else
+
+        if ( GetObjectDetails().IsFunctionImplementedShootAsRobot(type) )
         {
             if ( var == nullptr )  delay = 0.0f;
             else             delay = var->GetValFloat();
             if ( delay < 0.0f ) delay = -delay;
             err = script->m_taskExecutor->StartTaskFire(delay);
         }
+
         result->SetValInt(err); // indicates the error or ok
+
         if ( err != ERR_OK )
         {
             script->m_taskExecutor->StopForegroundTask();
@@ -3023,7 +2963,7 @@ bool CScriptFunctions::rPenDown(CBotVar* var, CBotVar* result, int& exception, v
     }
     traceDrawing->SetTraceDown(true);
 
-    if ( pThis->GetType() == OBJECT_MOBILEdr )
+    if ( GetObjectDetails().IsFunctionImplementedDrawAsRobot(pThis->GetType()) )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -3072,7 +3012,7 @@ bool CScriptFunctions::rPenUp(CBotVar* var, CBotVar* result, int& exception, voi
     CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
     traceDrawing->SetTraceDown(false);
 
-    if ( pThis->GetType() == OBJECT_MOBILEdr )
+    if ( GetObjectDetails().IsFunctionImplementedDrawAsRobot(pThis->GetType()) )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -3126,7 +3066,7 @@ bool CScriptFunctions::rPenColor(CBotVar* var, CBotVar* result, int& exception, 
     if ( color > static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max);
     traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
 
-    if ( pThis->GetType() == OBJECT_MOBILEdr )
+    if ( GetObjectDetails().IsFunctionImplementedDrawAsRobot(pThis->GetType()) )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -3433,12 +3373,12 @@ void CScriptFunctions::Init()
     for (int i = 0; i < OBJECT_MAX; i++)
     {
         ObjectType type = static_cast<ObjectType>(i);
-        const char* token = GetObjectName(type);
-        if (token[0] != 0)
+        std::string token = GetObjectName(type);
+        if (token.size())
             CBotProgram::DefineNum(token, type);
 
         token = GetObjectAlias(type);
-        if (token[0] != 0)
+        if (token.size())
             CBotProgram::DefineNum(token, type);
     }
     CBotProgram::DefineNum("Any", OBJECT_NULL);

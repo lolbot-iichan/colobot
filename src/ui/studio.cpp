@@ -511,8 +511,8 @@ void CStudio::SearchToken(CEdit* edit)
         for ( i=0 ; i<OBJECT_MAX ; i++ )
         {
             type = static_cast< ObjectType >(i);
-            text = const_cast<char *>(GetObjectName(type));
-            if ( text[0] != 0 )
+            text = GetObjectName(type);
+            if ( text.size() )
             {
                 if ( token == text )
                 {
@@ -521,8 +521,8 @@ void CStudio::SearchToken(CEdit* edit)
                     return;
                 }
             }
-            text = const_cast<char *>(GetObjectAlias(type));
-            if ( text[0] != 0 )
+            text = GetObjectAlias(type);
+            if ( text.size() )
             {
                 if ( token == text )
                 {

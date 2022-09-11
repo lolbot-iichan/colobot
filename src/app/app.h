@@ -33,7 +33,6 @@
 
 #include "level/level_category.h"
 
-
 #include <string>
 #include <vector>
 #include <map>
@@ -47,6 +46,7 @@ class CModManager;
 class CPathManager;
 class CConfigFile;
 class CSystemUtils;
+class CObjectDetails;
 
 namespace Gfx
 {
@@ -335,6 +335,8 @@ protected:
     std::unique_ptr<CPathManager> m_pathManager;
     //! Mod manager
     std::unique_ptr<CModManager> m_modManager;
+    //! Object details
+    std::unique_ptr<CObjectDetails> m_objectDetails;
 
     //! Code to return at exit
     int             m_exitCode;

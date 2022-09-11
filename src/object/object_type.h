@@ -249,4 +249,3 @@ struct ObjectTypeHash
     }
 };
 
-bool IsValidObjectTypeId(int id);

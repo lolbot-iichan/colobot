@@ -35,6 +35,7 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/interface/controllable_object.h"
@@ -317,31 +318,8 @@ void CCamera::SetType(CameraType type)
         if ( m_cameraObj == nullptr )  oType = OBJECT_NULL;
         else                     oType = m_cameraObj->GetType();
 
-        m_backDist = 30.0f;
-        if ( oType == OBJECT_BASE     )  m_backDist = 200.0f;
-        if ( oType == OBJECT_HUMAN    )  m_backDist =  20.0f;
-        if ( oType == OBJECT_TECH     )  m_backDist =  20.0f;
-        if ( oType == OBJECT_FACTORY  )  m_backDist =  50.0f;
-        if ( oType == OBJECT_RESEARCH )  m_backDist =  40.0f;
-        if ( oType == OBJECT_DERRICK  )  m_backDist =  40.0f;
-        if ( oType == OBJECT_REPAIR   )  m_backDist =  35.0f;
-        if ( oType == OBJECT_DESTROYER)  m_backDist =  35.0f;
-        if ( oType == OBJECT_TOWER    )  m_backDist =  45.0f;
-        if ( oType == OBJECT_NUCLEAR  )  m_backDist =  70.0f;
-        if ( oType == OBJECT_PARA     )  m_backDist = 180.0f;
-        if ( oType == OBJECT_SAFE     )  m_backDist =  50.0f;
-        if ( oType == OBJECT_HUSTON   )  m_backDist = 120.0f;
-        if ( oType == OBJECT_MOTHER   )  m_backDist =  55.0f;
-
-        m_backMin = m_backDist/3.0f;
-        if ( oType == OBJECT_HUMAN    )  m_backMin =  10.0f;
-        if ( oType == OBJECT_TECH     )  m_backMin =  10.0f;
-        if ( oType == OBJECT_FACTORY  )  m_backMin =  30.0f;
-        if ( oType == OBJECT_RESEARCH )  m_backMin =  20.0f;
-        if ( oType == OBJECT_NUCLEAR  )  m_backMin =  32.0f;
-        if ( oType == OBJECT_PARA     )  m_backMin =  40.0f;
-        if ( oType == OBJECT_SAFE     )  m_backMin =  25.0f;
-        if ( oType == OBJECT_HUSTON   )  m_backMin =  80.0f;
+        m_backDist = GetObjectDetails().GetBackCameraDistance(oType);
+        m_backMin = GetObjectDetails().GetBackCameraDistanceMin(oType);
     }
 
     //if ( type != CAM_TYPE_ONBOARD && m_cameraObj != 0 )
@@ -838,31 +816,10 @@ void CCamera::IsCollisionBack()
 
         if (obj == m_cameraObj) continue;
 
-        if ( iType == OBJECT_BASE     ||  // building?
-             iType == OBJECT_DERRICK  ||
-             iType == OBJECT_FACTORY  ||
-             iType == OBJECT_STATION  ||
-             iType == OBJECT_CONVERT  ||
-             iType == OBJECT_REPAIR   ||
-             iType == OBJECT_DESTROYER||
-             iType == OBJECT_TOWER    ||
-             iType == OBJECT_RESEARCH ||
-             iType == OBJECT_RADAR    ||
-             iType == OBJECT_ENERGY   ||
-             iType == OBJECT_LABO     ||
-             iType == OBJECT_NUCLEAR  ||
-             iType == OBJECT_PARA     ||
-             iType == OBJECT_SAFE     ||
-             iType == OBJECT_HUSTON   )  continue;
+        if ( !GetObjectDetails().GetBackCameraCanForceTransparency(iType) ) continue;
 
         ObjectType oType = obj->GetType();
-        if ( oType == OBJECT_HUMAN  ||
-             oType == OBJECT_TECH   ||
-             oType == OBJECT_TOTO   ||
-             oType == OBJECT_ANT    ||
-             oType == OBJECT_SPIDER ||
-             oType == OBJECT_BEE    ||
-             oType == OBJECT_WORM   )  continue;
+        if ( !GetObjectDetails().GetBackCameraCanViewAsTransparent(oType) ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector oPos = objSphere.pos;
@@ -905,22 +862,7 @@ void CCamera::IsCollisionFix(Math::Vector &eye, Math::Vector lookat)
         if (obj == m_cameraObj) continue;
 
         ObjectType type = obj->GetType();
-        if ( type == OBJECT_TOTO    ||
-             type == OBJECT_STONE   ||
-             type == OBJECT_URANIUM ||
-             type == OBJECT_METAL   ||
-             type == OBJECT_POWER   ||
-             type == OBJECT_ATOMIC  ||
-             type == OBJECT_BULLET  ||
-             type == OBJECT_BBOX    ||
-             type == OBJECT_KEYa    ||
-             type == OBJECT_KEYb    ||
-             type == OBJECT_KEYc    ||
-             type == OBJECT_KEYd    ||
-             type == OBJECT_ANT     ||
-             type == OBJECT_SPIDER  ||
-             type == OBJECT_BEE     ||
-             type == OBJECT_WORM )  continue;
+        if ( !GetObjectDetails().GetFixCameraCanCollide(type) ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector objPos = objSphere.pos;
@@ -1174,48 +1116,18 @@ bool CCamera::EventFrameBack(const Event &event)
         ObjectType type = m_cameraObj->GetType();
 
         Math::Vector lookatPt = m_cameraObj->GetPosition();
-             if (type == OBJECT_BASE ) lookatPt.y += 40.0f;
-        else if (type == OBJECT_HUMAN) lookatPt.y +=  1.0f;
-        else if (type == OBJECT_TECH ) lookatPt.y +=  1.0f;
-        else                           lookatPt.y +=  4.0f;
+        lookatPt.y += GetObjectDetails().GetBackCameraHeight(type);
+
 
         float h = -m_cameraObj->GetRotationY();  // angle vehicle / building
-
-        if ( type == OBJECT_DERRICK  ||
-             type == OBJECT_FACTORY  ||
-             type == OBJECT_REPAIR   ||
-             type == OBJECT_DESTROYER||
-             type == OBJECT_STATION  ||
-             type == OBJECT_CONVERT  ||
-             type == OBJECT_TOWER    ||
-             type == OBJECT_RESEARCH ||
-             type == OBJECT_RADAR    ||
-             type == OBJECT_INFO     ||
-             type == OBJECT_ENERGY   ||
-             type == OBJECT_LABO     ||
-             type == OBJECT_NUCLEAR  ||
-             type == OBJECT_PARA     ||
-             type == OBJECT_SAFE     ||
-             type == OBJECT_HUSTON   ||
-             type == OBJECT_START    ||
-             type == OBJECT_END      )  // building?
-        {
-            h += Math::PI * 0.20f;  // nearly face
-        }
-        else    // vehicle?
-        {
-            h += Math::PI;  // back
-        }
+        h += Math::PI * GetObjectDetails().GetBackCameraRotationY(type);
         h = Math::NormAngle(h);
-        float v = 0.0f;  //?
 
         h += m_centeringCurrentH;
         h += m_addDirectionH * (1.0f - centeringH);
         h = Math::NormAngle(h);
 
-        if (type == OBJECT_MOBILEdr)  // designer?
-            v -= 0.3f;  // Camera top
-
+        float v = 0.0f - GetObjectDetails().GetBackCameraRotationZ(type);  // Camera top
         v += m_centeringCurrentV;
         v += m_addDirectionV * (1.0f - centeringV);
 

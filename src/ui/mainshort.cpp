@@ -28,6 +28,7 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/interface/controllable_object.h"
@@ -179,89 +180,11 @@ bool CMainShort::CreateShortcuts()
 
 int CMainShort::GetShortcutIcon(ObjectType type)
 {
-    int icon = -1;
-    if ( m_bBuilding )
-    {
-        switch ( type )
-        {
-            case OBJECT_FACTORY:    icon = 32; break;
-            case OBJECT_DERRICK:    icon = 33; break;
-            case OBJECT_CONVERT:    icon = 34; break;
-            case OBJECT_RESEARCH:   icon = 35; break;
-            case OBJECT_STATION:    icon = 36; break;
-            case OBJECT_TOWER:      icon = 37; break;
-            case OBJECT_LABO:       icon = 38; break;
-            case OBJECT_ENERGY:     icon = 39; break;
-            case OBJECT_RADAR:      icon = 40; break;
-            case OBJECT_INFO:       icon = 44; break;
-            case OBJECT_REPAIR:     icon = 41; break;
-            case OBJECT_DESTROYER:  icon = 41; break;
-            case OBJECT_NUCLEAR:    icon = 42; break;
-            case OBJECT_PARA:       icon = 46; break;
-            case OBJECT_SAFE:       icon = 47; break;
-            case OBJECT_HUSTON:     icon = 48; break;
-            case OBJECT_BASE:       icon = 43; break;
-            default:                return -1;
-        }
-    }
-    else
-    {
-        switch ( type )
-        {
-            case OBJECT_HUMAN:      icon =  8; break;
-            case OBJECT_MOBILEfa:   icon = 11; break;
-            case OBJECT_MOBILEta:   icon = 10; break;
-            case OBJECT_MOBILEwa:   icon =  9; break;
-            case OBJECT_MOBILEia:   icon = 22; break;
-            case OBJECT_MOBILEfb:   icon =  2; break; // button4
-            case OBJECT_MOBILEtb:   icon =  1; break;
-            case OBJECT_MOBILEwb:   icon =  0; break;
-            case OBJECT_MOBILEib:   icon =  3; break;
-            case OBJECT_MOBILEfc:   icon = 17; break;
-            case OBJECT_MOBILEtc:   icon = 16; break;
-            case OBJECT_MOBILEwc:   icon = 15; break;
-            case OBJECT_MOBILEic:   icon = 23; break;
-            case OBJECT_MOBILEfi:   icon = 27; break;
-            case OBJECT_MOBILEti:   icon = 26; break;
-            case OBJECT_MOBILEwi:   icon = 25; break;
-            case OBJECT_MOBILEii:   icon = 28; break;
-            case OBJECT_MOBILEfs:   icon = 14; break;
-            case OBJECT_MOBILEts:   icon = 13; break;
-            case OBJECT_MOBILEws:   icon = 12; break;
-            case OBJECT_MOBILEis:   icon = 24; break;
-            case OBJECT_MOBILErt:   icon = 18; break;
-            case OBJECT_MOBILErc:   icon = 19; break;
-            case OBJECT_MOBILErr:   icon = 20; break;
-            case OBJECT_MOBILErs:   icon = 29; break;
-            case OBJECT_MOBILEsa:   icon = 21; break;
-            case OBJECT_MOBILEft:   icon =  6; break;
-            case OBJECT_MOBILEtt:   icon =  5; break;
-            case OBJECT_MOBILEwt:   icon = 30; break;
-            case OBJECT_MOBILEit:   icon =  7; break;
-            case OBJECT_MOBILErp:   icon =  9; break;
-            case OBJECT_MOBILEst:   icon = 10; break;
-            case OBJECT_MOBILEtg:   icon = 45; break;
-            case OBJECT_MOBILEdr:   icon = 48; break;
-            case OBJECT_APOLLO2:    icon = 49; break;
-            default:                return -1;
-        }
-    }
-
-    switch ( type )
-    {
-        case OBJECT_MOBILEfb:
-        case OBJECT_MOBILEtb:
-        case OBJECT_MOBILEwb:
-        case OBJECT_MOBILEib:
-        case OBJECT_MOBILEft:
-        case OBJECT_MOBILEtt:
-        case OBJECT_MOBILEit:
-        case OBJECT_MOBILErp:
-        case OBJECT_MOBILEst:
-            return 192+icon;
-        default:
-            return 128+icon;
-    }
+    if (m_bBuilding && !GetObjectDetails().IsShortcutBuilding(type))
+        return -1;
+    if (!m_bBuilding && !GetObjectDetails().IsShortcutMovable(type))
+        return -1;
+    return GetObjectDetails().GetShortcutIcon(type);
 }
 
 // Updates the interface shortcuts to the units.
@@ -273,10 +196,9 @@ bool CMainShort::UpdateShortcuts()
         CControl* pc = m_interface->SearchControl(static_cast<EventType>(EVENT_OBJECT_SHORTCUT+i));
         if ( pc != nullptr )
         {
-            assert(m_shortcuts[i]->Implements(ObjectInterfaceType::Controllable));
-            pc->SetState(STATE_CHECK, dynamic_cast<CControllableObject&>(*m_shortcuts[i]).GetSelect());
-            pc->SetState(STATE_RUN, m_shortcuts[i]->Implements(ObjectInterfaceType::Programmable) && dynamic_cast<CProgrammableObject&>(*m_shortcuts[i]).IsProgram());
-            pc->SetState(STATE_DAMAGE, dynamic_cast<CDamageableObject&>(*m_shortcuts[i]).IsDamaging());
+            pc->SetState(STATE_CHECK,  m_shortcuts[i]->Implements(ObjectInterfaceType::Controllable) && dynamic_cast<CControllableObject&>(*m_shortcuts[i]).GetSelect());
+            pc->SetState(STATE_RUN,    m_shortcuts[i]->Implements(ObjectInterfaceType::Programmable) && dynamic_cast<CProgrammableObject&>(*m_shortcuts[i]).IsProgram());
+            pc->SetState(STATE_DAMAGE, m_shortcuts[i]->Implements(ObjectInterfaceType::Damageable)   && dynamic_cast<CDamageableObject&>(*m_shortcuts[i]).IsDamaging());
         }
     }
     return true;

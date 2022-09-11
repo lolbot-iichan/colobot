@@ -22,6 +22,8 @@
 #include "common/error.h"
 #include "common/event.h"
 
+#include "object/object_type.h"
+
 #include <array>
 
 class CObject;
@@ -72,8 +74,8 @@ public:
     float       GetVisitDist(EventType event);
     float       GetVisitHeight(EventType event);
 
-    float       GetIdealDist(CObject* pObj);
-    float       GetIdealHeight(CObject* pObj);
+    float       GetIdealDist(ObjectType type);
+    float       GetIdealHeight(ObjectType type);
 
     void        ClearVisit();
     void        SetVisit(EventType event);

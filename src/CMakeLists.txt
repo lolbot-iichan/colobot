@@ -296,6 +296,8 @@ add_library(colobotbase STATIC
     object/object_interface_type.h
     object/object_manager.cpp
     object/object_manager.h
+    object/object_details.cpp
+    object/object_details.h
     object/object_type.cpp
     object/object_type.h
     object/old_object.cpp

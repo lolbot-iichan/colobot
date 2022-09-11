@@ -43,6 +43,7 @@
 
 #include "level/robotmain.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "sound/sound.h"
@@ -712,6 +713,8 @@ bool CApplication::Create()
     }
 
     m_eventQueue = MakeUnique<CEventQueue>();
+
+    m_objectDetails = MakeUnique<CObjectDetails>();
 
     // Create the robot application.
     m_controller = MakeUnique<CController>();

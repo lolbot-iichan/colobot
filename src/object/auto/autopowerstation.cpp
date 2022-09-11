@@ -25,6 +25,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -226,40 +227,7 @@ CObject* CAutoPowerStation::SearchVehicle()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
-        if ( type != OBJECT_HUMAN    &&
-             type != OBJECT_MOBILEfa &&
-             type != OBJECT_MOBILEta &&
-             type != OBJECT_MOBILEwa &&
-             type != OBJECT_MOBILEia &&
-             type != OBJECT_MOBILEfb &&
-             type != OBJECT_MOBILEtb &&
-             type != OBJECT_MOBILEwb &&
-             type != OBJECT_MOBILEib &&
-             type != OBJECT_MOBILEfc &&
-             type != OBJECT_MOBILEtc &&
-             type != OBJECT_MOBILEwc &&
-             type != OBJECT_MOBILEic &&
-             type != OBJECT_MOBILEfi &&
-             type != OBJECT_MOBILEti &&
-             type != OBJECT_MOBILEwi &&
-             type != OBJECT_MOBILEii &&
-             type != OBJECT_MOBILEfs &&
-             type != OBJECT_MOBILEts &&
-             type != OBJECT_MOBILEws &&
-             type != OBJECT_MOBILEis &&
-             type != OBJECT_MOBILErt &&
-             type != OBJECT_MOBILErc &&
-             type != OBJECT_MOBILErr &&
-             type != OBJECT_MOBILErs &&
-             type != OBJECT_MOBILEsa &&
-             type != OBJECT_MOBILEft &&
-             type != OBJECT_MOBILEtt &&
-             type != OBJECT_MOBILEwt &&
-             type != OBJECT_MOBILEit &&
-             type != OBJECT_MOBILErp &&
-             type != OBJECT_MOBILEst &&
-             type != OBJECT_MOBILEtg &&
-             type != OBJECT_MOBILEdr )  continue;
+        if ( GetObjectDetails().IsAutoBlockingPowerStation(type) )  continue;
 
         Math::Vector oPos = obj->GetPosition();
         float dist = Math::Distance(oPos, sPos);

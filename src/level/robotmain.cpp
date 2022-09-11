@@ -1850,40 +1850,7 @@ void CRobotMain::SelectOneObject(CObject* obj, bool displayError)
     m_camera->SetControllingObject(obj);
 
     ObjectType type = obj->GetType();
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2  )
+    if ( GetObjectDetails().IsCameraTypePersistent(type) )
     {
         m_camera->SetType(dynamic_cast<CControllableObject&>(*obj).GetCameraType());
     }
@@ -2227,42 +2194,7 @@ void CRobotMain::ChangeCamera()
     ObjectType oType = obj->GetType();
     Gfx::CameraType type = controllableObj->GetCameraType();
 
-    if ( oType != OBJECT_HUMAN &&
-         oType != OBJECT_TECH &&
-         oType != OBJECT_MOBILEfa &&
-         oType != OBJECT_MOBILEta &&
-         oType != OBJECT_MOBILEwa &&
-         oType != OBJECT_MOBILEia &&
-         oType != OBJECT_MOBILEfb &&
-         oType != OBJECT_MOBILEtb &&
-         oType != OBJECT_MOBILEwb &&
-         oType != OBJECT_MOBILEib &&
-         oType != OBJECT_MOBILEfc &&
-         oType != OBJECT_MOBILEtc &&
-         oType != OBJECT_MOBILEwc &&
-         oType != OBJECT_MOBILEic &&
-         oType != OBJECT_MOBILEfi &&
-         oType != OBJECT_MOBILEti &&
-         oType != OBJECT_MOBILEwi &&
-         oType != OBJECT_MOBILEii &&
-         oType != OBJECT_MOBILEfs &&
-         oType != OBJECT_MOBILEts &&
-         oType != OBJECT_MOBILEws &&
-         oType != OBJECT_MOBILEis &&
-         oType != OBJECT_MOBILErt &&
-         oType != OBJECT_MOBILErc &&
-         oType != OBJECT_MOBILErr &&
-         oType != OBJECT_MOBILErs &&
-         oType != OBJECT_MOBILEsa &&
-         oType != OBJECT_MOBILEtg &&
-         oType != OBJECT_MOBILEft &&
-         oType != OBJECT_MOBILEtt &&
-         oType != OBJECT_MOBILEwt &&
-         oType != OBJECT_MOBILEit &&
-         oType != OBJECT_MOBILErp &&
-         oType != OBJECT_MOBILEst &&
-         oType != OBJECT_MOBILEdr &&
-         oType != OBJECT_APOLLO2  )  return;
+    if ( !GetObjectDetails().IsCameraTypeChangable(oType) )  return;
 
     if (oType == OBJECT_MOBILEdr)  // designer?
     {
@@ -4295,24 +4227,7 @@ void CRobotMain::ShowDropZone(CObject* metal, CObject* transporter)
             }
         }
 
-        if ( type == OBJECT_DERRICK  ||
-             type == OBJECT_FACTORY  ||
-             type == OBJECT_STATION  ||
-             type == OBJECT_CONVERT  ||
-             type == OBJECT_REPAIR   ||
-             type == OBJECT_DESTROYER||
-             type == OBJECT_TOWER    ||
-             type == OBJECT_RESEARCH ||
-             type == OBJECT_RADAR    ||
-             type == OBJECT_ENERGY   ||
-             type == OBJECT_LABO     ||
-             type == OBJECT_NUCLEAR  ||
-             type == OBJECT_START    ||
-             type == OBJECT_END      ||
-             type == OBJECT_INFO     ||
-             type == OBJECT_PARA     ||
-             type == OBJECT_SAFE     ||
-             type == OBJECT_HUSTON   )  // building?
+        if ( GetObjectDetails().IsBlockingBuilding(type) )  // building?
         {
             for (const auto& crashSphere : obj->GetAllCrashSpheres())
             {

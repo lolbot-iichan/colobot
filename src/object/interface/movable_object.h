@@ -42,7 +42,7 @@ public:
     virtual ~CMovableObject()
     {}
 
-    //! Returns CPhysics instance associated with this object. If the object implements Movable interface, and type != OBJECT_TOTO, this can be assumed to be != nullptr
+    //! Returns CPhysics instance associated with this object. If the object implements Movable interface,this can be assumed to be != nullptr (except for IsNotPhysicalObject objects )
     virtual CPhysics* GetPhysics() = 0;
     //! Returns CMotion instance associated with this object. If the object implements Movable interface, this can be assumed to be != nullptr
     virtual CMotion* GetMotion() = 0;

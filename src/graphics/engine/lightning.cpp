@@ -33,6 +33,7 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/auto/autopowercaptor.h"
@@ -114,19 +115,16 @@ bool CLightning::EventFrame(const Event &event)
                 m_pos = obj->GetPosition();
                 m_terrain->AdjustToFloor(m_pos, true);
 
-                // TODO: CLightningConductorObject
                 ObjectType type = obj->GetType();
-                if (type == OBJECT_BASE)
+                float lightningRodHeight = GetObjectDetails().GetLightningRodHeight(type);
+                if (lightningRodHeight > 0)
                 {
-                    m_pos.y += 120.0f;  // top of the rocket
-                }
-                else if (type == OBJECT_PARA)
-                {
-                    CAutoPowerCaptor* automat = static_cast<CAutoPowerCaptor*>(obj->GetAuto());
+                    // TODO: CLightningConductorObject
+                    CAutoPowerCaptor* automat = dynamic_cast<CAutoPowerCaptor*>(obj->GetAuto());
                     if (automat != nullptr)
                         automat->StartLightning();
 
-                    m_pos.y += 67.0f;  // top of lightning rod
+                    m_pos.y += lightningRodHeight;  // top of the lightning rod / rocket top
                 }
                 else
                 {
@@ -313,8 +311,7 @@ CObject* CLightning::SearchObject(Math::Vector pos)
         if (IsObjectBeingTransported(obj)) continue;
 
         ObjectType type = obj->GetType();
-        if ( type == OBJECT_BASE ||
-             type == OBJECT_PARA )  // building a lightning effect?
+        if ( GetObjectDetails().GetLightningRodHeight(type) > 0 )  // building a lightning effect?
         {
             paraObj.push_back(obj);
             paraObjPos.push_back(obj->GetPosition());
