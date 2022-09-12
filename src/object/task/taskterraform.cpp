@@ -27,6 +27,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -363,121 +364,43 @@ bool CTaskTerraform::Terraform()
         type = pObj->GetType();
         if ( type == OBJECT_NULL )  continue;
 
-        if ( type == OBJECT_TEEN0        ||
-             type == OBJECT_TEEN1        ||
-             type == OBJECT_TEEN2        ||
-             type == OBJECT_TEEN4        ||
-             type == OBJECT_TEEN5        ||
-             type == OBJECT_TEEN34       ||
-             type == OBJECT_POWER        ||
-             type == OBJECT_ATOMIC       ||
-             type == OBJECT_STONE        ||
-             type == OBJECT_URANIUM      ||
-             type == OBJECT_METAL        ||
-             type == OBJECT_BULLET       ||
-             type == OBJECT_BBOX         ||
-             type == OBJECT_KEYa         ||
-             type == OBJECT_KEYb         ||
-             type == OBJECT_KEYc         ||
-             type == OBJECT_KEYd         ||
-             type == OBJECT_TNT          ||
-             type == OBJECT_NEST         ||
-             type == OBJECT_BOMB         ||
-             type == OBJECT_WINFIRE      ||
-             type == OBJECT_BAG          ||
-             type == OBJECT_PLANT0       ||
-             type == OBJECT_PLANT1       ||
-             type == OBJECT_PLANT2       ||
-             type == OBJECT_PLANT3       ||
-             type == OBJECT_PLANT4       ||
-             type == OBJECT_PLANT5       ||
-             type == OBJECT_PLANT6       ||
-             type == OBJECT_PLANT7       ||
-             type == OBJECT_PLANT15      ||
-             type == OBJECT_PLANT16      ||
-             type == OBJECT_PLANT17      ||
-             type == OBJECT_PLANT18      ||
-             type == OBJECT_PLANT19      ||
-             type == OBJECT_EGG          ||
-             type == OBJECT_RUINmobilew1 ||
-             type == OBJECT_RUINmobilew2 ||
-             type == OBJECT_RUINmobilet1 ||
-             type == OBJECT_RUINmobilet2 ||
-             type == OBJECT_RUINdoor     ||
-             type == OBJECT_RUINsupport  ||
-             type == OBJECT_RUINradar    ||
-             type == OBJECT_BARRIER0     ||
-             type == OBJECT_BARRIER1     ||
-             type == OBJECT_BARRIER2     ||
-             type == OBJECT_BARRIER3     ||
-             type == OBJECT_APOLLO4      )  // everything what fits?
+        dist = Math::Distance(m_terraPos, pObj->GetPosition());
+
+        float radius = GetObjectDetails().GetThumperSafeRadius(type);
+        Gfx::PyroType pyroType = GetObjectDetails().GetThumperPyroType(type);
+        float explosiveDamage = GetObjectDetails().GetThumperExplosionDamage(type);
+        bool turnOnBack = GetObjectDetails().GetThumperTurnOnBack(type);
+
+        // turning insects on their back action
         {
-            dist = Math::Distance(m_terraPos, pObj->GetPosition());
-
-            if ( type == OBJECT_BULLET ||
-                 type == OBJECT_NEST   ||
-                 type == OBJECT_EGG    ) // Alien Organic?
-            {
-                if ( dist > 5.0f )  continue;
-                m_engine->GetPyroManager()->Create(Gfx::PT_FRAGO, pObj);
-            }
-            else if ( type == OBJECT_TNT  ||
-                      type == OBJECT_BOMB ) // Explosives?
-            {
-                if ( dist > 5.0f )  continue;
-                m_engine->GetPyroManager()->Create(Gfx::PT_EXPLOT, pObj);
-                dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive, 0.9f);
-            }
-            else if ( type == OBJECT_PLANT0    ||
-                      type == OBJECT_PLANT1    ||
-                      type == OBJECT_PLANT2    ||
-                      type == OBJECT_PLANT3    ||
-                      type == OBJECT_PLANT4    ||
-                      type == OBJECT_PLANT5    ||
-                      type == OBJECT_PLANT6    ||
-                      type == OBJECT_PLANT7    ||
-                      type == OBJECT_PLANT15   ||
-                      type == OBJECT_PLANT16   ||
-                      type == OBJECT_PLANT17   ||
-                      type == OBJECT_PLANT18   ||
-                      type == OBJECT_PLANT19   ) // Plants?
-            {
-                if ( dist > 7.5f )  continue;
-                m_engine->GetPyroManager()->Create(Gfx::PT_FRAGV, pObj);
-
-            }
-            else // Other?
-            {
-                if ( dist > 5.0f )  continue;
-                m_engine->GetPyroManager()->Create(Gfx::PT_FRAGT, pObj);
-            }
-        }
-        else
-        {
-            if ( !pObj->Implements(ObjectInterfaceType::Movable) )  continue;
-            motion = dynamic_cast<CMovableObject&>(*pObj).GetMotion();
-
-            dist = Math::Distance(m_terraPos, pObj->GetPosition());
             if ( dist > ACTION_RADIUS )  continue;
-
-            if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
+    
+            if ( turnOnBack )
             {
+                assert(pObj->Implements(ObjectInterfaceType::Movable));
+                motion = dynamic_cast<CMovableObject&>(*pObj).GetMotion();
+    
                 assert(pObj->Implements(ObjectInterfaceType::TaskExecutor));
                 dynamic_cast<CTaskExecutorObject&>(*pObj).StopForegroundTask();
-
+    
                 int actionType = -1;
                 if (type == OBJECT_ANT)    actionType = MAS_BACK1;
                 if (type == OBJECT_SPIDER) actionType = MSS_BACK1;
                 motion->SetAction(actionType, 0.8f+Math::Rand()*0.3f);
-                dynamic_cast<CBaseAlien&>(*pObj).SetFixed(true);  // not moving
-
-                if ( dist > 5.0f ) continue;
-                m_engine->GetPyroManager()->Create(Gfx::PT_EXPLOO, pObj);
+    
+                assert(dynamic_cast<CBaseAlien*>(pObj) != nullptr);
+                dynamic_cast<CBaseAlien*>(pObj)->SetFixed(true);  // not moving
             }
-            else if ( type == OBJECT_BEE || type == OBJECT_WORM )
+        }
+
+        // destroying small objects action
+        {
+            if ( dist > radius )  continue;
+            m_engine->GetPyroManager()->Create(pyroType, pObj);
+    
+            if ( explosiveDamage != 0.0f )
             {
-                if ( dist > 5.0f ) continue;
-                m_engine->GetPyroManager()->Create(Gfx::PT_EXPLOO, pObj);
+                dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive, explosiveDamage);
             }
         }
     }

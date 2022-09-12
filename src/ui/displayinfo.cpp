@@ -36,6 +36,7 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/interface/movable_object.h"
@@ -906,7 +907,9 @@ void CDisplayInfo::ViewDisplayInfo()
 
 CObject* CDisplayInfo::SearchToto()
 {
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, OBJECT_TOTO);
+    if (GetObjectDetails().IsAssistantReactingOnDisplayedInfo())
+        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, GetObjectDetails().GetAssistantType());
+    return nullptr;
 }
 
 }

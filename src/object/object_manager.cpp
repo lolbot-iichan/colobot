@@ -27,6 +27,7 @@
 #include "object/object.h"
 #include "object/object_create_exception.h"
 #include "object/object_create_params.h"
+#include "object/object_details.h"
 #include "object/object_factory.h"
 #include "object/old_object.h"
 
@@ -357,7 +358,7 @@ std::vector<CObject*> CObjectManager::RadarAll(CObject* pThis, Math::Vector this
 
         if ( std::find(type.begin(), type.end(), oType) == type.end() && type.size() > 0 )  continue;
 
-        if ( (oType == OBJECT_TOTO || oType == OBJECT_CONTROLLER) && type.size() == 0 )  continue; // allow OBJECT_TOTO and OBJECT_CONTROLLER only if explicitly asked in type parameter
+        if ( GetObjectDetails().IsRadarExplicitOnly(oType) && type.size() == 0 )  continue; // allow only if explicitly asked in type parameter
 
         if ( filter_flying == FILTER_ONLYLANDING )
         {

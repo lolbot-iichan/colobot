@@ -65,6 +65,7 @@
 
 #include "object/object.h"
 #include "object/object_create_exception.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/auto/auto.h"
@@ -1067,7 +1068,7 @@ bool CRobotMain::ProcessEvent(Event &event)
 
                 obj = DetectObject(event.mousePos);
                 if (!m_shortCut) obj = nullptr;
-                if (obj != nullptr && obj->GetType() == OBJECT_TOTO)
+                if (obj != nullptr && obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantClickable())
                 {
                     if (m_displayInfo != nullptr)  // current info?
                     {
@@ -2305,7 +2306,7 @@ bool CRobotMain::EventFrame(const Event &event)
             if (IsObjectBeingTransported(obj))
                 continue;
 
-            if (obj->GetType() == OBJECT_TOTO)
+            if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantMovesWithCamera())
                 toto = obj;
             else if (obj->Implements(ObjectInterfaceType::Interactive))
                 dynamic_cast<CInteractiveObject&>(*obj).EventProcess(event);
@@ -4601,7 +4602,7 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
     int objRank = 0;
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == OBJECT_TOTO) continue;
+        if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantIgnoredOnSaveLoad()) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4652,7 +4653,7 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
 
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == OBJECT_TOTO) continue;
+        if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantIgnoredOnSaveLoad()) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4884,7 +4885,7 @@ CObject* CRobotMain::IOReadScene(std::string filename, std::string filecbot)
 
                 if (!bError) for (CObject* obj : m_objMan->GetAllObjects())
                 {
-                    if (obj->GetType() == OBJECT_TOTO) continue;
+                    if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantIgnoredOnSaveLoad()) continue;
                     if (IsObjectBeingTransported(obj)) continue;
                     if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 

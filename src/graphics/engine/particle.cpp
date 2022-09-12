@@ -3503,27 +3503,30 @@ CObject* CParticle::SearchObjectGun(Math::Vector old, Math::Vector pos,
 
         ObjectType oType = obj->GetType();
 
-        if (GetObjectDetails().IsNotPhysicalObject(oType))  continue;
+        if (oType == GetObjectDetails().GetAssistantType()) // Toto?
+        {
+            if (GetObjectDetails().IsAssistantUndamagable())  continue;
+        }
 
         if (type == PARTIGUN1)  // fireball shooting?
         {
-            if (GetObjectDetails().GetImmuneToFireballs(oType))  continue;
+            if (GetObjectDetails().IsImmuneToFireballs(oType))  continue;
         }
         else if (type == PARTIGUN2)  // shooting insect?
         {
-            if (GetObjectDetails().GetImmuneToInsects(oType))  continue;
+            if (GetObjectDetails().IsImmuneToInsects(oType))  continue;
         }
         else if (type == PARTIGUN3)  // suiciding spider?
         {
-            if (GetObjectDetails().GetImmuneToSpiders(oType))  continue;
+            if (GetObjectDetails().IsImmuneToSpiders(oType))  continue;
         }
         else if (type == PARTIGUN4)  // orgaball shooting?
         {
-            if (GetObjectDetails().GetImmuneToOrgaballs(oType))  continue;
+            if (GetObjectDetails().IsImmuneToOrgaballs(oType))  continue;
         }
         else if (type == PARTITRACK11)  // phazer shooting?
         {
-            if (GetObjectDetails().GetImmuneToPhazers(oType))  continue;
+            if (GetObjectDetails().IsImmuneToPhazers(oType))  continue;
         }
         else
         {
@@ -3614,9 +3617,12 @@ CObject* CParticle::SearchObjectRay(Math::Vector pos, Math::Vector goal,
 
         ObjectType oType = obj->GetType();
 
-        if (GetObjectDetails().IsNotPhysicalObject(oType))  continue;
+        if (oType == GetObjectDetails().GetAssistantType()) // Toto?
+        {
+            if (GetObjectDetails().IsAssistantUndamagable())  continue;
+        }
 
-        if ( type  == PARTIRAY1 && GetObjectDetails().GetImmuneToTowerRays(oType) ) continue;
+        if ( type  == PARTIRAY1 && GetObjectDetails().IsImmuneToTowerRays(oType) ) continue;
 
         Math::Vector oPos = obj->GetPosition();
 

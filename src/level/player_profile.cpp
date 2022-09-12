@@ -28,6 +28,8 @@
 #include "common/resources/outputstream.h"
 #include "common/resources/resourcemanager.h"
 
+#include "object/object_details.h"
+
 #include "level/robotmain.h"
 
 #include "level/parser/parser.h"
@@ -509,6 +511,8 @@ void CPlayerProfile::SaveScene(std::string dir, std::string info)
     {
         CResourceManager::CreateNewDirectory(dir);
     }
+
+    GetObjectDetails().Dump();
 
     CRobotMain::GetInstancePointer()->IOWriteScene(dir + "/data.sav", dir + "/cbot.run", dir + "/screen.png", info.c_str());
 }

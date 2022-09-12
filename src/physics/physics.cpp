@@ -1789,7 +1789,10 @@ void CPhysics::WaterFrame(float aTime, float rTime)
     if ( pos.y >= m_water->GetLevel(m_object) )  return;  // out of water?
 
     type = m_object->GetType();
-    if ( type == OBJECT_TOTO )  return;
+    if (type == GetObjectDetails().GetAssistantType()) // Toto?
+    {
+        if (GetObjectDetails().IsAssistantUndamagable())  return;
+    }
     if ( type == OBJECT_NULL )  return;
 
     if ( !m_object->GetDetectable() )  return;
@@ -2496,7 +2499,10 @@ int CPhysics::ObjectAdapt(const Math::Vector &pos, const Math::Vector &angle)
         if ( pObj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*pObj).GetDying() == DeathType::Exploding )  continue;  // is exploding?
 
         oType = pObj->GetType();
-        if ( oType == OBJECT_TOTO            )  continue;
+        if (oType == GetObjectDetails().GetAssistantType()) // Toto?
+        {
+            if (GetObjectDetails().IsAssistantUndamagable())  continue;
+        }
         if ( !m_object->CanCollideWith(pObj) )  continue;
 
         if (pObj->Implements(ObjectInterfaceType::Jostleable))

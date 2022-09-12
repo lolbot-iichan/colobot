@@ -30,9 +30,15 @@
 
 #include "common/singleton.h"
 
-#include "object/object_type.h"
+#include "graphics/engine/engine_types.h"
+#include "graphics/engine/pyro_type.h"
 
 #include "level/research_type.h"
+
+#include "math/vector.h"
+
+#include "object/crash_sphere.h"
+#include "object/object_type.h"
 
 enum MapColor
 {
@@ -47,6 +53,44 @@ enum MapColor
     MAPCOLOR_WAYPOINTy,
     MAPCOLOR_WAYPOINTv,
     MAPCOLOR_BBOX,
+};
+
+enum BaseClass
+{
+    BASE_CLASS_NONE,
+    BASE_CLASS_SIMPLE,
+    BASE_CLASS_BUILDING,
+    BASE_CLASS_INFO,
+    BASE_CLASS_ALIEN,
+    BASE_CLASS_ROBOT,
+    BASE_CLASS_SHIELDER,
+};
+
+struct CObjectCreationModelNode
+{
+    int                   chunkId   = -1;
+    int                   parentId  = -1;
+    Gfx::EngineObjectType gfxType   = Gfx::ENG_OBJTYPE_FIX;
+    std::string           modFile   = "";
+    Math::Vector          position  = Math::Vector();
+    Math::Vector          rotation  = Math::Vector();
+    bool                  copyModel = false;
+};
+
+struct CObjectCreationShadowCircle
+{
+    float                 radius    = 0.0;
+    float                 intensity = 0.0;
+    Gfx::EngineShadowType type      = Gfx::ENG_SHADOW_NORM;
+    bool                  factored  = false;
+};
+
+struct CObjectCreationBuildingLevel
+{
+    float min    = 0.0;
+    float max    = 0.0;
+    float height = 0.0;
+    float factor = 0.0;
 };
 
 struct CObjectButton
@@ -65,7 +109,7 @@ struct CObjectDetail
 };
 
 
-std::map<std::string, ObjectType> m_nameToObjectType;
+std::map<std::string, ObjectType> m_nameInLevelFilesToObjectType;
 std::map<ObjectType, std::vector<ObjectType> > m_aliasToSearchList;
 
 CObjectButton m_builderMenuObjects[14];
@@ -74,7 +118,10 @@ CObjectButton m_debugMenuObjects[14];
 std::map<ObjectType, CObjectDetail> m_objects;
 
 public:
-    CObjectDetails();
+CObjectDetails();
+
+void Dump();
+
 
 
 
@@ -92,6 +139,29 @@ ObjectType ParseNameOrAliasInLevelFiles(std::string name);
 
 // [script] objects that could be find with radar functions by alias (default is vector with given id)
 std::vector<ObjectType> GetObjectsFindableByType(ObjectType type);
+
+
+
+// [assistant] always moves after camera movement (returns OBJECT_NULL or registered object)
+ObjectType GetAssistantType();
+
+// [assistant] react on SatCom pages, etc (default is false)
+bool IsAssistantReactingOnDisplayedInfo();
+
+// [assistant] react on errors, warnings, etc (default is false)
+bool IsAssistantReactingOnDisplayedText();
+
+// [assistant] always moves after camera movement (default is false)
+bool IsAssistantMovesWithCamera();
+
+// [assistant] open SATCOM_HUSTON on click (default is false)
+bool IsAssistantIgnoredOnSaveLoad();
+
+// [assistant] open SATCOM_HUSTON on click (default is false)
+bool IsAssistantClickable();
+
+// [assistant] ignores collisions, rays, bullets, water, etc (default is false)
+bool IsAssistantUndamagable();
 
 
 
@@ -136,13 +206,13 @@ bool GetBackCameraCanViewAsTransparent(ObjectType type);
 
 
 // [camera/fix] can collide with someone's fix camera (default is true) 
-bool GetFixCameraCanCollide(ObjectType type);
+bool IsFixCameraCollideThis(ObjectType type);
 
 
 
 
 // [camera/onboard] on-board camera has robotic corners (default is true) 
-bool GetOnboardCameraCorners(ObjectType type);
+bool IsOnboardCameraCorners(ObjectType type);
 
 
 
@@ -157,22 +227,22 @@ float GetVisitCameraHeight(ObjectType type);
 
 
 // [immunity] true, if immune to fireballs of Shooters (default is false)
-bool GetImmuneToFireballs(ObjectType type);
+bool IsImmuneToFireballs(ObjectType type);
 
 // [immunity] true, if immune to particle of Ants (default is false)
-bool GetImmuneToInsects(ObjectType type);
+bool IsImmuneToInsects(ObjectType type);
 
 // [immunity] true, if immune to fireballs (default is false)
-bool GetImmuneToSpiders(ObjectType type);
+bool IsImmuneToSpiders(ObjectType type);
 
 // [immunity] true, if immune to fireballs (default is false)
-bool GetImmuneToOrgaballs(ObjectType type);
+bool IsImmuneToOrgaballs(ObjectType type);
 
 // [immunity] true, if immune to fireballs (default is false)
-bool GetImmuneToPhazers(ObjectType type);
+bool IsImmuneToPhazers(ObjectType type);
 
 // [immunity] true, if immune to tower rays (default is true)
-bool GetImmuneToTowerRays(ObjectType type);
+bool IsImmuneToTowerRays(ObjectType type);
 
 
 
@@ -180,8 +250,8 @@ bool GetImmuneToTowerRays(ObjectType type);
 // [auto] can be attacked by tower ray (default is false)
 bool IsAutoTargetedByTower(ObjectType type);
 
-// [auto] required to walk back from power station to operate (default is false)
-bool IsAutoBlockingPowerStation(ObjectType type);
+// [auto] detected by power station to operate (default is false)
+bool IsAutoChargedAtPowerStation(ObjectType type);
 
 // [auto] required to walk back from power plant to operate (default is false)
 bool IsAutoBlockingPowerPlant(ObjectType type);
@@ -194,11 +264,13 @@ bool IsAutoBlockingFactory(ObjectType type);
 
 
 
+
 // [level/code] object name in level files (default is "")
 std::string GetNameInLevelFiles(ObjectType type);
 
 // [level/code] object asias in level files (default is "")
 std::string GetAliasInLevelFiles(ObjectType type);
+
 
 
 
@@ -213,12 +285,16 @@ std::string GetHelpTopicPathName(ObjectType type);
 
 
 
-// [script/autoparams] object that is automaticaly used in function call
+
+// [script/autoparams] object that is automaticaly used in function call (returns OBJECT_NULL or registered object)
 ObjectType GetFunctionDestroyPerformerObject();
 ObjectType GetFunctionFactoryPerformerObject();
 ObjectType GetFunctionResearchPerformerObject(ResearchType type);
 ObjectType GetFunctionTakeOffPerformerObject();
 ObjectType GetFunctionReceivePerformerObject();
+
+
+
 
 // [script/params] can object be used at produce() call (default is false)
 bool IsValidObjectTypeId(ObjectType type);
@@ -228,9 +304,12 @@ ObjectType GetProduceContainer(ObjectType type);
 bool IsProduceAlreadyCharged(ObjectType type);
 // [script/params] force manual mode for produced item (default is false)
 bool IsProduceManual(ObjectType type);
+// [script/params]  (default is false)
+bool IsRadarExplicitOnly(ObjectType type);
 
 
-// [script/allowed] drawer functions are binded to C++ implementations (default is false)
+
+// [script/allowed] functions are binded to C++ implementations (default is false)
 bool IsFunctionImplementedBuild(ObjectType type);
 bool IsFunctionImplementedFlags(ObjectType type);
 bool IsFunctionImplementedShield(ObjectType type);
@@ -240,12 +319,6 @@ bool IsFunctionImplementedGrabAsRobot(ObjectType type);
 bool IsFunctionImplementedShootAsAnt(ObjectType type);
 bool IsFunctionImplementedShootAsSpider(ObjectType type);
 bool IsFunctionImplementedShootAsRobot(ObjectType type);
-
-
-
-// [physics/assistant] can be ignored by any kinds of rays, bullets (default is false)
-bool IsNotPhysicalObject(ObjectType type);
-
 
 
 
@@ -303,6 +376,12 @@ bool IsExhaustOnSwimAsHuman(ObjectType type);
 bool IsExhaustOnSwimAsAmphibiousRobot(ObjectType type);
 
 
+
+// [physics/thumper] 
+float GetThumperSafeRadius(ObjectType type);
+Gfx::PyroType GetThumperPyroType(ObjectType type);
+float GetThumperExplosionDamage(ObjectType type);
+bool GetThumperTurnOnBack(ObjectType type);
 
 
 // [physics/water] explodes when going underwater (default is false)
@@ -427,6 +506,31 @@ bool IsDisplayedNameAsPlayer(ObjectType type);
 
 // [ui/name] localizable string used with gettext (default is "")
 std::string GetDisplayedName(ObjectType type);
+
+
+
+
+// [create/model]
+BaseClass GetCreationBaseClass(ObjectType type);
+std::vector<CObjectCreationModelNode> GetCreationModel(ObjectType type);
+std::vector<CrashSphere> GetCreationCrashSpheres(ObjectType type);
+std::vector<Math::Sphere> GetCreationCameraCollisionSpheres(ObjectType type);
+std::vector<Math::Sphere> GetCreationJostlingSpheres(ObjectType type);
+std::vector<CObjectCreationBuildingLevel> GetCreationBuildingLevels(ObjectType type);
+CObjectCreationShadowCircle GetCreationShadowCircle(ObjectType type);
+float GetCreationScale(ObjectType type);
+bool IsCreationForceLoadTextures(ObjectType type);
+bool IsCreationSetFloorHeight(ObjectType type);
+bool IsCreationFloorAdjust(ObjectType type);
+bool IsCreationFixedPosition(ObjectType type);
+bool IsDestructionRemoveBuildingLevel(ObjectType type);
+Gfx::PyroType GetDestructionByExplosion(ObjectType type);
+Gfx::PyroType GetDestructionByWater(ObjectType type);
+Gfx::PyroType GetDestructionByBurning(ObjectType type);
+Gfx::PyroType GetDestructionByDrowned(ObjectType type);
+Gfx::PyroType GetDestructionByWin(ObjectType type);
+Gfx::PyroType GetDestructionBySquash(ObjectType type);
+bool IsDestructionKilledByBurning(ObjectType type);
 };
 
 

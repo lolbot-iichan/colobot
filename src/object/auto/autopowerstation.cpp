@@ -227,7 +227,7 @@ CObject* CAutoPowerStation::SearchVehicle()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
-        if ( GetObjectDetails().IsAutoBlockingPowerStation(type) )  continue;
+        if ( !GetObjectDetails().IsAutoChargedAtPowerStation(type) )  continue;
 
         Math::Vector oPos = obj->GetPosition();
         float dist = Math::Distance(oPos, sPos);

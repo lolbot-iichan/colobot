@@ -1245,7 +1245,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pt->ClearState(STATE_GLINT);
     }
 
-    if ( GetObjectDetails().GetOnboardCameraCorners(type) )
+    if ( GetObjectDetails().IsOnboardCameraCorners(type) )
     {
         ddim.x = 64.0f / 640.0f;
         ddim.y = 64.0f / 480.0f;

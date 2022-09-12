@@ -19,6 +19,8 @@
 
 #include <unordered_set>
 
+#include "level/parser/parser.h"
+
 #include "object/object_details.h"
 
 /* Macro to mark which texts are translatable by gettext
@@ -187,13 +189,13 @@ CObjectDetails::CObjectDetails()
         std::string name = GetNameInLevelFiles(type);
         if (name.size())
         {
-            m_nameToObjectType[name] = type;
+            m_nameInLevelFilesToObjectType[name] = type;
         }
 
         std::string alias = GetAliasInLevelFiles(type);
         if (alias.size())
         {
-            m_nameToObjectType[alias] = type;
+            m_nameInLevelFilesToObjectType[alias] = type;
         }
     }
 }
@@ -212,8 +214,8 @@ CObjectButton CObjectDetails::GetDebugMenuItem(int index)
 
 ObjectType CObjectDetails::ParseNameOrAliasInLevelFiles(std::string value)
 {
-    auto it = m_nameToObjectType.find(value);
-    if (it != m_nameToObjectType.end())
+    auto it = m_nameInLevelFilesToObjectType.find(value);
+    if (it != m_nameInLevelFilesToObjectType.end())
         return it->second;
     return OBJECT_NULL;
 }
@@ -227,6 +229,66 @@ std::vector<ObjectType> CObjectDetails::GetObjectsFindableByType(ObjectType type
     std::vector<ObjectType> result;
     result.push_back(type);
     return result;
+}
+
+#define BEGIN_LINE(KEYWORD, KEY, VALUE) { bool something = false; line = MakeUnique<CLevelParserLine>( KEYWORD ); line->AddParam( KEY, MakeUnique<CLevelParserParam>(VALUE) )
+#define LINE_PARAM(KEY, VALUE, DEFAULT) if ( (VALUE) == (DEFAULT) ) { something = true ; line->AddParam( KEY, MakeUnique<CLevelParserParam>(VALUE)); }
+#define END_LINE()                      if ( something ) levelParser.AddLine(std::move(line)); }
+
+void CObjectDetails::Dump()
+{
+    CLevelParser levelParser("object_details.txt");
+    CLevelParserLineUPtr line;
+
+    for (int i = 0; i < 14; i++)
+    {
+        if (m_debugMenuObjects[i].type != OBJECT_NULL)
+        {
+            BEGIN_LINE( "DebugMenuItem", "index", i );
+            LINE_PARAM( "type",  m_debugMenuObjects[i].type, OBJECT_NULL );
+            LINE_PARAM( "icon",  m_debugMenuObjects[i].icon, -1 );
+            LINE_PARAM( "text",  m_debugMenuObjects[i].text, "" );
+            END_LINE();
+        } 
+    }
+
+    for (int i = 0; i < OBJECT_MAX; i++)
+    {
+        ObjectType type = static_cast<ObjectType>(i);
+        if (IsValidObjectTypeId(type))
+        {
+            BEGIN_LINE( "RegisterObject", "type", i );
+            LINE_PARAM( "name", GetNameInLevelFiles(type), "" );
+            END_LINE();
+
+            BEGIN_LINE( "BackCamera", "type", i );
+            LINE_PARAM( "dist", GetBackCameraDistance(type), 30.0f );
+            LINE_PARAM( "min", GetBackCameraDistanceMin(type), 10.0f );
+            LINE_PARAM( "height", GetBackCameraHeight(type), 4.0f );
+            LINE_PARAM( "yRot", GetBackCameraRotationY(type), 1.0f );
+            LINE_PARAM( "zRot", GetBackCameraRotationZ(type), 0.0f );
+            LINE_PARAM( "canForceTransparency", GetBackCameraCanForceTransparency(type), true );
+            LINE_PARAM( "canBeTransparenct", GetBackCameraCanViewAsTransparent(type), true );
+            END_LINE();
+
+            auto model = GetObjectDetails().GetCreationModel(type);
+            CObjectCreationModelNode def;
+            for ( auto it : model )
+            {
+                BEGIN_LINE( "AddModelNode", "type", i );
+                LINE_PARAM( "chunkId",  it.chunkId,  def.chunkId  );
+                LINE_PARAM( "parentId", it.parentId, def.parentId );
+                LINE_PARAM( "gfxType",  it.gfxType,  def.gfxType  );
+                LINE_PARAM( "modFile",  it.modFile,  def.modFile  );
+                LINE_PARAM( "position", it.position, def.position );
+                LINE_PARAM( "rotation", it.rotation, def.rotation );
+                LINE_PARAM( "copyModel",it.copyModel,def.copyModel);
+                END_LINE();
+            }
+        }
+    }
+
+    levelParser.Save();
 }
 
 bool CObjectDetails::IsBlockingBuilding(ObjectType type)
@@ -409,7 +471,7 @@ float CObjectDetails::GetBackCameraRotationY(ObjectType type)
 float CObjectDetails::GetBackCameraRotationZ(ObjectType type)
 {
     if (type == OBJECT_MOBILEdr)  // designer?
-        return 0.1f;
+        return 0.09375f;
     return 0.0;
 }
 
@@ -447,7 +509,7 @@ bool CObjectDetails::GetBackCameraCanViewAsTransparent(ObjectType type)
     return true;
 }
 
-bool CObjectDetails::GetFixCameraCanCollide(ObjectType type)
+bool CObjectDetails::IsFixCameraCollideThis(ObjectType type)
 {
     if ( type == OBJECT_TOTO    ||
          type == OBJECT_STONE   ||
@@ -468,7 +530,7 @@ bool CObjectDetails::GetFixCameraCanCollide(ObjectType type)
     return true;
 }
 
-bool CObjectDetails::GetOnboardCameraCorners(ObjectType type)
+bool CObjectDetails::IsOnboardCameraCorners(ObjectType type)
 {
     if (type == OBJECT_HUMAN ||
         type == OBJECT_TECH) return false;
@@ -506,13 +568,13 @@ float CObjectDetails::GetVisitCameraHeight(ObjectType type)
     return 15.0f;
 }
 
-bool CObjectDetails::GetImmuneToFireballs(ObjectType type)
+bool CObjectDetails::IsImmuneToFireballs(ObjectType type)
 {
     if (type == OBJECT_MOTHER)  return true;
     return false;
 }
 
-bool CObjectDetails::GetImmuneToInsects(ObjectType type)
+bool CObjectDetails::IsImmuneToInsects(ObjectType type)
 {
     return ( type == OBJECT_ANT      ||
              type == OBJECT_SPIDER   ||
@@ -526,7 +588,7 @@ bool CObjectDetails::GetImmuneToInsects(ObjectType type)
              type == OBJECT_TEEN31   );
 }
 
-bool CObjectDetails::GetImmuneToSpiders(ObjectType type)
+bool CObjectDetails::IsImmuneToSpiders(ObjectType type)
 {
     return ( type == OBJECT_ANT      ||
              type == OBJECT_SPIDER   ||
@@ -540,18 +602,18 @@ bool CObjectDetails::GetImmuneToSpiders(ObjectType type)
              type == OBJECT_TEEN31   );
 }
 
-bool CObjectDetails::GetImmuneToOrgaballs(ObjectType type)
+bool CObjectDetails::IsImmuneToOrgaballs(ObjectType type)
 {
     if (type == OBJECT_MOTHER)  return true;
     return false;
 }
 
-bool CObjectDetails::GetImmuneToPhazers(ObjectType type)
+bool CObjectDetails::IsImmuneToPhazers(ObjectType type)
 {
     return false;
 }
 
-bool CObjectDetails::GetImmuneToTowerRays(ObjectType type)
+bool CObjectDetails::IsImmuneToTowerRays(ObjectType type)
 {
     if (type == OBJECT_MOBILEtg ||
      type == OBJECT_TEEN28   ||
@@ -577,7 +639,7 @@ bool CObjectDetails::IsAutoTargetedByTower(ObjectType type)
      return false;
 }
 
-bool CObjectDetails::IsAutoBlockingPowerStation(ObjectType type)
+bool CObjectDetails::IsAutoChargedAtPowerStation(ObjectType type)
 {
     if ( type != OBJECT_HUMAN    &&
          type != OBJECT_MOBILEfa &&
@@ -1227,6 +1289,11 @@ bool CObjectDetails::IsProduceManual(ObjectType type)
     return (type == OBJECT_MOBILEdr);
 }
 
+bool CObjectDetails::IsRadarExplicitOnly(ObjectType type)
+{
+    return (type == OBJECT_TOTO || type == OBJECT_CONTROLLER);
+}
+
 bool CObjectDetails::IsFunctionImplementedBuild(ObjectType type)
 {
     if ( type != OBJECT_MOBILEfb &&  // allowed only for builder bots && humans
@@ -1503,10 +1570,39 @@ bool CObjectDetails::IsValidObjectTypeId(ObjectType type)
     return validIds.count(type);
 }
 
-bool CObjectDetails::IsNotPhysicalObject(ObjectType type)
+ObjectType CObjectDetails::GetAssistantType()
 {
-    if ( type == OBJECT_TOTO ) return true;
-    return false;
+    return OBJECT_TOTO;
+}
+
+bool CObjectDetails::IsAssistantReactingOnDisplayedInfo()
+{
+    return true;
+}
+
+bool CObjectDetails::IsAssistantReactingOnDisplayedText()
+{
+    return true;
+}
+
+bool CObjectDetails::IsAssistantIgnoredOnSaveLoad()
+{
+    return true;
+}
+
+bool CObjectDetails::IsAssistantMovesWithCamera()
+{
+    return true;
+}
+
+bool CObjectDetails::IsAssistantClickable()
+{
+    return true;
+}
+
+bool CObjectDetails::IsAssistantUndamagable()
+{
+    return true;
 }
 
 bool CObjectDetails::IsExplodesInWater(ObjectType type)
@@ -1844,6 +1940,176 @@ bool CObjectDetails::IsExhaustOnSwimAsAmphibiousRobot(ObjectType type)
     if ( (type == OBJECT_MOBILEst ||
           type == OBJECT_MOBILEsa  ) )   return true;
     return false;
+}
+
+float CObjectDetails::GetThumperSafeRadius(ObjectType type)
+{
+    if ( type == OBJECT_BULLET ||
+         type == OBJECT_NEST   ||
+         type == OBJECT_EGG    ) // Alien Organic?
+    {
+        return 5.0f;
+    }
+    else if ( type == OBJECT_TNT  ||
+              type == OBJECT_BOMB ) // Explosives?
+    {
+        return 5.0f;
+    }
+    else if ( type == OBJECT_PLANT0    ||
+              type == OBJECT_PLANT1    ||
+              type == OBJECT_PLANT2    ||
+              type == OBJECT_PLANT3    ||
+              type == OBJECT_PLANT4    ||
+              type == OBJECT_PLANT5    ||
+              type == OBJECT_PLANT6    ||
+              type == OBJECT_PLANT7    ||
+              type == OBJECT_PLANT15   ||
+              type == OBJECT_PLANT16   ||
+              type == OBJECT_PLANT17   ||
+              type == OBJECT_PLANT18   ||
+              type == OBJECT_PLANT19   ) // Plants?
+    {
+        return 7.5f;
+
+    }
+    else  if ( type == OBJECT_TEEN0        ||
+     type == OBJECT_TEEN1        ||
+     type == OBJECT_TEEN2        ||
+     type == OBJECT_TEEN4        ||
+     type == OBJECT_TEEN5        ||
+     type == OBJECT_TEEN34       ||
+     type == OBJECT_POWER        ||
+     type == OBJECT_ATOMIC       ||
+     type == OBJECT_STONE        ||
+     type == OBJECT_URANIUM      ||
+     type == OBJECT_METAL        ||
+     type == OBJECT_BBOX         ||
+     type == OBJECT_KEYa         ||
+     type == OBJECT_KEYb         ||
+     type == OBJECT_KEYc         ||
+     type == OBJECT_KEYd         ||
+     type == OBJECT_WINFIRE      ||
+     type == OBJECT_BAG          ||
+     type == OBJECT_RUINmobilew1 ||
+     type == OBJECT_RUINmobilew2 ||
+     type == OBJECT_RUINmobilet1 ||
+     type == OBJECT_RUINmobilet2 ||
+     type == OBJECT_RUINdoor     ||
+     type == OBJECT_RUINsupport  ||
+     type == OBJECT_RUINradar    ||
+     type == OBJECT_BARRIER0     ||
+     type == OBJECT_BARRIER1     ||
+     type == OBJECT_BARRIER2     ||
+     type == OBJECT_BARRIER3     ||
+     type == OBJECT_APOLLO4      )  // everything what fits?
+    {
+        return 5.0f;
+    }
+
+    else  if ( type == OBJECT_BEE || type == OBJECT_WORM )
+    {
+        return 5.0f;
+    }
+
+    else  if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
+    {
+        return 5.0f;
+    }
+
+
+    return -1;
+}
+
+Gfx::PyroType CObjectDetails::GetThumperPyroType(ObjectType type)
+{
+        if ( type == OBJECT_BULLET ||
+             type == OBJECT_NEST   ||
+             type == OBJECT_EGG    ) // Alien Organic?
+        {
+            return Gfx::PT_FRAGO;
+        }
+        else if ( type == OBJECT_TNT  ||
+                  type == OBJECT_BOMB ) // Explosives?
+        {
+            return Gfx::PT_EXPLOT;
+        }
+        else if ( type == OBJECT_PLANT0    ||
+                  type == OBJECT_PLANT1    ||
+                  type == OBJECT_PLANT2    ||
+                  type == OBJECT_PLANT3    ||
+                  type == OBJECT_PLANT4    ||
+                  type == OBJECT_PLANT5    ||
+                  type == OBJECT_PLANT6    ||
+                  type == OBJECT_PLANT7    ||
+                  type == OBJECT_PLANT15   ||
+                  type == OBJECT_PLANT16   ||
+                  type == OBJECT_PLANT17   ||
+                  type == OBJECT_PLANT18   ||
+                  type == OBJECT_PLANT19   ) // Plants?
+        {
+            return Gfx::PT_FRAGV;
+
+        }
+        else  if ( type == OBJECT_TEEN0        ||
+         type == OBJECT_TEEN1        ||
+         type == OBJECT_TEEN2        ||
+         type == OBJECT_TEEN4        ||
+         type == OBJECT_TEEN5        ||
+         type == OBJECT_TEEN34       ||
+         type == OBJECT_POWER        ||
+         type == OBJECT_ATOMIC       ||
+         type == OBJECT_STONE        ||
+         type == OBJECT_URANIUM      ||
+         type == OBJECT_METAL        ||
+         type == OBJECT_BBOX         ||
+         type == OBJECT_KEYa         ||
+         type == OBJECT_KEYb         ||
+         type == OBJECT_KEYc         ||
+         type == OBJECT_KEYd         ||
+         type == OBJECT_WINFIRE      ||
+         type == OBJECT_BAG          ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_BARRIER0     ||
+         type == OBJECT_BARRIER1     ||
+         type == OBJECT_BARRIER2     ||
+         type == OBJECT_BARRIER3     ||
+         type == OBJECT_APOLLO4      )  // everything what fits?
+        {
+            return Gfx::PT_FRAGT;
+        }
+
+        else  if ( type == OBJECT_BEE || type == OBJECT_WORM )
+        {
+            return Gfx::PT_EXPLOO;
+        }
+
+        else  if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
+        {
+            return Gfx::PT_EXPLOO;
+        }
+
+    return Gfx::PT_NULL;
+}
+
+float CObjectDetails::GetThumperExplosionDamage(ObjectType type)
+{
+    if ( type == OBJECT_TNT || type == OBJECT_BOMB ) // Explosives?
+    {
+        return 0.9f;
+    }
+
+    return 0.0f;
+}
+
+bool CObjectDetails::GetThumperTurnOnBack(ObjectType type)
+{
+    return type == OBJECT_ANT || type == OBJECT_SPIDER;
 }
 
 float CObjectDetails::GetWaterSplashLevelMin(ObjectType type)
@@ -2483,4 +2749,2633 @@ std::string CObjectDetails::GetDisplayedName(ObjectType type)
     if (it != m_objects.end())
         return it->second.displayedName;
     return "";
+}
+
+BaseClass CObjectDetails::GetCreationBaseClass(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_NULL:
+            return BASE_CLASS_NONE;
+
+        case OBJECT_PORTICO:
+        case OBJECT_BASE:
+        case OBJECT_DERRICK:
+        case OBJECT_FACTORY:
+        case OBJECT_STATION:
+        case OBJECT_CONVERT:
+        case OBJECT_REPAIR:
+        case OBJECT_DESTROYER:
+        case OBJECT_TOWER:
+        case OBJECT_NEST:
+        case OBJECT_RESEARCH:
+        case OBJECT_RADAR:
+        case OBJECT_ENERGY:
+        case OBJECT_LABO:
+        case OBJECT_NUCLEAR:
+        case OBJECT_PARA:
+        case OBJECT_SAFE:
+        case OBJECT_HUSTON:
+        case OBJECT_TARGET1:
+        case OBJECT_TARGET2:
+        case OBJECT_START:
+        case OBJECT_END:
+            return BASE_CLASS_BUILDING;
+
+        case OBJECT_INFO:
+            return BASE_CLASS_INFO;
+
+        case OBJECT_STONE:
+        case OBJECT_URANIUM:
+        case OBJECT_METAL:
+        case OBJECT_POWER:
+        case OBJECT_ATOMIC:
+        case OBJECT_BULLET:
+        case OBJECT_BBOX:
+        case OBJECT_KEYa:
+        case OBJECT_KEYb:
+        case OBJECT_KEYc:
+        case OBJECT_KEYd:
+        case OBJECT_TNT:
+        case OBJECT_BOMB:
+        case OBJECT_WAYPOINT:
+        case OBJECT_SHOW:
+        case OBJECT_WINFIRE:
+        case OBJECT_BAG:
+        case OBJECT_MARKPOWER:
+        case OBJECT_MARKSTONE:
+        case OBJECT_MARKURANIUM:
+        case OBJECT_MARKKEYa:
+        case OBJECT_MARKKEYb:
+        case OBJECT_MARKKEYc:
+        case OBJECT_MARKKEYd:
+        case OBJECT_EGG:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_FLAGb:
+        case OBJECT_FLAGr:
+        case OBJECT_FLAGg:
+        case OBJECT_FLAGy:
+        case OBJECT_FLAGv:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_BARRIER0:
+        case OBJECT_BARRIER1:
+        case OBJECT_BARRIER2:
+        case OBJECT_BARRIER3:
+        case OBJECT_BARRICADE0:
+        case OBJECT_BARRICADE1:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_PLANT0:
+        case OBJECT_PLANT1:
+        case OBJECT_PLANT2:
+        case OBJECT_PLANT3:
+        case OBJECT_PLANT4:
+        case OBJECT_PLANT5:
+        case OBJECT_PLANT6:
+        case OBJECT_PLANT7:
+        case OBJECT_PLANT8:
+        case OBJECT_PLANT9:
+        case OBJECT_PLANT10:
+        case OBJECT_PLANT11:
+        case OBJECT_PLANT12:
+        case OBJECT_PLANT13:
+        case OBJECT_PLANT14:
+        case OBJECT_PLANT15:
+        case OBJECT_PLANT16:
+        case OBJECT_PLANT17:
+        case OBJECT_PLANT18:
+        case OBJECT_PLANT19:
+        case OBJECT_TREE0:
+        case OBJECT_TREE1:
+        case OBJECT_TREE2:
+        case OBJECT_TREE3:
+        case OBJECT_TREE4:
+        case OBJECT_TREE5:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_MUSHROOM1:
+        case OBJECT_MUSHROOM2:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_TEEN0:
+        case OBJECT_TEEN1:
+        case OBJECT_TEEN2:
+        case OBJECT_TEEN3:
+        case OBJECT_TEEN4:
+        case OBJECT_TEEN5:
+        case OBJECT_TEEN6:
+        case OBJECT_TEEN7:
+        case OBJECT_TEEN8:
+        case OBJECT_TEEN9:
+        case OBJECT_TEEN10:
+        case OBJECT_TEEN11:
+        case OBJECT_TEEN12:
+        case OBJECT_TEEN13:
+        case OBJECT_TEEN14:
+        case OBJECT_TEEN15:
+        case OBJECT_TEEN16:
+        case OBJECT_TEEN17:
+        case OBJECT_TEEN18:
+        case OBJECT_TEEN19:
+        case OBJECT_TEEN20:
+        case OBJECT_TEEN21:
+        case OBJECT_TEEN22:
+        case OBJECT_TEEN23:
+        case OBJECT_TEEN24:
+        case OBJECT_TEEN25:
+        case OBJECT_TEEN26:
+        case OBJECT_TEEN27:
+        case OBJECT_TEEN28:
+        case OBJECT_TEEN29:
+        case OBJECT_TEEN30:
+        case OBJECT_TEEN31:
+        case OBJECT_TEEN32:
+        case OBJECT_TEEN33:
+        case OBJECT_TEEN34:
+        case OBJECT_TEEN35:
+        case OBJECT_TEEN36:
+        case OBJECT_TEEN37:
+        case OBJECT_TEEN38:
+        case OBJECT_TEEN39:
+        case OBJECT_TEEN40:
+        case OBJECT_TEEN41:
+        case OBJECT_TEEN42:
+        case OBJECT_TEEN43:
+        case OBJECT_TEEN44:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_QUARTZ0:
+        case OBJECT_QUARTZ1:
+        case OBJECT_QUARTZ2:
+        case OBJECT_QUARTZ3:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_ROOT0:
+        case OBJECT_ROOT1:
+        case OBJECT_ROOT2:
+        case OBJECT_ROOT3:
+        case OBJECT_ROOT4:
+        case OBJECT_ROOT5:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_HOME1:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_RUINmobilew1:
+        case OBJECT_RUINmobilew2:
+        case OBJECT_RUINmobilet1:
+        case OBJECT_RUINmobilet2:
+        case OBJECT_RUINmobiler1:
+        case OBJECT_RUINmobiler2:
+        case OBJECT_RUINfactory:
+        case OBJECT_RUINdoor:
+        case OBJECT_RUINsupport:
+        case OBJECT_RUINradar:
+        case OBJECT_RUINconvert:
+        case OBJECT_RUINbase:
+        case OBJECT_RUINhead:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_APOLLO1:
+        case OBJECT_APOLLO3:
+        case OBJECT_APOLLO4:
+        case OBJECT_APOLLO5:
+            return BASE_CLASS_SIMPLE;
+
+        case OBJECT_MOTHER:
+        case OBJECT_ANT:
+        case OBJECT_SPIDER:
+        case OBJECT_BEE:
+        case OBJECT_WORM:
+            return BASE_CLASS_ALIEN;
+
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+        case OBJECT_TOTO:
+        case OBJECT_MOBILEfa:
+        case OBJECT_MOBILEta:
+        case OBJECT_MOBILEwa:
+        case OBJECT_MOBILEia:
+        case OBJECT_MOBILEfb:
+        case OBJECT_MOBILEtb:
+        case OBJECT_MOBILEwb:
+        case OBJECT_MOBILEib:
+        case OBJECT_MOBILEfc:
+        case OBJECT_MOBILEtc:
+        case OBJECT_MOBILEwc:
+        case OBJECT_MOBILEic:
+        case OBJECT_MOBILEfi:
+        case OBJECT_MOBILEti:
+        case OBJECT_MOBILEwi:
+        case OBJECT_MOBILEii:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEis:
+        case OBJECT_MOBILErt:
+        case OBJECT_MOBILErc:
+        case OBJECT_MOBILErr:
+        case OBJECT_MOBILEsa:
+        case OBJECT_MOBILEtg:
+        case OBJECT_MOBILEft:
+        case OBJECT_MOBILEtt:
+        case OBJECT_MOBILEwt:
+        case OBJECT_MOBILEit:
+        case OBJECT_MOBILErp:
+        case OBJECT_MOBILEst:
+        case OBJECT_MOBILEdr:
+        case OBJECT_APOLLO2:
+        case OBJECT_CONTROLLER:
+            return BASE_CLASS_ROBOT;
+
+        case OBJECT_MOBILErs:
+            return BASE_CLASS_SHIELDER;
+
+        default:
+            return BASE_CLASS_NONE;
+    }
+}
+
+std::vector<CObjectCreationModelNode> CObjectDetails::GetCreationModel(ObjectType type)
+{
+    std::vector<CObjectCreationModelNode> result;
+
+    std::string name;
+    if ( type == OBJECT_STONE       )  name = "stone.mod";
+    if ( type == OBJECT_URANIUM     )  name = "uranium.mod";
+    if ( type == OBJECT_METAL       )  name = "metal.mod";
+    if ( type == OBJECT_BULLET      )  name = "bullet.mod";
+    if ( type == OBJECT_BBOX        )  name = "bbox.mod";
+    if ( type == OBJECT_KEYa        )  name = "keya.mod";
+    if ( type == OBJECT_KEYb        )  name = "keyb.mod";
+    if ( type == OBJECT_KEYc        )  name = "keyc.mod";
+    if ( type == OBJECT_KEYd        )  name = "keyd.mod";
+    if ( type == OBJECT_TNT         )  name = "tnt.mod";
+    if ( type == OBJECT_BOMB        )  name = "bomb.mod";
+    if ( type == OBJECT_WAYPOINT    )  name = "waypoint.mod";
+    if ( type == OBJECT_SHOW        )  name = "show.mod";
+    if ( type == OBJECT_WINFIRE     )  name = "winfire.mod";
+    if ( type == OBJECT_MARKSTONE   )  name = "cross1.mod";
+    if ( type == OBJECT_MARKURANIUM )  name = "cross3.mod";
+    if ( type == OBJECT_MARKPOWER   )  name = "cross2.mod";
+    if ( type == OBJECT_MARKKEYa    )  name = "crossa.mod";
+    if ( type == OBJECT_MARKKEYb    )  name = "crossb.mod";
+    if ( type == OBJECT_MARKKEYc    )  name = "crossc.mod";
+    if ( type == OBJECT_MARKKEYd    )  name = "crossd.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_BAG         )  name = "bag.mod";
+    if ( type == OBJECT_EGG         )  name = "egg.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name, Math::Vector(0.0f, -1.4f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_POWER       )  name = "power.mod";
+    if ( type == OBJECT_ATOMIC      )  name = "atomic.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name, Math::Vector(), Math::Vector(), true});
+        return result;
+    }
+
+    if ( type == OBJECT_FLAGb )  name = "flag1b.mod";
+    if ( type == OBJECT_FLAGr )  name = "flag1r.mod";
+    if ( type == OBJECT_FLAGg )  name = "flag1g.mod";
+    if ( type == OBJECT_FLAGy )  name = "flag1y.mod";
+    if ( type == OBJECT_FLAGv )  name = "flag1v.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+    }
+    if ( type == OBJECT_FLAGb )  name = "flag2b.mod";
+    if ( type == OBJECT_FLAGr )  name = "flag2r.mod";
+    if ( type == OBJECT_FLAGg )  name = "flag2g.mod";
+    if ( type == OBJECT_FLAGy )  name = "flag2y.mod";
+    if ( type == OBJECT_FLAGv )  name = "flag2v.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({1, 0, Gfx::ENG_OBJTYPE_DESCENDANT, name, Math::Vector(0.15f, 5.0f, 0.0f)});
+        result.push_back({2, 1, Gfx::ENG_OBJTYPE_DESCENDANT, name, Math::Vector(0.79f, 0.0f, 0.0f)});
+        result.push_back({3, 2, Gfx::ENG_OBJTYPE_DESCENDANT, name, Math::Vector(0.79f, 0.0f, 0.0f)});
+        result.push_back({4, 3, Gfx::ENG_OBJTYPE_DESCENDANT, name, Math::Vector(0.79f, 0.0f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_BARRIER0 ) name = "barrier0.mod";
+    if ( type == OBJECT_BARRIER1 ) name = "barrier1.mod";
+    if ( type == OBJECT_BARRIER2 ) name = "barrier2.mod";
+    if ( type == OBJECT_BARRIER3 ) name = "barrier3.mod";
+    if ( type == OBJECT_BARRICADE0 ) name = "barricade0.mod";
+    if ( type == OBJECT_BARRICADE1 ) name = "barricade1.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_PLANT0 ) name = "plant0.mod";
+    if ( type == OBJECT_PLANT1 ) name = "plant1.mod";
+    if ( type == OBJECT_PLANT2 ) name = "plant2.mod";
+    if ( type == OBJECT_PLANT3 ) name = "plant3.mod";
+    if ( type == OBJECT_PLANT4 ) name = "plant4.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name, Math::Vector(0.0f, -2.0f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_PLANT5 ) name = "plant5.mod";
+    if ( type == OBJECT_PLANT6 ) name = "plant6.mod";
+    if ( type == OBJECT_PLANT7 ) name = "plant7.mod";
+    if ( type == OBJECT_PLANT8 ) name = "plant8.mod";
+    if ( type == OBJECT_PLANT9 ) name = "plant9.mod";
+    if ( type == OBJECT_PLANT10 ) name = "plant10.mod";
+    if ( type == OBJECT_PLANT11 ) name = "plant11.mod";
+    if ( type == OBJECT_PLANT12 ) name = "plant12.mod";
+    if ( type == OBJECT_PLANT13 ) name = "plant13.mod";
+    if ( type == OBJECT_PLANT14 ) name = "plant14.mod";
+    if ( type == OBJECT_PLANT15 ) name = "plant15.mod";
+    if ( type == OBJECT_PLANT16 ) name = "plant16.mod";
+    if ( type == OBJECT_PLANT17 ) name = "plant17.mod";
+    if ( type == OBJECT_PLANT18 ) name = "plant18.mod";
+    if ( type == OBJECT_PLANT19 ) name = "plant19.mod";
+    if ( type == OBJECT_TREE0 ) name = "tree0.mod";
+    if ( type == OBJECT_TREE1 ) name = "tree1.mod";
+    if ( type == OBJECT_TREE2 ) name = "tree2.mod";
+    if ( type == OBJECT_TREE3 ) name = "tree3.mod";
+    if ( type == OBJECT_TREE4 ) name = "tree4.mod";
+    if ( type == OBJECT_TREE5 ) name = "tree5.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_MUSHROOM1 ) name = "mush1.mod";
+    if ( type == OBJECT_MUSHROOM2 ) name = "mush2.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_TEEN0 ) name = "teen0.mod";
+    if ( type == OBJECT_TEEN1 ) name = "teen1.mod";
+    if ( type == OBJECT_TEEN2 ) name = "teen2.mod";
+    if ( type == OBJECT_TEEN4 ) name = "teen4.mod";
+    if ( type == OBJECT_TEEN5 ) name = "teen5.mod";
+    if ( type == OBJECT_TEEN6 ) name = "teen6.mod";
+    if ( type == OBJECT_TEEN7 ) name = "teen7.mod";
+    if ( type == OBJECT_TEEN8 ) name = "teen8.mod";
+    if ( type == OBJECT_TEEN9 ) name = "teen9.mod";
+    if ( type == OBJECT_TEEN10 ) name = "teen10.mod";
+    if ( type == OBJECT_TEEN11 ) name = "teen11.mod";
+    if ( type == OBJECT_TEEN13 ) name = "teen13.mod";
+    if ( type == OBJECT_TEEN14 ) name = "teen14.mod";
+    if ( type == OBJECT_TEEN15 ) name = "teen15.mod";
+    if ( type == OBJECT_TEEN16 ) name = "teen16.mod";
+    if ( type == OBJECT_TEEN17 ) name = "teen17.mod";
+    if ( type == OBJECT_TEEN18 ) name = "teen18.mod";
+    if ( type == OBJECT_TEEN19 ) name = "teen19.mod";
+    if ( type == OBJECT_TEEN20 ) name = "teen20.mod";
+    if ( type == OBJECT_TEEN21 ) name = "teen21.mod";
+    if ( type == OBJECT_TEEN22 ) name = "teen22.mod";
+    if ( type == OBJECT_TEEN23 ) name = "teen23.mod";
+    if ( type == OBJECT_TEEN24 ) name = "teen24.mod";
+    if ( type == OBJECT_TEEN25 ) name = "teen25.mod";
+    if ( type == OBJECT_TEEN26 ) name = "teen26.mod";
+    if ( type == OBJECT_TEEN27 ) name = "teen27.mod";
+    if ( type == OBJECT_TEEN29 ) name = "teen29.mod";
+    if ( type == OBJECT_TEEN30 ) name = "teen30.mod";
+    if ( type == OBJECT_TEEN31 ) name = "teen31.mod";
+    if ( type == OBJECT_TEEN32 ) name = "teen32.mod";
+    if ( type == OBJECT_TEEN33 ) name = "teen33.mod";
+    if ( type == OBJECT_TEEN34 ) name = "teen34.mod";
+    if ( type == OBJECT_TEEN35 ) name = "teen35.mod";
+    if ( type == OBJECT_TEEN36 ) name = "teen36.mod";
+    if ( type == OBJECT_TEEN37 ) name = "teen37.mod";
+    if ( type == OBJECT_TEEN39 ) name = "teen39.mod";
+    if ( type == OBJECT_TEEN40 ) name = "teen40.mod";
+    if ( type == OBJECT_TEEN41 ) name = "teen41.mod";
+    if ( type == OBJECT_TEEN42 ) name = "teen42.mod";
+    if ( type == OBJECT_TEEN43 ) name = "teen43.mod";
+    if ( type == OBJECT_TEEN44 ) name = "teen44.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_TEEN3 )  name = "teen3.mod";
+    if ( type == OBJECT_TEEN12 ) name = "teen12.mod";
+    if ( type == OBJECT_TEEN28 ) name = "teen28.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_METAL, name});
+        return result;
+    }
+
+    if ( type == OBJECT_TEEN38 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "teen38a.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "teen38b.mod", Math::Vector(0.0f, 30.0f, 0.0f)}); // engine
+        result.push_back({2,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "teen38c.mod"});  // propeller
+        return result;
+    }
+
+    if ( type == OBJECT_QUARTZ0 ) name = "quartz0.mod";
+    if ( type == OBJECT_QUARTZ1 ) name = "quartz1.mod";
+    if ( type == OBJECT_QUARTZ2 ) name = "quartz2.mod";
+    if ( type == OBJECT_QUARTZ3 ) name = "quartz3.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_QUARTZ, name});
+        return result;
+    }
+
+
+    if ( type == OBJECT_ROOT0 ) name = "root0.mod";
+    if ( type == OBJECT_ROOT1 ) name = "root1.mod";
+    if ( type == OBJECT_ROOT2 ) name = "root2.mod";
+    if ( type == OBJECT_ROOT3 ) name = "root3.mod";
+    if ( type == OBJECT_ROOT4 ) name = "root4.mod";
+    if ( type == OBJECT_HOME1 ) name = "home1.mod";
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_ROOT5 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "root4.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "root5.mod", Math::Vector(-5.0f, 28.0f, -4.0f), Math::Vector(-30.0f*Math::PI/180.0f, 0.0f, 20.0f*Math::PI/180.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINmobilew1 )  // vehicle had wheels?
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "ruin1.mod",  Math::Vector( 0.0f, -0.5f, 0.0f), Math::Vector(-0.1f, 0.0f, 0.0f)});
+        result.push_back({6,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin1w.mod", Math::Vector(-3.0f, 1.8f, -4.0f), Math::Vector(-Math::PI/2.0f, 0.0f, 0.0f)}); // Creates the right-back wheel
+        result.push_back({7,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin1w.mod", Math::Vector(-3.0f, 1.0f,  3.0f), Math::Vector(-0.3f, Math::PI-0.3f, 0.0f)}); // Creates the left-back wheel
+        result.push_back({8,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin1w.mod", Math::Vector( 2.0f, 1.6f, -3.0f), Math::Vector(0.0f, 0.3f, 0.0f)}); // Creates the right-front wheel
+        result.push_back({9,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin1w.mod", Math::Vector( 2.0f, 1.0f,  3.0f), Math::Vector(0.2f, Math::PI-0.2f, 0.0f)}); // Creates the left-front wheel
+        return result;
+    }
+
+    if ( type == OBJECT_RUINmobilew2 )  // vehicle had wheels?
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "ruin1.mod",  Math::Vector(0.0f, -1.5f, 0.0f),  Math::Vector(-0.9f, 0.0f, 0.1f)});
+        result.push_back({7,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin1w.mod", Math::Vector(-3.0f, 1.0f, 3.0f),  Math::Vector(0.4f, Math::PI+0.3f, 0.0f)}); // Creates the left-back wheel
+        result.push_back({9,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin1w.mod", Math::Vector(2.0f, 1.0f, 3.0f),   Math::Vector(-0.3f, Math::PI+0.3f, 0.0f)}); // Creates the left-front wheel
+        return result;
+    }
+
+    if ( type == OBJECT_RUINmobilet1 )  // vehicle had wheels?
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "ruin2.mod",  Math::Vector(0.0f, -0.9f, 0.0f),  Math::Vector(-0.3f, 0.0f, 0.0f)});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "ruin2c.mod", Math::Vector(3.0f, 5.0f, -2.5f),  Math::Vector(-Math::PI*0.85f, -0.4f, -0.1f)}); // Creates the left track
+        return result;
+    }
+
+    if ( type == OBJECT_RUINmobilet2 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin2.mod", Math::Vector(0.0f, -1.5f, 0.0f), Math::Vector(-0.3f, 0.0f, 0.8f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINmobiler1 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin3.mod", Math::Vector(0.0f, 4.0f, 0.0f), Math::Vector(-Math::PI*0.6f, 0.0f, -0.2f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINmobiler2 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin3.mod", Math::Vector(0.0f, 2.0f, 0.0f), Math::Vector(-0.1f, 0.0f, -0.3f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINfactory  )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin4.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINdoor     )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin5.mod", Math::Vector(0.0f, -0.5f, 0.0f), Math::Vector(0.1f, 0.0f, -0.1f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINsupport  )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin6.mod", Math::Vector(0.0f, 0.5f, 0.0f), Math::Vector(0.1f, 0.0f, 0.1f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINradar    )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin7.mod", Math::Vector(0.0f, -0.5f, 0.0f), Math::Vector(0.15f, 0.0f, 0.1f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINconvert  )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin8.mod", Math::Vector(0.0f, -1.0f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINbase     )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin9.mod", Math::Vector(0.0f, -1.0f, 0.0f), Math::Vector(0.15f, 0.0f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RUINhead     )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin10.mod", Math::Vector(0.0f, 8.0f, 0.0f), Math::Vector(Math::PI*0.4f, 0.0f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_APOLLO1 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "apollol1.mod"});
+        for (int i=0 ; i<4 ; i++ )  // creates feet
+            result.push_back({i+1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "apollol2.mod", Math::Vector(),  Math::Vector(0.0f, Math::PI/2.0f*i, 0)});
+        result.push_back({5,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "apollol3.mod"}); // ladder
+        return result;
+    }
+
+    if ( type == OBJECT_APOLLO3 ) name ="apollof.mod"; // flag?
+    if ( type == OBJECT_APOLLO4 ) name ="apollom.mod"; // module?
+    if ( name.size() > 0 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name});
+        return result;
+    }
+
+    if ( type == OBJECT_APOLLO5 )  // antenna?
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "apolloa.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "apolloj2.mod", Math::Vector(0.0f, 5.0f, 0.0f),  Math::Vector(0, -120.0f*Math::PI/180.0f, 45.0f*Math::PI/180.0f)});
+        return result;
+    }
+
+    return result;
+}
+
+std::vector<CrashSphere> CObjectDetails::GetCreationCrashSpheres(ObjectType type)
+{
+    std::vector<CrashSphere> result;
+
+    if ( type == OBJECT_EGG )
+    {
+        result.push_back(CrashSphere(Math::Vector(-1.0f, 2.8f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+    else if ( type == OBJECT_BOMB )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+    else if ( type == OBJECT_BAG )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+    else if ( type == OBJECT_STONE   ||
+              type == OBJECT_URANIUM ||
+              type == OBJECT_METAL   ||
+              type == OBJECT_BULLET  ||
+              type == OBJECT_BBOX    ||
+              type == OBJECT_KEYa    ||
+              type == OBJECT_KEYb    ||
+              type == OBJECT_KEYc    ||
+              type == OBJECT_KEYd    ||
+              type == OBJECT_TNT     ||
+              type == OBJECT_SHOW    ||
+              type == OBJECT_WINFIRE )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BARRIER0 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BARRIER1 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BARRIER2 )  // cardboard?
+    {
+        result.push_back(CrashSphere(Math::Vector( 8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BARRIER3 )  // match + straw?
+    {
+        result.push_back(CrashSphere(Math::Vector( 8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BARRICADE0 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BARRICADE1 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-8.5f, 3.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 8.5f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-8.5f, 6.0f, 0.0f), 0.7f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_PLANT0 ||
+         type == OBJECT_PLANT1 ||
+         type == OBJECT_PLANT2 ||
+         type == OBJECT_PLANT3 ||
+         type == OBJECT_PLANT4 )  // standard?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_PLANT5 ||
+         type == OBJECT_PLANT6 ||
+         type == OBJECT_PLANT7 )  // clover?
+    {
+//?     result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 3.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_PLANT8 ||
+         type == OBJECT_PLANT9 )  // squash?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f,  2.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 10.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_PLANT10 ||
+         type == OBJECT_PLANT11 ||
+         type == OBJECT_PLANT12 ||
+         type == OBJECT_PLANT13 ||
+         type == OBJECT_PLANT14 )  // succulent?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 12.0f, 0.0f), 5.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_PLANT15 ||
+         type == OBJECT_PLANT16 ||
+         type == OBJECT_PLANT17 ||
+         type == OBJECT_PLANT18 )  // fern?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_PLANT19 )  // fern?
+    {
+    }
+
+    if ( type == OBJECT_TREE0 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  3.0f, 2.0f), 3.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-1.0f, 10.0f, 1.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 17.0f, 0.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 1.0f, 27.0f, 0.0f), 2.0f, SOUND_BOUMs, 0.20f));
+    }
+
+    if ( type == OBJECT_TREE1 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  3.0f, 2.0f), 3.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f, 11.0f, 1.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f, 19.0f, 2.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 2.0f, 26.0f, 0.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 2.0f, 34.0f,-2.0f), 2.0f, SOUND_BOUMs, 0.20f));
+    }
+
+    if ( type == OBJECT_TREE2 )
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  3.0f, 1.0f), 3.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f, 10.0f, 1.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f, 19.0f, 2.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 2.0f, 25.0f, 0.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 3.0f, 32.0f,-2.0f), 2.0f, SOUND_BOUMs, 0.20f));
+    }
+
+    if ( type == OBJECT_TREE3 )
+    {
+        result.push_back(CrashSphere(Math::Vector(-2.0f,  3.0f, 2.0f), 3.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-3.0f,  9.0f, 1.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 18.0f, 0.0f), 2.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 27.0f, 7.0f), 2.0f, SOUND_BOUMs, 0.20f));
+    }
+
+    if ( type == OBJECT_TREE4 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 10.0f, 0.0f), 10.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 21.0f, 0.0f),  8.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 32.0f, 0.0f),  7.0f, SOUND_BOUMs, 0.20f));
+    }
+
+    if ( type == OBJECT_TREE5 )  // giant tree (for the world "teen")
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 5.0f,-10.0f), 25.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector(-65.0f, 5.0f, 65.0f), 20.0f, SOUND_BOUMs, 0.20f));
+        result.push_back(CrashSphere(Math::Vector( 38.0f, 5.0f, 21.0f), 18.0f, SOUND_BOUMs, 0.20f));
+    }
+
+    if ( type == OBJECT_MUSHROOM1 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 4.0f, 0.0f), 3.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_MUSHROOM2 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 5.0f, 0.0f), 3.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN0 )  // orange pencil lg=10
+    {
+        result.push_back(CrashSphere(Math::Vector( 5.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 2.5f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-2.5f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN1 )  // blue pencil lg=14
+    {
+        result.push_back(CrashSphere(Math::Vector( 6.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 2.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-4.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-6.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN2 )  // red pencil lg=16
+    {
+        result.push_back(CrashSphere(Math::Vector( 7.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.7f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 2.3f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-2.3f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-4.7f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-7.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN3 )  // jar with pencils
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 4.0f, 0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN4 )  // scissors
+    {
+        result.push_back(CrashSphere(Math::Vector(-9.0f, 1.0f, 0.0f), 1.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-6.0f, 1.0f, 0.0f), 1.1f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.0f, 1.0f, 0.0f), 1.2f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 1.0f, 0.0f), 1.3f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 5.1f, 1.0f,-1.3f), 2.6f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 8.0f, 1.0f, 2.2f), 2.3f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 9.4f, 1.0f,-2.0f), 2.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN6 )  // book 1
+    {
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN7 )  // book 2
+    {
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN8 )  // a stack of books 1
+    {
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN9 )  // a stack of books 2
+    {
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-5.0f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 4.5f, 3.0f,-7.5f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN10 )  // bookcase
+    {
+        result.push_back(CrashSphere(Math::Vector(-26.0f, 3.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f, 3.0f,-4.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f, 3.0f, 5.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -4.0f, 3.0f,-4.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -4.0f, 3.0f, 5.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  6.0f, 3.0f,-4.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  6.0f, 3.0f, 4.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 14.0f, 3.0f,-3.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 14.0f, 3.0f, 2.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 24.0f, 3.0f, 5.0f), 6.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN12 )  // coke
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 4.0f, 0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN13 )  // cardboard farm
+    {
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN14 )  // open box
+    {
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN15 )  // stack of cartons
+    {
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f,-7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 10.0f, 4.0f, 7.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN16 )  // watering can
+    {
+        result.push_back(CrashSphere(Math::Vector(-8.0f, 4.0f, 0.0f), 12.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 8.0f, 4.0f, 0.0f), 12.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN17 )  // wheel |
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 31.0f, 0.0f), 31.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN18 )  // wheel /
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 31.0f, 0.0f), 31.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN19 )  // wheel =
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 10.0f, 0.0f), 32.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN20 )  // wall with shelf
+    {
+        result.push_back(CrashSphere(Math::Vector(-175.0f, 0.0f,  -5.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-175.0f, 0.0f, -35.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -55.0f, 0.0f,  -5.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -55.0f, 0.0f, -35.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -37.0f, 0.0f,  -5.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -37.0f, 0.0f, -35.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  83.0f, 0.0f,  -5.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  83.0f, 0.0f, -35.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN22 )  // wall with door and shelf
+    {
+        result.push_back(CrashSphere(Math::Vector(-135.0f, 0.0f,  -5.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-135.0f, 0.0f, -35.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -15.0f, 0.0f,  -5.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -15.0f, 0.0f, -35.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN23 )  // skateboard on wheels
+    {
+        result.push_back(CrashSphere(Math::Vector(-23.0f, 2.0f, 7.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-23.0f, 2.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-23.0f, 2.0f,-7.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 23.0f, 2.0f, 7.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 23.0f, 2.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 23.0f, 2.0f,-7.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN24 )  // skate /
+    {
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 0.0f, -3.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 0.0f,  3.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN25 )  // skate /
+    {
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 0.0f, -3.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 0.0f,  3.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TEEN27 )  // large plant?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN28 )  // bottle?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 5.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN30 )  // jump?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 4.0f, 0.0f), 15.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN31 )  // basket?
+    {
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 2.0f, 0.0f), 5.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 2.0f, 0.0f), 6.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(  9.0f, 4.0f, 1.0f), 6.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN32 )  // chair?
+    {
+        result.push_back(CrashSphere(Math::Vector( 17.5f, 1.0f,  17.5f), 3.5f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector( 17.5f, 1.0f, -17.5f), 3.5f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(-17.5f, 1.0f,  17.5f), 3.5f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(-17.5f, 1.0f, -17.5f), 3.5f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN33 )  // panel?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN34 )  // stone?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 4.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN35 )  // pipe?
+    {
+        result.push_back(CrashSphere(Math::Vector(-40.0f, 5.0f, 0.0f), 10.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(-20.0f, 5.0f, 0.0f), 10.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 5.0f, 0.0f), 10.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector( 20.0f, 5.0f, 0.0f), 10.0f, SOUND_BOUM, 0.10f));
+        result.push_back(CrashSphere(Math::Vector( 40.0f, 5.0f, 0.0f), 10.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN38 )  // fan?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 10.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN39 )  // potted plant?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 8.5f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN40 )  // balloon?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 5.0f, 0.0f), 11.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN42 )  // clover?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 2.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN43 )  // clover?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 2.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_TEEN44 )  // car?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 10.0f, 0.0f), 55.0f, SOUND_BOUM, 0.10f));
+    }
+
+    if ( type == OBJECT_HOME1 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f, SOUND_BOUMs, 0.25f));
+    }
+
+    if ( type == OBJECT_QUARTZ0 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 3.5f, SOUND_BOUMm, 0.45f));
+    }
+    if ( type == OBJECT_QUARTZ1 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+    if ( type == OBJECT_QUARTZ2 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+    }
+    if ( type == OBJECT_QUARTZ3 )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 10.0f, 0.0f), 10.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_ROOT0 )
+    {
+        result.push_back(CrashSphere(Math::Vector(-5.0f,  1.0f,  0.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 4.0f,  1.0f,  2.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 4.0f,  1.0f, -3.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 2.0f,  5.0f, -1.0f), 1.5f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-4.0f,  5.0f, -1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f,  8.0f, -0.5f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 10.0f, -0.5f), 1.0f, SOUND_BOUMv, 0.15f));
+    }
+    if ( type == OBJECT_ROOT1 )
+    {
+        result.push_back(CrashSphere(Math::Vector(-4.0f,  1.0f,  1.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  1.0f,  2.0f), 1.5f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 3.0f,  1.0f, -2.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-2.0f,  5.0f,  1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 2.0f,  5.0f,  0.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  8.0f,  1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 12.0f,  1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+    }
+    if ( type == OBJECT_ROOT2 )
+    {
+        result.push_back(CrashSphere(Math::Vector(-3.0f,  1.0f,  0.5f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 3.0f,  1.0f, -1.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-1.0f,  4.5f,  0.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 3.0f,  7.0f,  1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  7.0f, -1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 4.0f, 11.0f,  1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+    }
+    if ( type == OBJECT_ROOT3 )
+    {
+        result.push_back(CrashSphere(Math::Vector(-4.0f,  1.0f,  1.0f), 3.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 4.0f,  1.0f, -3.0f), 3.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 6.0f,  1.0f,  4.0f), 3.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-2.5f,  7.0f,  2.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 4.0f,  7.0f,  2.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 3.0f,  6.0f, -1.0f), 1.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 12.0f,  0.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( 1.0f, 16.0f,  0.0f), 1.0f, SOUND_BOUMv, 0.15f));
+    }
+    if ( type == OBJECT_ROOT4 )
+    {
+        result.push_back(CrashSphere(Math::Vector( -7.0f,  2.0f,  3.0f), 4.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  5.0f,  2.0f, -6.0f), 4.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  6.0f,  2.0f,  6.0f), 3.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  1.0f, -2.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  1.0f,  1.0f, -7.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( -4.0f, 10.0f,  3.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  1.0f, 11.0f,  7.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  3.0f, 11.0f, -3.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( -3.0f, 17.0f,  1.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( -3.0f, 23.0f, -1.0f), 2.0f, SOUND_BOUMv, 0.15f));
+    }
+    if ( type == OBJECT_ROOT5 )  // gravity root ?
+    {
+        result.push_back(CrashSphere(Math::Vector( -7.0f,  2.0f,  3.0f), 4.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  5.0f,  2.0f, -6.0f), 4.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  6.0f,  2.0f,  6.0f), 3.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  1.0f, -2.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  1.0f,  1.0f, -7.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( -4.0f, 10.0f,  3.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  1.0f, 11.0f,  7.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector(  3.0f, 11.0f, -3.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( -3.0f, 17.0f,  1.0f), 2.0f, SOUND_BOUMv, 0.15f));
+        result.push_back(CrashSphere(Math::Vector( -3.0f, 23.0f, -1.0f), 2.0f, SOUND_BOUMv, 0.15f));
+    }
+
+    if ( type == OBJECT_RUINmobilew1 )  // vehicle had wheels?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.8f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINmobilew2 )  // vehicle has wheels?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.8f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINmobilet1 )  // vehicle have caterpillars?
+    {
+        result.push_back(CrashSphere(Math::Vector(1.0f, 2.8f, -1.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINmobilet2 )  // vehicle have caterpillars?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.8f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINmobiler1 )  // vehicle skating?
+    {
+        result.push_back(CrashSphere(Math::Vector(1.0f, 2.8f, -1.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINmobiler2 )  // vehicle skating?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 1.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINfactory )  // factory ?
+    {
+        result.push_back(CrashSphere(Math::Vector(  9.0f,  1.0f, -11.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f,  2.0f, -11.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  4.0f, -10.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 11.0f,  -4.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  4.0f,  -2.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  8.0f,   3.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  2.0f,   4.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  2.0f,  10.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -4.0f,  0.0f,  10.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINdoor )  // converter holder?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINsupport )  // radar holder?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINradar )  // radar base?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 0.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINconvert )  // converter?
+    {
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  0.0f,  4.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  0.0f, -4.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINbase )  // base?
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 15.0f,   0.0f),28.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 17.0f,  6.0f,  42.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 17.0f, 17.0f,  42.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-17.0f,  6.0f,  42.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-17.0f, 17.0f,  42.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-42.0f,  6.0f,  17.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-42.0f, 17.0f,  17.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-42.0f,  6.0f, -17.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-42.0f, 17.0f, -17.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-17.0f,  6.0f, -42.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-17.0f, 10.0f, -42.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 15.0f, 13.0f, -34.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 31.0f, 15.0f, -13.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 21.0f,  8.0f, -39.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 26.0f,  8.0f, -33.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RUINhead )  // base cap?
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 13.0f,   0.0f),20.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, -8.0f,   0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f,-16.0f,   0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f,-22.0f,   0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-21.0f,  7.0f,   9.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -9.0f,  7.0f,  21.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 21.0f,  7.0f,   9.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  9.0f,  7.0f,  21.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-21.0f,  7.0f,  -9.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -9.0f,  7.0f, -21.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 21.0f,  7.0f,  -9.0f), 8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  9.0f,  7.0f, -21.0f), 8.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_APOLLO1 )  // LEM ?
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 4.0f,   0.0f), 9.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 11.0f, 5.0f,   0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f, 5.0f,   0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 5.0f, -11.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 5.0f,  11.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_APOLLO4 )  // module?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 2.0f, 0.0f), 2.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_APOLLO5 )  // antenna?
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 4.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.35f));
+    }
+
+    return result;
+}
+
+std::vector<Math::Sphere> CObjectDetails::GetCreationCameraCollisionSpheres(ObjectType type)
+{
+    std::vector<Math::Sphere> result;
+
+    if ( type == OBJECT_EGG )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+    }
+    else if ( type == OBJECT_BOMB )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 3.0f));
+    }
+    else if ( type == OBJECT_BAG )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
+    }
+    else if ( type == OBJECT_STONE   ||
+              type == OBJECT_URANIUM ||
+              type == OBJECT_METAL   ||
+              type == OBJECT_BULLET  ||
+              type == OBJECT_BBOX    ||
+              type == OBJECT_KEYa    ||
+              type == OBJECT_KEYb    ||
+              type == OBJECT_KEYc    ||
+              type == OBJECT_KEYd    ||
+              type == OBJECT_TNT     ||
+              type == OBJECT_SHOW    ||
+              type == OBJECT_WINFIRE )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 1.0f, 0.0f), 1.5f));
+    }
+
+    if ( type == OBJECT_PLANT0 ||
+         type == OBJECT_PLANT1 ||
+         type == OBJECT_PLANT2 ||
+         type == OBJECT_PLANT3 ||
+         type == OBJECT_PLANT4 )  // standard?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 6.0f));
+    }
+
+    if ( type == OBJECT_PLANT10 ||
+         type == OBJECT_PLANT11 ||
+         type == OBJECT_PLANT12 ||
+         type == OBJECT_PLANT13 ||
+         type == OBJECT_PLANT14 )  // succulent?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f));
+    }
+
+    if ( type == OBJECT_PLANT15 ||
+         type == OBJECT_PLANT16 ||
+         type == OBJECT_PLANT17 ||
+         type == OBJECT_PLANT18 )  // fern?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 6.0f));
+    }
+
+    if ( type == OBJECT_MUSHROOM1 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 5.5f));
+    }
+
+    if ( type == OBJECT_MUSHROOM2 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.5f));
+    }
+
+    if ( type == OBJECT_TEEN3 )  // jar with pencils
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 4.0f));
+    }
+
+    if ( type == OBJECT_TEEN8 )  // a stack of books 1
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 12.0f));
+    }
+
+    if ( type == OBJECT_TEEN9 )  // a stack of books 2
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 12.0f));
+    }
+
+    if ( type == OBJECT_TEEN10 )  // bookcase
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 20.0f));
+    }
+
+    if ( type == OBJECT_TEEN12 )  // coke
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 9.0f, 0.0f), 5.0f));
+    }
+
+    if ( type == OBJECT_TEEN13 )  // cardboard farm
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
+    }
+
+    if ( type == OBJECT_TEEN14 )  // open box
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
+    }
+
+    if ( type == OBJECT_TEEN15 )  // stack of cartons
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
+    }
+
+    if ( type == OBJECT_TEEN16 )  // watering can
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 13.0f, 0.0f), 20.0f));
+    }
+
+    if ( type == OBJECT_TEEN17 )  // wheel |
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 31.0f, 0.0f), 31.0f));
+    }
+
+    if ( type == OBJECT_TEEN18 )  // wheel /
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 31.0f, 0.0f), 31.0f));
+    }
+
+    if ( type == OBJECT_TEEN19 )  // wheel =
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 32.0f));
+    }
+
+    if ( type == OBJECT_TEEN30 )  // jump?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 15.0f, 0.0f), 17.0f));
+    }
+
+    if ( type == OBJECT_TEEN31 )  // basket?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_TEEN32 )  // chair?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 26.0f));
+    }
+
+
+    if ( type == OBJECT_TEEN38 )  // fan?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_TEEN39 )  // potted plant?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 8.5f));
+    }
+
+    if ( type == OBJECT_TEEN40 )  // balloon?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 14.0f, 0.0f), 15.0f));
+    }
+
+    if ( type == OBJECT_TEEN44 )  // car?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 55.0f));
+    }
+
+    if ( type == OBJECT_QUARTZ0 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 3.5f));
+    }
+    if ( type == OBJECT_QUARTZ1 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.0f));
+    }
+    if ( type == OBJECT_QUARTZ2 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f));
+    }
+    if ( type == OBJECT_QUARTZ3 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_ROOT0 )
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 11.0f));
+    }
+    if ( type == OBJECT_ROOT1 )
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 12.0f));
+    }
+    if ( type == OBJECT_ROOT2 )
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 10.0f));
+    }
+    if ( type == OBJECT_ROOT3 )
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 14.0f));
+    }
+    if ( type == OBJECT_ROOT4 )
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 12.0f, 0.0f), 20.0f));
+    }
+    if ( type == OBJECT_ROOT5 )  // gravity root ?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 12.0f, 0.0f), 20.0f));
+    }
+
+    if ( type == OBJECT_HOME1 )
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 11.0f));
+    }
+
+    if ( type == OBJECT_RUINmobilew1 )  // vehicle had wheels?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RUINmobilew2 )  // vehicle has wheels?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RUINmobilet1 )  // vehicle have caterpillars?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(1.0f, 5.0f, -1.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RUINmobilet2 )  // vehicle have caterpillars?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RUINmobiler1 )  // vehicle skating?
+    {
+        result.push_back(Math::Sphere(Math::Vector(1.0f, 5.0f, -1.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RUINmobiler2 )  // vehicle skating?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RUINfactory )  // factory ?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 18.0f));
+    }
+
+    if ( type == OBJECT_RUINdoor )  // converter holder?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 6.0f));
+    }
+
+    if ( type == OBJECT_RUINsupport )  // radar holder?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
+    }
+
+    if ( type == OBJECT_RUINradar )  // radar base?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 6.0f));
+    }
+
+    if ( type == OBJECT_RUINconvert )  // converter?
+    {
+//?     result.push_back(Math::Sphere(Math::Vector(-3.0f, 0.0f, 0.0f), 14.0f));
+    }
+
+    if ( type == OBJECT_RUINbase )  // base?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 48.0f));
+    }
+
+    if ( type == OBJECT_RUINhead )  // base cap?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 35.0f));
+    }
+
+    if ( type == OBJECT_APOLLO1 )  // LEM ?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 9.0f));
+    }
+
+
+    return result;
+}
+
+std::vector<Math::Sphere> CObjectDetails::GetCreationJostlingSpheres(ObjectType type)
+{
+    std::vector<Math::Sphere> result;
+
+    if ( type == OBJECT_FLAGb ||
+         type == OBJECT_FLAGr ||
+         type == OBJECT_FLAGg ||
+         type == OBJECT_FLAGy ||
+         type == OBJECT_FLAGv )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 1.0f));
+    }
+
+    if ( type == OBJECT_PLANT0 ||
+         type == OBJECT_PLANT1 ||
+         type == OBJECT_PLANT2 ||
+         type == OBJECT_PLANT3 ||
+         type == OBJECT_PLANT4 )  // standard?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
+    }
+
+    if ( type == OBJECT_PLANT5 ||
+         type == OBJECT_PLANT6 ||
+         type == OBJECT_PLANT7 )  // clover?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
+    }
+
+    if ( type == OBJECT_PLANT10 ||
+         type == OBJECT_PLANT11 ||
+         type == OBJECT_PLANT12 ||
+         type == OBJECT_PLANT13 ||
+         type == OBJECT_PLANT14 )  // succulent?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 8.0f));
+    }
+
+    if ( type == OBJECT_PLANT15 ||
+         type == OBJECT_PLANT16 ||
+         type == OBJECT_PLANT17 ||
+         type == OBJECT_PLANT18 )  // fern?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
+    }
+
+    if ( type == OBJECT_PLANT19 )  // fern?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
+    }
+
+    if ( type == OBJECT_MUSHROOM1 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 5.5f));
+    }
+
+    if ( type == OBJECT_MUSHROOM2 )
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.5f));
+    }
+
+    if ( type == OBJECT_APOLLO3 )  // flag?
+    {
+        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 1.0f));
+    }
+
+    return result;
+}
+
+std::vector<CObjectCreationBuildingLevel> CObjectDetails::GetCreationBuildingLevels(ObjectType type)
+{
+    std::vector<CObjectCreationBuildingLevel> result;
+
+    if ( type == OBJECT_TEEN5 )  // CD
+    {
+        result.push_back({5.9f, 6.1f, 0.2f, 0.5f});
+    }
+
+    if ( type == OBJECT_RUINconvert )  // converter?
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
+    }
+
+    if ( type == OBJECT_APOLLO1 )  // LEM ?
+    {
+//       result.push_back({10.0f, 13.0f, 12.0f, 0.0f});
+    }
+
+    return result;
+}
+
+CObjectCreationShadowCircle CObjectDetails::GetCreationShadowCircle(ObjectType type)
+{
+    if ( type == OBJECT_MARKSTONE   ||
+         type == OBJECT_MARKURANIUM ||
+         type == OBJECT_MARKKEYa    ||
+         type == OBJECT_MARKKEYb    ||
+         type == OBJECT_MARKKEYc    ||
+         type == OBJECT_MARKKEYd    ||
+         type == OBJECT_MARKPOWER   ||
+         type == OBJECT_WAYPOINT    )
+    {
+        return {3.0f, 1.0f};
+    }
+    else if ( type == OBJECT_EGG )
+    {
+        return {3.0f, 1.0f};
+    }
+    else if ( type == OBJECT_BOMB )
+    {
+        return {3.0f, 1.0f};
+    }
+    else if ( type == OBJECT_BAG )
+    {
+        return {5.0f, 1.0f};
+    }
+    else if ( type == OBJECT_FLAGb ||
+              type == OBJECT_FLAGr ||
+              type == OBJECT_FLAGg ||
+              type == OBJECT_FLAGy ||
+              type == OBJECT_FLAGv )
+    {
+        return {2.0f, 0.3f};
+    }
+    else if ( type == OBJECT_STONE   ||
+              type == OBJECT_URANIUM ||
+              type == OBJECT_METAL   ||
+              type == OBJECT_BULLET  ||
+              type == OBJECT_BBOX    ||
+              type == OBJECT_KEYa    ||
+              type == OBJECT_KEYb    ||
+              type == OBJECT_KEYc    ||
+              type == OBJECT_KEYd    ||
+              type == OBJECT_TNT     ||
+              type == OBJECT_SHOW    ||
+              type == OBJECT_WINFIRE )
+    {
+        return {1.5f, 1.0f};
+    }
+
+    if ( type == OBJECT_BARRIER0 )
+    {
+        return {6.0f, 0.5f, Gfx::ENG_SHADOW_WORM};
+    }
+
+    if ( type == OBJECT_BARRIER1 )
+    {
+        return {12.0f, 0.5f, Gfx::ENG_SHADOW_WORM};
+    }
+
+    if ( type == OBJECT_BARRIER2 )  // cardboard?
+    {
+        return {12.0f, 0.8f, Gfx::ENG_SHADOW_WORM};
+    }
+
+    if ( type == OBJECT_BARRIER3 )  // match + straw?
+    {
+        return {10.0f, 0.5f, Gfx::ENG_SHADOW_WORM};
+    }
+
+    if ( type == OBJECT_BARRICADE0 )
+    {
+        return {6.0f, 0.5f, Gfx::ENG_SHADOW_WORM};
+    }
+
+    if ( type == OBJECT_BARRICADE1 )
+    {
+        return {12.0f, 0.5f, Gfx::ENG_SHADOW_WORM};
+    }
+
+    if ( type == OBJECT_PLANT0 ||
+         type == OBJECT_PLANT1 ||
+         type == OBJECT_PLANT2 ||
+         type == OBJECT_PLANT3 ||
+         type == OBJECT_PLANT4 )  // standard?
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_PLANT5 ||
+         type == OBJECT_PLANT6 ||
+         type == OBJECT_PLANT7 )  // clover?
+    {
+        return {5.0f, 0.3f};
+    }
+
+    if ( type == OBJECT_PLANT8 ||
+         type == OBJECT_PLANT9 )  // squash?
+    {
+        return {10.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_PLANT10 ||
+         type == OBJECT_PLANT11 ||
+         type == OBJECT_PLANT12 ||
+         type == OBJECT_PLANT13 ||
+         type == OBJECT_PLANT14 )  // succulent?
+    {
+        return {8.0f, 0.3f};
+    }
+
+    if ( type == OBJECT_PLANT15 ||
+         type == OBJECT_PLANT16 ||
+         type == OBJECT_PLANT17 ||
+         type == OBJECT_PLANT18 )  // fern?
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_PLANT19 )  // fern?
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TREE0 )
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TREE1 )
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TREE2 )
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TREE3 )
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TREE4 )
+    {
+        return {8.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TREE5 )  // giant tree (for the world "teen")
+    {
+        return {50.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_MUSHROOM1 )
+    {
+       return {6.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_MUSHROOM2 )
+    {
+       return {5.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TEEN0 )  // orange pencil lg=10
+    {
+       return {5.0f, 0.8f, Gfx::ENG_SHADOW_WORM, true};
+    }
+
+    if ( type == OBJECT_TEEN1 )  // blue pencil lg=14
+    {
+       return {6.0f, 0.8f, Gfx::ENG_SHADOW_WORM, true};
+    }
+
+    if ( type == OBJECT_TEEN2 )  // red pencil lg=16
+    {
+       return {6.0f, 0.8f, Gfx::ENG_SHADOW_WORM, true};
+    }
+
+    if ( type == OBJECT_TEEN3 )  // jar with pencils
+    {
+       return {6.0f, 0.5f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN4 )  // scissors
+    {
+       return {10.0f, 0.5f, Gfx::ENG_SHADOW_WORM, true};
+    }
+
+    if ( type == OBJECT_TEEN5 )  // CD
+    {
+       return {8.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN6 )  // book 1
+    {
+       return {20.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN7 )  // book 2
+    {
+       return {20.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN8 )  // a stack of books 1
+    {
+       return {20.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN9 )  // a stack of books 2
+    {
+       return {20.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN10 )  // bookcase
+    {
+       return {40.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN12 )  // coke
+    {
+       return {4.5f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN13 )  // cardboard farm
+    {
+       return {20.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN14 )  // open box
+    {
+       return {20.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN15 )  // stack of cartons
+    {
+       return {20.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN16 )  // watering can
+    {
+       return {18.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN17 )  // wheel |
+    {
+       return {24.0f, 0.5f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN18 )  // wheel /
+    {
+       return {24.0f, 0.5f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN19 )  // wheel =
+    {
+       return {33.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN23 )  // skateboard on wheels
+    {
+       return {35.0f, 0.8f, Gfx::ENG_SHADOW_WORM, true};
+    }
+
+    if ( type == OBJECT_TEEN24 )  // skate /
+    {
+       return {20.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN25 )  // skate /
+    {
+       return {20.0f, 0.2f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN27 )  // large plant?
+    {
+       return {40.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_TEEN28 )  // bottle?
+    {
+       return {7.0f, 0.6f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN30 )  // jump?
+    {
+       return {20.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN31 )  // basket?
+    {
+       return {16.0f, 0.6f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN32 )  // chair?
+    {
+       return {35.0f, 0.3f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN33 )  // panel?
+    {
+       return {10.0f, 0.3f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN34 )  // stone?
+    {
+       return {3.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN35 )  // pipe?
+    {
+       return {40.0f, 0.8f, Gfx::ENG_SHADOW_WORM, true};
+    }
+
+    if ( type == OBJECT_TEEN38 )  // fan?
+    {
+       return {15.0f, 0.5f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN39 )  // potted plant?
+    {
+       return {10.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN40 )  // balloon?
+    {
+       return {15.0f, 0.7f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN42 )  // clover?
+    {
+       return {15.0f, 0.4f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN43 )  // clover?
+    {
+       return {15.0f, 0.4f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+    if ( type == OBJECT_TEEN44 )  // car?
+    {
+       return {55.0f, 1.0f, Gfx::ENG_SHADOW_NORM, true};
+    }
+
+
+    if ( type == OBJECT_QUARTZ0 )
+    {
+        return {4.0f, 0.5f};
+    }
+    if ( type == OBJECT_QUARTZ1 )
+    {
+        return {5.0f, 0.5f};
+    }
+    if ( type == OBJECT_QUARTZ2 )
+    {
+        return {6.0f, 0.5f};
+    }
+    if ( type == OBJECT_QUARTZ3 )
+    {
+        return {10.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_ROOT0 )
+    {
+        return {16.0f, 0.5f};
+    }
+    if ( type == OBJECT_ROOT1 )
+    {
+        return {16.0f, 0.5f};
+    }
+    if ( type == OBJECT_ROOT2 )
+    {
+        return {16.0f, 0.5f};
+    }
+    if ( type == OBJECT_ROOT3 )
+    {
+        return {22.0f, 0.5f};
+    }
+    if ( type == OBJECT_ROOT4 )
+    {
+        return {30.0f, 0.5f};
+    }
+    if ( type == OBJECT_ROOT5 )  // gravity root ?
+    {
+        return {30.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_HOME1 )
+    {
+        return {16.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_RUINmobilew1 )  // vehicle had wheels?
+    {
+        return {4.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINmobilew2 )  // vehicle has wheels?
+    {
+        return {4.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINmobilet1 )  // vehicle have caterpillars?
+    {
+        return {5.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINmobilet2 )  // vehicle have caterpillars?
+    {
+        return {5.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINmobiler1 )  // vehicle skating?
+    {
+        return {5.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINmobiler2 )  // vehicle skating?
+    {
+        return {6.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINfactory )  // factory ?
+    {
+        return {20.0f, 0.7f};
+    }
+
+    if ( type == OBJECT_RUINdoor )  // converter holder?
+    {
+        return {6.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINsupport )  // radar holder?
+    {
+        return {3.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINradar )  // radar base?
+    {
+        return {6.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINbase )  // base?
+    {
+        return {40.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RUINhead )  // base cap?
+    {
+        return {30.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_APOLLO1 )  // LEM ?
+    {
+        return {16.0f, 0.5f};
+    }
+
+
+    if ( type == OBJECT_APOLLO3 )  // flag?
+    {
+        return {2.0f, 0.3f};
+    }
+
+    if ( type == OBJECT_APOLLO4 )  // module?
+    {
+        return {5.0f, 0.8f};
+    }
+
+    if ( type == OBJECT_APOLLO5 )  // antenna?
+    {
+        return {3.0f, 0.7f};
+    }
+
+    return CObjectCreationShadowCircle();
+}
+
+float CObjectDetails::GetCreationScale(ObjectType type)
+{
+    if ( type == OBJECT_BAG )   return 1.5f;
+    if ( type == OBJECT_ROOT0 ) return 2.0f;
+    if ( type == OBJECT_ROOT1 ) return 2.0f;
+    if ( type == OBJECT_ROOT2 ) return 2.0f;
+    if ( type == OBJECT_ROOT3 ) return 2.0f;
+    if ( type == OBJECT_ROOT4 ) return 2.0f;
+    if ( type == OBJECT_ROOT5 ) return 2.0f;
+    if ( type == OBJECT_HOME1 ) return 1.3f;
+    if ( type == OBJECT_APOLLO1 ) return 1.2f;
+    return 1.0f;
+}
+
+bool CObjectDetails::IsCreationForceLoadTextures(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_STONE:
+        case OBJECT_URANIUM:
+        case OBJECT_METAL:
+        case OBJECT_POWER:
+        case OBJECT_ATOMIC:
+        case OBJECT_BULLET:
+        case OBJECT_BBOX:
+        case OBJECT_KEYa:
+        case OBJECT_KEYb:
+        case OBJECT_KEYc:
+        case OBJECT_KEYd:
+        case OBJECT_TNT:
+        case OBJECT_BOMB:
+        case OBJECT_WAYPOINT:
+        case OBJECT_SHOW:
+        case OBJECT_WINFIRE:
+        case OBJECT_BAG:
+        case OBJECT_MARKPOWER:
+        case OBJECT_MARKSTONE:
+        case OBJECT_MARKURANIUM:
+        case OBJECT_MARKKEYa:
+        case OBJECT_MARKKEYb:
+        case OBJECT_MARKKEYc:
+        case OBJECT_MARKKEYd:
+        case OBJECT_EGG:
+            return true;
+
+        case OBJECT_FLAGb:
+        case OBJECT_FLAGr:
+        case OBJECT_FLAGg:
+        case OBJECT_FLAGy:
+        case OBJECT_FLAGv:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool CObjectDetails::IsCreationSetFloorHeight(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_STONE:
+        case OBJECT_URANIUM:
+        case OBJECT_METAL:
+        case OBJECT_POWER:
+        case OBJECT_ATOMIC:
+        case OBJECT_BULLET:
+        case OBJECT_BBOX:
+        case OBJECT_KEYa:
+        case OBJECT_KEYb:
+        case OBJECT_KEYc:
+        case OBJECT_KEYd:
+        case OBJECT_TNT:
+        case OBJECT_BOMB:
+        case OBJECT_WAYPOINT:
+        case OBJECT_SHOW:
+        case OBJECT_WINFIRE:
+        case OBJECT_BAG:
+        case OBJECT_MARKPOWER:
+        case OBJECT_MARKSTONE:
+        case OBJECT_MARKURANIUM:
+        case OBJECT_MARKKEYa:
+        case OBJECT_MARKKEYb:
+        case OBJECT_MARKKEYc:
+        case OBJECT_MARKKEYd:
+        case OBJECT_EGG:
+            return true;
+
+        case OBJECT_FLAGb:
+        case OBJECT_FLAGr:
+        case OBJECT_FLAGg:
+        case OBJECT_FLAGy:
+        case OBJECT_FLAGv:
+            return true;
+
+        case OBJECT_BARRIER0:
+        case OBJECT_BARRIER1:
+        case OBJECT_BARRIER2:
+        case OBJECT_BARRIER3:
+        case OBJECT_BARRICADE0:
+        case OBJECT_BARRICADE1:
+            return true;
+
+        case OBJECT_PLANT0:
+        case OBJECT_PLANT1:
+        case OBJECT_PLANT2:
+        case OBJECT_PLANT3:
+        case OBJECT_PLANT4:
+        case OBJECT_PLANT5:
+        case OBJECT_PLANT6:
+        case OBJECT_PLANT7:
+        case OBJECT_PLANT8:
+        case OBJECT_PLANT9:
+        case OBJECT_PLANT10:
+        case OBJECT_PLANT11:
+        case OBJECT_PLANT12:
+        case OBJECT_PLANT13:
+        case OBJECT_PLANT14:
+        case OBJECT_PLANT15:
+        case OBJECT_PLANT16:
+        case OBJECT_PLANT17:
+        case OBJECT_PLANT18:
+        case OBJECT_PLANT19:
+        case OBJECT_TREE0:
+        case OBJECT_TREE1:
+        case OBJECT_TREE2:
+        case OBJECT_TREE3:
+        case OBJECT_TREE4:
+        case OBJECT_TREE5:
+            return true;
+
+        case OBJECT_MUSHROOM1:
+        case OBJECT_MUSHROOM2:
+            return true;
+
+        case OBJECT_TEEN0:
+        case OBJECT_TEEN1:
+        case OBJECT_TEEN2:
+        case OBJECT_TEEN3:
+        case OBJECT_TEEN4:
+        case OBJECT_TEEN5:
+        case OBJECT_TEEN6:
+        case OBJECT_TEEN7:
+        case OBJECT_TEEN8:
+        case OBJECT_TEEN9:
+        case OBJECT_TEEN10:
+        case OBJECT_TEEN11:
+        case OBJECT_TEEN12:
+        case OBJECT_TEEN13:
+        case OBJECT_TEEN14:
+        case OBJECT_TEEN15:
+        case OBJECT_TEEN16:
+        case OBJECT_TEEN17:
+        case OBJECT_TEEN18:
+        case OBJECT_TEEN19:
+        case OBJECT_TEEN20:
+        case OBJECT_TEEN21:
+        case OBJECT_TEEN22:
+        case OBJECT_TEEN23:
+        case OBJECT_TEEN24:
+        case OBJECT_TEEN25:
+        case OBJECT_TEEN26:
+        case OBJECT_TEEN27:
+        case OBJECT_TEEN28:
+        case OBJECT_TEEN30:
+        case OBJECT_TEEN31:
+        case OBJECT_TEEN32:
+        case OBJECT_TEEN33:
+        case OBJECT_TEEN34:
+        case OBJECT_TEEN35:
+        case OBJECT_TEEN38:
+        case OBJECT_TEEN39:
+        case OBJECT_TEEN40:
+        case OBJECT_TEEN41:
+        case OBJECT_TEEN42:
+        case OBJECT_TEEN43:
+        case OBJECT_TEEN44:
+            return true;
+
+        case OBJECT_TEEN29:
+        case OBJECT_TEEN36:
+        case OBJECT_TEEN37:
+            return false;
+
+        case OBJECT_QUARTZ0:
+        case OBJECT_QUARTZ1:
+        case OBJECT_QUARTZ2:
+        case OBJECT_QUARTZ3:
+            return true;
+
+        case OBJECT_ROOT0:
+        case OBJECT_ROOT1:
+        case OBJECT_ROOT2:
+        case OBJECT_ROOT3:
+        case OBJECT_ROOT4:
+        case OBJECT_ROOT5:
+            return true;
+
+        case OBJECT_HOME1:
+            return true;
+
+        case OBJECT_RUINmobilew1:
+        case OBJECT_RUINmobilew2:
+        case OBJECT_RUINmobilet1:
+        case OBJECT_RUINmobilet2:
+        case OBJECT_RUINmobiler1:
+        case OBJECT_RUINmobiler2:
+        case OBJECT_RUINdoor:
+        case OBJECT_RUINsupport:
+        case OBJECT_RUINradar:
+        case OBJECT_RUINhead:
+        case OBJECT_RUINfactory:
+        case OBJECT_RUINconvert:
+        case OBJECT_RUINbase:
+            return true;
+        
+        case OBJECT_APOLLO1:
+        case OBJECT_APOLLO3:
+        case OBJECT_APOLLO4:
+            return true;
+
+        case OBJECT_APOLLO5:
+            return false;
+
+        default:
+            return false;
+    }
+}
+
+bool CObjectDetails::IsCreationFloorAdjust(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_STONE:
+        case OBJECT_URANIUM:
+        case OBJECT_METAL:
+        case OBJECT_POWER:
+        case OBJECT_ATOMIC:
+        case OBJECT_BULLET:
+        case OBJECT_BBOX:
+        case OBJECT_KEYa:
+        case OBJECT_KEYb:
+        case OBJECT_KEYc:
+        case OBJECT_KEYd:
+        case OBJECT_TNT:
+        case OBJECT_BOMB:
+        case OBJECT_WAYPOINT:
+        case OBJECT_SHOW:
+        case OBJECT_WINFIRE:
+        case OBJECT_BAG:
+        case OBJECT_MARKPOWER:
+        case OBJECT_MARKSTONE:
+        case OBJECT_MARKURANIUM:
+        case OBJECT_MARKKEYa:
+        case OBJECT_MARKKEYb:
+        case OBJECT_MARKKEYc:
+        case OBJECT_MARKKEYd:
+        case OBJECT_EGG:
+            return true;
+
+        case OBJECT_FLAGb:
+        case OBJECT_FLAGr:
+        case OBJECT_FLAGg:
+        case OBJECT_FLAGy:
+        case OBJECT_FLAGv:
+            return true;
+
+        case OBJECT_BARRIER0:
+        case OBJECT_BARRIER1:
+        case OBJECT_BARRIER2:
+        case OBJECT_BARRIER3:
+        case OBJECT_BARRICADE0:
+        case OBJECT_BARRICADE1:
+            return true;
+
+        case OBJECT_TEEN0:
+        case OBJECT_TEEN1:
+        case OBJECT_TEEN2:
+        case OBJECT_TEEN3:
+        case OBJECT_TEEN4:
+        case OBJECT_TEEN6:
+        case OBJECT_TEEN7:
+        case OBJECT_TEEN8:
+        case OBJECT_TEEN9:
+        case OBJECT_TEEN10:
+        case OBJECT_TEEN11:
+        case OBJECT_TEEN12:
+        case OBJECT_TEEN13:
+        case OBJECT_TEEN14:
+        case OBJECT_TEEN15:
+        case OBJECT_TEEN16:
+        case OBJECT_TEEN17:
+        case OBJECT_TEEN18:
+        case OBJECT_TEEN19:
+        case OBJECT_TEEN20:
+        case OBJECT_TEEN21:
+        case OBJECT_TEEN22:
+        case OBJECT_TEEN23:
+        case OBJECT_TEEN24:
+        case OBJECT_TEEN25:
+        case OBJECT_TEEN26:
+        case OBJECT_TEEN27:
+        case OBJECT_TEEN28:
+        case OBJECT_TEEN30:
+        case OBJECT_TEEN31:
+        case OBJECT_TEEN32:
+        case OBJECT_TEEN33:
+        case OBJECT_TEEN34:
+        case OBJECT_TEEN35:
+        case OBJECT_TEEN38:
+        case OBJECT_TEEN39:
+        case OBJECT_TEEN40:
+        case OBJECT_TEEN41:
+        case OBJECT_TEEN42:
+        case OBJECT_TEEN43:
+        case OBJECT_TEEN44:
+            return true;
+
+        case OBJECT_TEEN5:
+        case OBJECT_TEEN29:
+        case OBJECT_TEEN36:
+        case OBJECT_TEEN37:
+            return false;
+
+        case OBJECT_QUARTZ0:
+        case OBJECT_QUARTZ1:
+        case OBJECT_QUARTZ2:
+        case OBJECT_QUARTZ3:
+            return false;
+
+        case OBJECT_ROOT0:
+        case OBJECT_ROOT1:
+        case OBJECT_ROOT2:
+        case OBJECT_ROOT3:
+        case OBJECT_ROOT4:
+        case OBJECT_ROOT5:
+            return false;
+
+        case OBJECT_HOME1:
+            return true;
+
+        case OBJECT_RUINmobilew1:
+        case OBJECT_RUINmobilew2:
+        case OBJECT_RUINmobilet1:
+        case OBJECT_RUINmobilet2:
+        case OBJECT_RUINmobiler1:
+        case OBJECT_RUINmobiler2:
+        case OBJECT_RUINdoor:
+        case OBJECT_RUINsupport:
+        case OBJECT_RUINradar:
+        case OBJECT_RUINhead:
+            return true;
+
+        case OBJECT_RUINfactory:
+        case OBJECT_RUINconvert:
+        case OBJECT_RUINbase:
+            return false;
+
+        case OBJECT_APOLLO4:
+            return true;
+
+        case OBJECT_APOLLO1:
+        case OBJECT_APOLLO3:
+        case OBJECT_APOLLO5:
+            return false;
+
+        default:
+            return false;
+    }
+}
+
+bool CObjectDetails::IsCreationFixedPosition(ObjectType type)
+{
+    return type == OBJECT_SHOW;
+}
+
+bool CObjectDetails::IsDestructionRemoveBuildingLevel(ObjectType type)
+{
+    if ( type == OBJECT_BASE     ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_DERRICK  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_SAFE     ||
+         type == OBJECT_HUSTON   ||
+         type == OBJECT_START    ||
+         type == OBJECT_END      ) return true;
+
+    // but why? maybe just check objects that has AddBuildingLevels() in model?
+    // also, ruins have building levels as well.....
+
+    return false;
+}
+
+Gfx::PyroType CObjectDetails::GetDestructionByExplosion(ObjectType type)
+{
+    if ( type == OBJECT_ANT    ||
+         type == OBJECT_SPIDER ||
+         type == OBJECT_BEE    ||
+         type == OBJECT_WORM   )
+    {
+        return Gfx::PT_EXPLOO;
+    }
+    else if ( type == OBJECT_MOTHER ||
+              type == OBJECT_NEST   ||
+              type == OBJECT_BULLET )
+    {
+        return Gfx::PT_FRAGO;
+    }
+    else if ( type == OBJECT_HUMAN )
+    {
+        return Gfx::PT_DEADG;
+    }
+    else if ( type == OBJECT_BASE     ||
+              type == OBJECT_DERRICK  ||
+              type == OBJECT_FACTORY  ||
+              type == OBJECT_STATION  ||
+              type == OBJECT_CONVERT  ||
+              type == OBJECT_REPAIR   ||
+              type == OBJECT_DESTROYER||
+              type == OBJECT_TOWER    ||
+              type == OBJECT_NEST     ||
+              type == OBJECT_RESEARCH ||
+              type == OBJECT_RADAR    ||
+              type == OBJECT_INFO     ||
+              type == OBJECT_ENERGY   ||
+              type == OBJECT_LABO     ||
+              type == OBJECT_NUCLEAR  ||
+              type == OBJECT_PARA     ||
+              type == OBJECT_SAFE     ||
+              type == OBJECT_HUSTON   ||
+              type == OBJECT_START    ||
+              type == OBJECT_END      ||
+              type == OBJECT_RUINfactory ||
+              type == OBJECT_RUINdoor    ||
+              type == OBJECT_RUINsupport ||
+              type == OBJECT_RUINradar   ||
+              type == OBJECT_RUINconvert  )  // building?
+    {
+        return Gfx::PT_FRAGT;
+    }
+    else if ( type == OBJECT_MOBILEtg )
+    {
+        return Gfx::PT_FRAGT;
+    }
+    else
+    {
+        return Gfx::PT_EXPLOT;
+    }
+}
+
+Gfx::PyroType CObjectDetails::GetDestructionByWater(ObjectType type)
+{
+    return Gfx::PT_FRAGW;
+}
+
+Gfx::PyroType CObjectDetails::GetDestructionByBurning(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER ||
+         type == OBJECT_ANT    ||
+         type == OBJECT_SPIDER ||
+         type == OBJECT_BEE    ||
+         type == OBJECT_WORM   ||
+         type == OBJECT_BULLET )
+    {
+        return Gfx::PT_BURNO;
+    }
+    else if ( type == OBJECT_HUMAN )
+    {
+        return Gfx::PT_DEADG;
+    }
+    else
+    {
+        return Gfx::PT_BURNT;
+    }
+}
+
+Gfx::PyroType CObjectDetails::GetDestructionByDrowned(ObjectType type)
+{
+    return Gfx::PT_DEADW;
+}
+
+Gfx::PyroType CObjectDetails::GetDestructionByWin(ObjectType type)
+{
+    return Gfx::PT_WPCHECK;
+}
+
+Gfx::PyroType CObjectDetails::GetDestructionBySquash(ObjectType type)
+{
+    return Gfx::PT_SQUASH;
+}
+
+bool CObjectDetails::IsDestructionKilledByBurning(ObjectType type)
+{
+    return type != OBJECT_HUMAN;
 }

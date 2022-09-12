@@ -31,6 +31,7 @@
 #include "graphics/core/material.h"
 #include "graphics/core/texture.h"
 #include "graphics/core/vertex.h"
+#include "graphics/engine/engine_types.h"
 
 #include "math/intpoint.h"
 #include "math/matrix.h"
@@ -165,27 +166,6 @@ struct EngineTriangle
     std::string    tex2Name;
 };
 
-/**
-  \enum EngineObjectType
-  \brief Class of graphics engine object */
-enum EngineObjectType
-{
-    //! Object doesn't exist
-    ENG_OBJTYPE_NULL        = 0,
-    //! Terrain
-    ENG_OBJTYPE_TERRAIN     = 1,
-    //! Fixed object
-    ENG_OBJTYPE_FIX         = 2,
-    //! Moving object
-    ENG_OBJTYPE_VEHICLE    = 3,
-    //! Part of a moving object
-    ENG_OBJTYPE_DESCENDANT  = 4,
-    //! Fixed object type quartz
-    ENG_OBJTYPE_QUARTZ      = 5,
-    //! Fixed object type metal
-    ENG_OBJTYPE_METAL       = 6
-};
-
 
 /**
  * \struct EngineBaseObjDataTier
@@ -289,18 +269,6 @@ struct EngineObject
     {
         *this = EngineObject();
     }
-};
-
-/**
- * \struct EngineShadowType
- * \brief Type of shadow drawn by the graphics engine
- */
-enum EngineShadowType
-{
-    //! Normal shadow
-    ENG_SHADOW_NORM = 0,
-    //! TODO: ?
-    ENG_SHADOW_WORM = 1
 };
 
 /**

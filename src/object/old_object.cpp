@@ -42,6 +42,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/auto/auto.h"
@@ -213,25 +214,7 @@ void COldObject::DeleteObject(bool bAll)
             SetSelect(false);
         }
 
-        if ( m_type == OBJECT_BASE     ||
-             m_type == OBJECT_FACTORY  ||
-             m_type == OBJECT_REPAIR   ||
-             m_type == OBJECT_DESTROYER||
-             m_type == OBJECT_DERRICK  ||
-             m_type == OBJECT_STATION  ||
-             m_type == OBJECT_CONVERT  ||
-             m_type == OBJECT_TOWER    ||
-             m_type == OBJECT_RESEARCH ||
-             m_type == OBJECT_RADAR    ||
-             m_type == OBJECT_INFO     ||
-             m_type == OBJECT_ENERGY   ||
-             m_type == OBJECT_LABO     ||
-             m_type == OBJECT_NUCLEAR  ||
-             m_type == OBJECT_PARA     ||
-             m_type == OBJECT_SAFE     ||
-             m_type == OBJECT_HUSTON   ||
-             m_type == OBJECT_START    ||
-             m_type == OBJECT_END      )  // building?
+        if ( GetObjectDetails().IsDestructionRemoveBuildingLevel(m_type) ) // building?
         {
             m_terrain->DeleteBuildingLevel(GetPosition());  // flattens the field
         }
@@ -482,100 +465,35 @@ void COldObject::DestroyObject(DestructionType type, CObject* killer)
     Gfx::PyroType pyroType = Gfx::PT_NULL;
     if ( type == DestructionType::Explosion )   // explosion?
     {
-        if ( m_type == OBJECT_ANT    ||
-             m_type == OBJECT_SPIDER ||
-             m_type == OBJECT_BEE    ||
-             m_type == OBJECT_WORM   )
-        {
-            pyroType = Gfx::PT_EXPLOO;
-        }
-        else if ( m_type == OBJECT_MOTHER ||
-                  m_type == OBJECT_NEST   ||
-                  m_type == OBJECT_BULLET )
-        {
-            pyroType = Gfx::PT_FRAGO;
-        }
-        else if ( m_type == OBJECT_HUMAN )
-        {
-            pyroType = Gfx::PT_DEADG;
-        }
-        else if ( m_type == OBJECT_BASE     ||
-                  m_type == OBJECT_DERRICK  ||
-                  m_type == OBJECT_FACTORY  ||
-                  m_type == OBJECT_STATION  ||
-                  m_type == OBJECT_CONVERT  ||
-                  m_type == OBJECT_REPAIR   ||
-                  m_type == OBJECT_DESTROYER||
-                  m_type == OBJECT_TOWER    ||
-                  m_type == OBJECT_NEST     ||
-                  m_type == OBJECT_RESEARCH ||
-                  m_type == OBJECT_RADAR    ||
-                  m_type == OBJECT_INFO     ||
-                  m_type == OBJECT_ENERGY   ||
-                  m_type == OBJECT_LABO     ||
-                  m_type == OBJECT_NUCLEAR  ||
-                  m_type == OBJECT_PARA     ||
-                  m_type == OBJECT_SAFE     ||
-                  m_type == OBJECT_HUSTON   ||
-                  m_type == OBJECT_START    ||
-                  m_type == OBJECT_END      ||
-                  m_type == OBJECT_RUINfactory ||
-                  m_type == OBJECT_RUINdoor    ||
-                  m_type == OBJECT_RUINsupport ||
-                  m_type == OBJECT_RUINradar   ||
-                  m_type == OBJECT_RUINconvert  )  // building?
-        {
-            pyroType = Gfx::PT_FRAGT;
-        }
-        else if ( m_type == OBJECT_MOBILEtg )
-        {
-            pyroType = Gfx::PT_FRAGT;
-        }
-        else
-        {
-            pyroType = Gfx::PT_EXPLOT;
-        }
+        pyroType = GetObjectDetails().GetDestructionByExplosion(m_type);
     }
     else if ( type == DestructionType::ExplosionWater )
     {
-        pyroType = Gfx::PT_FRAGW;
+        pyroType = GetObjectDetails().GetDestructionByWater(m_type);
     }
     else if ( type == DestructionType::Burn )  // burning?
     {
-        if ( m_type == OBJECT_MOTHER ||
-             m_type == OBJECT_ANT    ||
-             m_type == OBJECT_SPIDER ||
-             m_type == OBJECT_BEE    ||
-             m_type == OBJECT_WORM   ||
-             m_type == OBJECT_BULLET )
-        {
-            pyroType = Gfx::PT_BURNO;
+        pyroType = GetObjectDetails().GetDestructionByBurning(m_type);
+
+        if (GetObjectDetails().IsDestructionKilledByBurning(m_type))
             SetDying(DeathType::Burning);
-        }
-        else if ( m_type == OBJECT_HUMAN )
-        {
-            pyroType = Gfx::PT_DEADG;
-        }
-        else
-        {
-            pyroType = Gfx::PT_BURNT;
-            SetDying(DeathType::Burning);
-        }
+
         SetVirusMode(false);
     }
     else if ( type == DestructionType::Drowned )
     {
-        pyroType = Gfx::PT_DEADW;
+        pyroType = GetObjectDetails().GetDestructionByDrowned(m_type);
     }
     else if ( type == DestructionType::Win )
     {
-        pyroType = Gfx::PT_WPCHECK;
+        pyroType = GetObjectDetails().GetDestructionByWin(m_type);
     }
     else if ( type == DestructionType::Squash )
     {
-        pyroType = Gfx::PT_SQUASH;
+        pyroType = GetObjectDetails().GetDestructionBySquash(m_type);
         DeleteAllCrashSpheres();
     }
+
     assert(pyroType != Gfx::PT_NULL);
     if (pyroType == Gfx::PT_FRAGT ||
         pyroType == Gfx::PT_FRAGO ||

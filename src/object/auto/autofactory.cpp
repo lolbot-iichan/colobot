@@ -588,7 +588,7 @@ bool CAutoFactory::NearestVehicle()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
-        if ( GetObjectDetails().IsAutoBlockingFactory(type) )  continue;
+        if ( !GetObjectDetails().IsAutoBlockingFactory(type) )  continue;
 
         if (obj->GetCrashSphereCount() == 0) continue;
 

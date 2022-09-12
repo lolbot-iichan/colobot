@@ -522,7 +522,9 @@ bool CDisplayText::IsVisit(EventType event)
 
 CObject* CDisplayText::SearchToto()
 {
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, OBJECT_TOTO);
+    if (GetObjectDetails().IsAssistantReactingOnDisplayedText())
+        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, GetObjectDetails().GetAssistantType());
+    return nullptr;
 }
 
 } // namespace Ui

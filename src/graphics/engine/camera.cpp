@@ -862,7 +862,7 @@ void CCamera::IsCollisionFix(Math::Vector &eye, Math::Vector lookat)
         if (obj == m_cameraObj) continue;
 
         ObjectType type = obj->GetType();
-        if ( !GetObjectDetails().GetFixCameraCanCollide(type) ) continue;
+        if ( !GetObjectDetails().IsFixCameraCollideThis(type) ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector objPos = objSphere.pos;
@@ -1127,7 +1127,7 @@ bool CCamera::EventFrameBack(const Event &event)
         h += m_addDirectionH * (1.0f - centeringH);
         h = Math::NormAngle(h);
 
-        float v = 0.0f - GetObjectDetails().GetBackCameraRotationZ(type);  // Camera top
+        float v = 0.0f - Math::PI * GetObjectDetails().GetBackCameraRotationZ(type);  // Camera top
         v += m_centeringCurrentV;
         v += m_addDirectionV * (1.0f - centeringV);
 

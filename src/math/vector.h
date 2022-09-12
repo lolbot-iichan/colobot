@@ -183,6 +183,12 @@ struct Vector
         return Vector(left.x - right.x, left.y - right.y, left.z - right.z);
     }
 
+    //! Compares two vectors
+    inline friend const bool operator==(const Vector &left, const Vector &right)
+    {
+        return left.x == right.x && left.y == right.y && left.z == right.z;
+    }
+
     //! Multiplies by given scalar
     inline const Vector& operator*=(const float &right)
     {

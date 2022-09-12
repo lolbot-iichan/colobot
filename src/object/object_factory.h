@@ -57,18 +57,9 @@ public:
     CObjectUPtr CreateObject(const ObjectCreateParams& params);
 
 private:
-    CObjectUPtr CreateResource(const ObjectCreateParams& params);
-    CObjectUPtr CreateFlag(const ObjectCreateParams& params);
-    CObjectUPtr CreateBarrier(const ObjectCreateParams& params);
-    CObjectUPtr CreatePlant(const ObjectCreateParams& params);
-    CObjectUPtr CreateMushroom(const ObjectCreateParams& params);
-    CObjectUPtr CreateTeen(const ObjectCreateParams& params);
-    CObjectUPtr CreateQuartz(const ObjectCreateParams& params);
-    CObjectUPtr CreateRoot(const ObjectCreateParams& params);
-    CObjectUPtr CreateHome(const ObjectCreateParams& params);
-    CObjectUPtr CreateRuin(const ObjectCreateParams& params);
-    CObjectUPtr CreateApollo(const ObjectCreateParams& params);
+    CObjectUPtr CreateSimpleObject(const ObjectCreateParams& params);
     void AddObjectAuto(COldObject* obj);
+    void AddObjectHacks(COldObject* obj);
 
 private:
     Gfx::CEngine* m_engine;

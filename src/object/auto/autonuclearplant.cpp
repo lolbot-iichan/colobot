@@ -341,7 +341,7 @@ bool CAutoNuclearPlant::SearchVehicle()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
-        if ( GetObjectDetails().IsAutoBlockingNuclearPlant(type) )  continue;
+        if ( !GetObjectDetails().IsAutoBlockingNuclearPlant(type) )  continue;
 
         if (obj->GetCrashSphereCount() == 0) continue;
 
