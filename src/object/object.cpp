@@ -30,6 +30,8 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
+#include "object/object_details.h"
+
 #include "script/scriptfunc.h"
 
 #include <stdexcept>
@@ -331,7 +333,12 @@ CBot::CBotVar* CObject::GetBotVar()
 std::string CObject::GetTooltipText()
 {
     std::string name;
-    GetResource(RES_OBJECT, m_type, name);
+
+    if (GetObjectDetails().IsDisplayedNameAsPlayer(m_type))
+        name = GetGlobalGamerName();
+    else
+        GetResource(RES_OBJECT, m_type, name);
+
     if (GetTeam() != 0)
     {
         name += " ["+CRobotMain::GetInstancePointer()->GetTeamName(GetTeam())+" ("+StrUtils::ToString<int>(GetTeam())+")]";

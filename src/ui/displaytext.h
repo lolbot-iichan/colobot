@@ -74,9 +74,6 @@ public:
     float       GetVisitDist(EventType event);
     float       GetVisitHeight(EventType event);
 
-    float       GetIdealDist(ObjectType type);
-    float       GetIdealHeight(ObjectType type);
-
     void        ClearVisit();
     void        SetVisit(EventType event);
     bool        IsVisit(EventType event);

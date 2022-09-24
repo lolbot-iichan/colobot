@@ -147,6 +147,18 @@ struct Vector
 
     /* Operators */
 
+    //! Compares two vectors
+    inline friend const bool operator==(const Vector &left, const Vector &right)
+    {
+        return left.x == right.x && left.y == right.y && left.z == right.z;
+    }
+
+    //! Checks if two vectors are different
+    inline friend const bool operator!=(const Vector &left, const Vector &right)
+    {
+        return left.x != right.x || left.y != right.y || left.z != right.z;
+    }
+
     //! Returns the inverted vector
     inline Vector operator-() const
     {
@@ -181,12 +193,6 @@ struct Vector
     inline friend const Vector operator-(const Vector &left, const Vector &right)
     {
         return Vector(left.x - right.x, left.y - right.y, left.z - right.z);
-    }
-
-    //! Compares two vectors
-    inline friend const bool operator==(const Vector &left, const Vector &right)
-    {
-        return left.x == right.x && left.y == right.y && left.z == right.z;
     }
 
     //! Multiplies by given scalar

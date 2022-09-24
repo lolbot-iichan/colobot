@@ -750,7 +750,7 @@ void CObjectInterface::ColorFlag(int color)
 
 bool CObjectInterface::CreateInterface(bool bSelect)
 {
-    ObjectType       type;
+    CObjectUserInterfaceDetails objectUIDetails;
     CWindow*     pw;
     CButton*     pb;
     CSlider*     ps;
@@ -793,9 +793,9 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    type = m_object->GetType();
+    objectUIDetails = GetObjectUserInterfaceDetails(m_object);
 
-    if ( GetObjectDetails().GetInterfaceProgram(type) )
+    if ( objectUIDetails.hasProgramUI )
     {
         if (m_main->GetMissionType() != MISSION_RETRO)
         {
@@ -844,7 +844,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
 
         if ( m_object->Implements(ObjectInterfaceType::JetFlying) )
         {
-            if ( type != OBJECT_HUMAN || m_object->GetOption() != 2 ) // if not Me without a jetpack, display reactor temperature
+            if ( m_object->GetType() != OBJECT_HUMAN || m_object->GetOption() != 2 ) // if not Me without a jetpack, display reactor temperature
             {
                 pos.x = ox+sx*15.3f;
                 pos.y = oy+sy*0;
@@ -855,43 +855,42 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         }
     }
 
-    if ( GetObjectDetails().GetInterfaceGrabberHuman(type) && !m_main->GetPlusExplorer() )
+    for ( auto it : objectUIDetails.widgets )
     {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 31, EVENT_OBJECT_HTAKE);
-        DefaultEnter(pw, EVENT_OBJECT_HTAKE);
+        bool bSkip = false;
+        for ( auto b : it.onBuildingsEnabled )
+            if ( !m_main->IsBuildingEnabled(b) )
+                bSkip = true;
+
+        for ( auto r : it.onResearchsDone )
+            if ( !m_main->IsResearchDone(r, m_object->GetTeam()) )
+                bSkip = true;
+
+        if ( bSkip ) continue;
+        if ( it.disabledByTrainer && m_object->GetTrainer() ) continue;
+        if ( it.disabledByPlusExplorer && m_main->GetPlusExplorer() ) continue;
+
+        pos.x  = ox + sx * it.position.x;
+        pos.y  = oy + sy * it.position.y;
+        ddim.x = dim.x * it.size.x;
+        ddim.y = dim.y * it.size.y;
+        
+        if ( it.type == WIDGET_ICON_BUTTON )
+        {
+            pb = pw->CreateButton(pos, ddim, it.params.icon, it.event);
+            pb->SetImmediat(true);
+        }
+        else if ( it.type == WIDGET_COLOR_BUTTON )
+        {
+            pc = pw->CreateColor(pos, ddim, -1, it.event);
+            pc->SetColor(it.params.color);
+        }
+
+        if ( it.isDefault )
+            DefaultEnter(pw, it.event);
     }
 
-    if ( GetObjectDetails().GetInterfaceGrabberRobotArm(type) && !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 32, EVENT_OBJECT_MTAKE);
-        DefaultEnter(pw, EVENT_OBJECT_MTAKE);
-
-        pos.x = ox+sx*8.9f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 34, EVENT_OBJECT_MBACK);
-
-        pos.x = ox+sx*9.9f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 35, EVENT_OBJECT_MPOWER);
-
-        pos.x = ox+sx*10.9f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 33, EVENT_OBJECT_MFRONT);
-    }
-
-    if ( GetObjectDetails().GetInterfaceGrabberRobotSimple(type) && !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 32, EVENT_OBJECT_MTAKE);
-        DefaultEnter(pw, EVENT_OBJECT_MTAKE);
-    }
-
-    if ( GetObjectDetails().GetInterfaceBuilderHuman(type) && !m_main->GetPlusExplorer() )
+    if ( objectUIDetails.hasBuilderUIHuman && !m_main->GetPlusExplorer() )
     {
         pos.x  =   1.0f/640.0f;
         pos.y  =   4.0f/480.0f;
@@ -919,114 +918,9 @@ bool CObjectInterface::CreateInterface(bool bSelect)
             pw->CreateButton(pos, ddim, GetObjectDetails().GetBuilderMenuItem(i+7).icon, e);
             DeadInterface(pw, e, m_main->CanBuild(GetObjectDetails().GetBuilderMenuItem(i+7).type, m_object->GetTeam()));
         }
-
-        if ( m_main->IsBuildingEnabled(BUILD_GFLAT) )
-        {
-            pos.x = ox+sx*9.0f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+47, EVENT_OBJECT_GFLAT);
-        }
     }
 
-    if ( GetObjectDetails().GetInterfaceFlaggerHuman(type) && !m_main->GetPlusExplorer() )
-    {
-        if ( m_main->IsBuildingEnabled(BUILD_FLAG) )
-        {
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+54, EVENT_OBJECT_FCREATE);
-
-            pos.x = ox+sx*11.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+55, EVENT_OBJECT_FDELETE);
-
-            ddim.x = dim.x*0.4f;
-            ddim.y = dim.y*0.4f;
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*2.0f-ddim.y;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORb);
-            pc->SetColor(Gfx::Color(0.28f, 0.56f, 1.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORr);
-            pc->SetColor(Gfx::Color(1.0f, 0.0f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORg);
-            pc->SetColor(Gfx::Color(0.0f, 0.8f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORy);
-            pc->SetColor(Gfx::Color(1.0f, 0.93f, 0.0f, 0.0f)); //0x00ffec00
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORv);
-            pc->SetColor(Gfx::Color(0.82f, 0.004f, 0.99f, 0.0f)); //0x00d101fe
-        }
-    }
-
-    if ( GetObjectDetails().GetInterfaceSnifferRobot(type) && !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 40, EVENT_OBJECT_SEARCH);
-        DefaultEnter(pw, EVENT_OBJECT_SEARCH);
-
-        pos.x = ox+sx*9.0f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 11, EVENT_OBJECT_DELSEARCH);
-    }
-
-    if ( GetObjectDetails().GetInterfaceFlaggerRobot(type) && !m_object->GetTrainer() )
-    {
-        if ( m_main->IsBuildingEnabled(BUILD_FLAG) )
-        {
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+54, EVENT_OBJECT_FCREATE);
-
-            pos.x = ox+sx*11.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+55, EVENT_OBJECT_FDELETE);
-
-            ddim.x = dim.x*0.4f;
-            ddim.y = dim.y*0.4f;
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*2.0f-ddim.y;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORb);
-            pc->SetColor(Gfx::Color(0.28f, 0.56f, 1.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORr);
-            pc->SetColor(Gfx::Color(1.0f, 0.0f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORg);
-            pc->SetColor(Gfx::Color(0.0f, 0.8f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORy);
-            pc->SetColor(Gfx::Color(1.0f, 0.93f, 0.0f, 0.0f)); //0x00ffec00
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORv);
-            pc->SetColor(Gfx::Color(0.82f, 0.004f, 0.99f, 0.0f)); //0x00d101fe
-        }
-    }
-
-    if ( GetObjectDetails().GetInterfaceThumperRobot(type) && !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 128+18, EVENT_OBJECT_TERRAFORM);
-        DefaultEnter(pw, EVENT_OBJECT_TERRAFORM);
-
-        pos.x = ox+sx*10.2f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 41, EVENT_OBJECT_LIMIT);
-    }
-
-    if ( GetObjectDetails().GetInterfaceRecyclerRobot(type) && !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 128+20, EVENT_OBJECT_RECOVER);
-        DefaultEnter(pw, EVENT_OBJECT_RECOVER);
-    }
-
-    if ( GetObjectDetails().GetInterfaceShielderRobot(type) && !m_object->GetTrainer() )
+    if ( objectUIDetails.hasShielderUIRobot && !m_object->GetTrainer() )
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
@@ -1051,29 +945,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ps->SetArrowStep(1.0f);
     }
 
-    if ( GetObjectDetails().GetInterfaceShooterRobot(type) && !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pb = pw->CreateButton(pos, dim, 42, EVENT_OBJECT_FIRE);
-        pb->SetImmediat(true);
-        DefaultEnter(pw, EVENT_OBJECT_FIRE);
-
-//?     pos.x = ox+sx*10.2f;
-//?     pos.y = oy+sy*0.5f;
-//?     pw->CreateButton(pos, dim, 41, EVENT_OBJECT_LIMIT);
-    }
-
-    if ( GetObjectDetails().GetInterfaceExploderAlien(type) )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pb = pw->CreateButton(pos, dim, 42, EVENT_OBJECT_SPIDEREXPLO);
-        pb->SetImmediat(true);
-        DefaultEnter(pw, EVENT_OBJECT_SPIDEREXPLO);
-    }
-
-    if ( GetObjectDetails().GetInterfaceScribblerRobot(type) && m_object->GetManual() )
+    if ( objectUIDetails.hasScribblerUIRobot && m_object->GetManual() )
     {
         pos.x = ox+sx*6.9f;
         pos.y = oy+sy*0.0f;
@@ -1229,7 +1101,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pw->CreateGauge(pos, ddim, 3, EVENT_OBJECT_GSHIELD);
     }
 
-    if ( GetObjectDetails().GetInterfaceShooterRobot(type) )
+    if ( objectUIDetails.hasShooterUIRobot )
     {
         ddim.x = 64.0f/640.0f;
         ddim.y = 64.0f/480.0f;
@@ -1245,7 +1117,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pt->ClearState(STATE_GLINT);
     }
 
-    if ( GetObjectDetails().IsOnboardCameraCorners(type) )
+    if ( !GetObjectCameraDetails(m_object).disableCornersOnOnboardCamera )
     {
         ddim.x = 64.0f / 640.0f;
         ddim.y = 64.0f / 480.0f;
@@ -1272,7 +1144,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pw->CreateGroup(pos, ddim, 16, EVENT_OBJECT_CORNERdr);
     }
 
-    if ( GetObjectDetails().GetInterfaceBuilderRobot(type) && !m_object->GetTrainer() )
+    if ( objectUIDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
@@ -1519,7 +1391,7 @@ void CObjectInterface::UpdateInterface(float rTime)
 
 void CObjectInterface::UpdateInterface()
 {
-    ObjectType  type;
+    CObjectUserInterfaceDetails objectUIDetails;
     CWindow*    pw;
     CButton*    pb;
     CSlider*    ps;
@@ -1537,8 +1409,6 @@ void CObjectInterface::UpdateInterface()
     {
         SetSelScript(m_programStorage->GetProgramIndex(m_programmable->GetCurrentProgram()));
     }
-
-    type = m_object->GetType();
 
     bool bEnable = ( !m_taskExecutor->IsForegroundTask() && !m_programmable->IsProgram() ) && m_main->CanPlayerInteract();
     bool bProgEnable = !m_programmable->IsProgram() && m_main->CanPlayerInteract();
@@ -1582,37 +1452,31 @@ void CObjectInterface::UpdateInterface()
     EnableInterface(pw, EVENT_OBJECT_PEN8,        bEnable);
     EnableInterface(pw, EVENT_OBJECT_REC,         bEnable);
     EnableInterface(pw, EVENT_OBJECT_STOP,        bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_01,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_02,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_03,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_04,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_05,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_06,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_07,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_08,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_09,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_10,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_11,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_12,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_13,    bEnable);
+    EnableInterface(pw, EVENT_OBJECT_BUILD_14,    bEnable);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORb,      m_flagColor==0);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORr,      m_flagColor==1);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORg,      m_flagColor==2);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORy,      m_flagColor==3);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORv,      m_flagColor==4);
+    CheckInterface(pw, EVENT_OBJECT_MPOWER,       m_manipStyle==EVENT_OBJECT_MPOWER);
+    CheckInterface(pw, EVENT_OBJECT_MBACK,        m_manipStyle==EVENT_OBJECT_MBACK);
+    CheckInterface(pw, EVENT_OBJECT_MFRONT,       m_manipStyle==EVENT_OBJECT_MFRONT);
 
-    if ( GetObjectDetails().GetInterfaceBuilderHuman(type) ||
-         GetObjectDetails().GetInterfaceBuilderRobot(type) )
-    {
-        EnableInterface(pw, EVENT_OBJECT_BUILD_01,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_02,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_03,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_04,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_05,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_06,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_07,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_08,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_09,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_10,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_11,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_12,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_13,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BUILD_14,  bEnable);
-    }
-
-    if ( GetObjectDetails().GetInterfaceFlaggerHuman(type) ||
-         GetObjectDetails().GetInterfaceFlaggerRobot(type) )
-    {
-        CheckInterface(pw, EVENT_OBJECT_FCOLORb, m_flagColor==0);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORr, m_flagColor==1);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORg, m_flagColor==2);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORy, m_flagColor==3);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORv, m_flagColor==4);
-    }
-
-    if ( GetObjectDetails().GetInterfaceShielderRobot(type) )
+    objectUIDetails = GetObjectUserInterfaceDetails(m_object);
+    if ( objectUIDetails.hasShielderUIRobot )
     {
         if ( (!m_taskExecutor->IsBackgroundTask() || !m_taskExecutor->GetBackgroundTask()->IsBusy()) && !m_programmable->IsProgram() )
         {
@@ -1636,7 +1500,7 @@ void CObjectInterface::UpdateInterface()
         }
     }
 
-    if ( GetObjectDetails().GetInterfaceBuilderRobot(type) && !m_object->GetTrainer() )
+    if ( objectUIDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
     {
         if(!bEnable) m_buildInterface = false;
         CheckInterface(pw, EVENT_OBJECT_BUILD, m_buildInterface);
@@ -1675,7 +1539,7 @@ void CObjectInterface::UpdateInterface()
     }
 
     bFly = bEnable;
-    if ( bFly && GetObjectDetails().IsInterfaceDisableFlyWhileGrabbing(type) )
+    if ( bFly && objectUIDetails.disableFlyWhileGrabbing )
     {
         if (dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::CARRYING) != nullptr)
             bFly = false;
@@ -1693,7 +1557,7 @@ void CObjectInterface::UpdateInterface()
         DeadInterface(pw, EVENT_OBJECT_GASDOWN, m_main->IsResearchDone(RESEARCH_FLY, m_object->GetTeam()));
     }
 
-    if ( GetObjectDetails().GetInterfaceProgramBlink(type) )
+    if ( objectUIDetails.hasProgramUIBlink )
     {
         bRun = false;
         if (m_selScript >= 0 && m_selScript < m_programStorage->GetProgramCount())
@@ -1728,13 +1592,6 @@ void CObjectInterface::UpdateInterface()
 //?     }
 
         BlinkScript(m_programmable->IsProgram());  // blinks if script execution
-    }
-
-    if ( GetObjectDetails().GetInterfaceGrabberRobotArm(type) )
-    {
-        CheckInterface(pw, EVENT_OBJECT_MPOWER, m_manipStyle==EVENT_OBJECT_MPOWER);
-        CheckInterface(pw, EVENT_OBJECT_MBACK,  m_manipStyle==EVENT_OBJECT_MBACK);
-        CheckInterface(pw, EVENT_OBJECT_MFRONT, m_manipStyle==EVENT_OBJECT_MFRONT);
     }
 
     CTraceDrawingObject* traceDrawing = nullptr;

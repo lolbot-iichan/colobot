@@ -132,7 +132,7 @@ bool CMainShort::CreateShortcuts()
         if (!object->GetDetectable())
             continue;
 
-        if(GetShortcutIcon(object->GetType()) == -1)
+        if(GetShortcutIcon(object) == -1)
             continue;
 
         if(std::find(teams.begin(), teams.end(), object->GetTeam()) == teams.end())
@@ -154,7 +154,7 @@ bool CMainShort::CreateShortcuts()
         if ( pObj->Implements(ObjectInterfaceType::Controllable) && !dynamic_cast<CControllableObject&>(*pObj).GetSelectable() )  continue;
         if ( pObj->GetProxyActivate() )  continue;
 
-        int icon = GetShortcutIcon(pObj->GetType());
+        int icon = GetShortcutIcon(pObj);
         if ( icon == -1 )  continue;
 
         unsigned int teamIndex = std::find(teams.begin(), teams.end(), pObj->GetTeam()) - teams.begin();
@@ -178,13 +178,15 @@ bool CMainShort::CreateShortcuts()
     return true;
 }
 
-int CMainShort::GetShortcutIcon(ObjectType type)
+int CMainShort::GetShortcutIcon(CObject* pObj)
 {
-    if (m_bBuilding && !GetObjectDetails().IsShortcutBuilding(type))
+    auto iconDetails = GetObjectIconDetails(pObj);
+
+    if (m_bBuilding && !iconDetails.isShortcutBuilding)
         return -1;
-    if (!m_bBuilding && !GetObjectDetails().IsShortcutMovable(type))
+    if (!m_bBuilding && !iconDetails.isShortcutMovable)
         return -1;
-    return GetObjectDetails().GetShortcutIcon(type);
+    return iconDetails.shortcutIcon;
 }
 
 // Updates the interface shortcuts to the units.

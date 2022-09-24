@@ -693,6 +693,11 @@ namespace
 char g_gamerName[100];
 } // anonymous namespace
 
+std::string GetGlobalGamerName()
+{
+    return g_gamerName;
+}
+
 void SetGlobalGamerName(std::string name)
 {
     strcpy(g_gamerName, name.c_str());
@@ -781,11 +786,7 @@ bool GetResource(ResType type, unsigned int num, std::string& text)
     {
         assert(num < OBJECT_MAX);
         ObjectType oType = static_cast<ObjectType>(num);
-
-        if (GetObjectDetails().IsDisplayedNameAsPlayer(oType))
-            text = g_gamerName;
-        else
-            text = GetObjectDetails().GetDisplayedName(oType);
+        text = GetObjectDetails().GetDisplayedName(oType);
     }
     else if(type == RES_EVENT && num >= EVENT_OBJECT_BUILD_01 && num <= EVENT_OBJECT_BUILD_14 )
     {

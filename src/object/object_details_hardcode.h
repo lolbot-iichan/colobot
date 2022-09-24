@@ -28,212 +28,27 @@
 #include <string>
 #include <vector>
 
-#include "common/event.h"
 #include "common/singleton.h"
 
-#include "graphics/core/color.h"
 #include "graphics/engine/engine_types.h"
 #include "graphics/engine/pyro_type.h"
 
-#include "level/build_type.h"
 #include "level/research_type.h"
 
-#include "math/point.h"
 #include "math/vector.h"
 
 #include "object/crash_sphere.h"
-#include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_type.h"
 
 
 
-
-enum MapColor
-{
-    MAPCOLOR_NULL,
-    MAPCOLOR_BASE,
-    MAPCOLOR_FIX,
-    MAPCOLOR_MOVE,
-    MAPCOLOR_ALIEN,
-    MAPCOLOR_WAYPOINTb,
-    MAPCOLOR_WAYPOINTr,
-    MAPCOLOR_WAYPOINTg,
-    MAPCOLOR_WAYPOINTy,
-    MAPCOLOR_WAYPOINTv,
-    MAPCOLOR_BBOX,
-};
-
-enum BaseClass
-{
-    BASE_CLASS_NONE,
-    BASE_CLASS_SIMPLE,
-    BASE_CLASS_BUILDING,
-    BASE_CLASS_INFO,
-    BASE_CLASS_ALIEN,
-    BASE_CLASS_ROBOT,
-    BASE_CLASS_SHIELDER,
-};
-
-struct CObjectCreationModelNode
-{
-    int                   chunkId   = -1;
-    int                   parentId  = -1;
-    Gfx::EngineObjectType gfxType   = Gfx::ENG_OBJTYPE_FIX;
-    std::string           modFile   = "";
-    Math::Vector          position  = Math::Vector();
-    Math::Vector          rotation  = Math::Vector();
-    bool                  copyModel = false;
-};
-
-struct CObjectCreationShadowCircle
-{
-    float                 radius    = 0.0;
-    float                 intensity = 0.0;
-    Gfx::EngineShadowType type      = Gfx::ENG_SHADOW_NORM;
-    bool                  factored  = false;
-};
-
-struct CObjectCreationBuildingLevel
-{
-    float min    = 0.0;
-    float max    = 0.0;
-    float height = 0.0;
-    float factor = 0.0;
-};
-
-struct CObjectButton
-{
-    ObjectType  type = OBJECT_NULL;
-    int         icon = -1;
-    std::string text = "";
-};
-
-enum ObjectUIWidgetType
-{
-    WIDGET_ICON_BUTTON  = 0,
-    WIDGET_COLOR_BUTTON = 1,
-};
-
-union ObjectUIWidgetParams
-{
-    // for WIDGET_ICON_BUTTON
-    int        icon;
-
-    // for WIDGET_COLOR_BUTTON
-    Gfx::Color color;
-};
-
-struct CObjectUserInterfaceWidget
-{
-    Math::Point               position               = Math::Point(7.7f, 0.5f);
-    Math::Point               size                   = Math::Point(1.0f, 1.0f);
-    ObjectUIWidgetType        type                   = WIDGET_ICON_BUTTON;
-    ObjectUIWidgetParams      params                 = {-1};
-    EventType                 event                  = EVENT_NULL;
-    bool                      isDefault              = false;
-    bool                      isImmediat             = false;
-
-    bool                      disabledByTrainer      = false;
-    bool                      disabledByPlusExplorer = false;
-    std::vector<BuildType>    onBuildingsEnabled     = std::vector<BuildType>();
-    std::vector<ResearchType> onResearchsDone        = std::vector<ResearchType>();
-};
-
-
-
-struct CObjectCameraDetails
-{
-// TODO:
-//  * add bool to allow ONBOARD / TOP cameras
-
-// true - could change camera type
-// false - only CAM_TYPE_BACK is accessible
-    bool isCameraTypeChangable         = false;
-
-// true - remember previous selected camera type for an object
-// false - reset camera to CAM_TYPE_BACK on each object selection
-    bool isCameraTypePersistent        = false;
-
-// optimal visit camera position
-    float visitCameraDistance          = 60.0f;
-    float visitCameraHeight            = 15.0f;
-
-// optimal back camera position 
-    float backCameraDistance           = 30.0f;
-    float backCameraDistanceMin        = 10.0f;
-    float backCameraHeight             = 4.0f;
-    float backCameraRotationY          = 1.0f;
-    float backCameraRotationZ          = 0.0f;
-
-// tweaks for transparency on back camera
-    bool disableOtherObjectsTransparencyOnBackCamera = false;
-    bool disableObjectTransparencyOnBackCamera       = false;
-    bool hasGateTransparencyOnBackCamera             = false;
-
-// never collide with someone's fix camera 
-    bool disableCollisionsOnFixCamera  = false;
-
-// remove on-board camera robotic corners 
-    bool disableCornersOnOnboardCamera = false;
-
-};
-
-
-
-struct CObjectIconDetails
-{
-// TODO:
-//  * change MapColor to extensible bg & micro-icon selection
-
-// object map options
-    MapColor mapIconColor              = MAPCOLOR_NULL;
-    int mapIcon                        = -1;
-
-// tweak: showed on map controllable, but non-selectable objects with this property
-    bool isForcedDisplayOnMap          = false;
-
-// object shortcut options
-    bool isShortcutBuilding            = false;
-    bool isShortcutMovable             = false;
-    int shortcutIcon                   = -1;
-};
-
-
-struct CObjectUserInterfaceDetails
-{
-// TODO:
-//  * add list of actual widgets instead of list of hardcoded UIs
-
-// has program selector interface
-    bool hasProgramUI              = false;
-// blinks the program selector interface on script execution
-    bool hasProgramUIBlink         = false;
-
-// raw widgets list
-    std::vector<CObjectUserInterfaceWidget> widgets;
-
-// has very specific interface widgets
-    bool hasBuilderUIHuman         = false;
-    bool hasBuilderUIRobot         = false;
-    bool hasShielderUIRobot        = false;
-    bool hasShooterUIRobot         = false;
-    bool hasScribblerUIRobot       = false;
-
-// tweak: flight control buttons can be disabled when something is grabbed
-    bool disableFlyWhileGrabbing   = false;
-};
-
-
-
-class CObjectDetails : public CSingleton<CObjectDetails>
+class CObjectDetailsHardcodeCollection
 {
 
 struct CObjectDetail
 {
-    std::string                 displayedName;
-    CObjectCameraDetails        cameraDetails;
-    CObjectIconDetails          iconDetails;
-    CObjectUserInterfaceDetails uiDetails;
+    std::string displayedName;
 };
 
 
@@ -245,11 +60,11 @@ CObjectButton m_debugMenuObjects[14];
 
 std::map<ObjectType, CObjectDetail> m_objects;
 
+
+
+
 public:
-CObjectDetails();
-
-void Dump();
-
+CObjectDetailsHardcodeCollection();
 
 
 
@@ -295,6 +110,7 @@ bool IsAssistantUndamagable();
 
 // [terrain] limits flat surface (default is false) 
 bool IsBlockingBuilding(ObjectType type);
+
 
 
 
@@ -518,44 +334,110 @@ Gfx::PyroType GetDestructionByWin(ObjectType type);
 Gfx::PyroType GetDestructionBySquash(ObjectType type);
 bool IsDestructionKilledByBurning(ObjectType type);
 
+
+
 public:
 
-CObjectCameraDetails        GetObjectCameraDetails(ObjectType type);
-CObjectIconDetails          GetObjectIconDetails(ObjectType type);
-CObjectUserInterfaceDetails GetObjectUserInterfaceDetails(ObjectType type);
+//////////////////////////////////////////////////////////////////////////////
+// Camera details
+//////////////////////////////////////////////////////////////////////////////
 
-private:
+// [camera/types] could change camera type (default is false) 
+bool IsCameraTypeChangable(ObjectType type);
+// [camera/types] remember camera mode or  (default is false)
+// true - remember object camera type while switching between objects
+// false - reset camera to CAM_TYPE_BACK on each selection
+bool IsCameraTypePersistent(ObjectType type);
 
-CObjectCameraDetails        GetObjectCameraDetailsHardcode(ObjectType type);
-CObjectIconDetails          GetObjectIconDetailsHardcode(ObjectType type);
-CObjectUserInterfaceDetails GetObjectUserInterfaceDetailsHardcode(ObjectType type);
+// [camera/visit] radius of ideal visit (default is 60.0f)
+float GetVisitCameraDistance(ObjectType type);
+// [camera/visit] height of ideal visit (default is 15.0f)
+float GetVisitCameraHeight(ObjectType type);
+
+// [camera/back] minimal distance for back camera (default is 30.0f) 
+float GetBackCameraDistance(ObjectType type);
+// [camera/back] minimal distance for back camera (default is 10.0f) 
+float GetBackCameraDistanceMin(ObjectType type);
+// [camera/back] height for back camera (default is 4.0f) 
+float GetBackCameraHeight(ObjectType type);
+// [camera/back] angle for back camera devided by M_PI (default is 1.0f)
+float GetBackCameraRotationY(ObjectType type);
+// [camera/back] angle for back camera devided by M_PI (default is 0.0f)
+float GetBackCameraRotationZ(ObjectType type);
+
+// [camera/back/transparency] can make other objects transparent when they overlap the back camera (default is false) 
+bool DisableBackCameraCanForceTransparency(ObjectType type);
+// [camera/back/transparency] can be transparent when overlaps someone's back camera (default is false) 
+bool DisableBackCameraCanViewAsTransparent(ObjectType type);
+// [camera/back/transparency] can be transparent or not depending on angles - hack for Factory Building (default is false) 
+bool HasGateTransparencyOnBackCamera(ObjectType type);
+
+// [camera/fix] can collide with someone's fix camera (default is false) 
+bool DisableCollisionsOnFixCamera(ObjectType type);
+
+// [camera/onboard] on-board camera has robotic corners (default is false) 
+bool DisableOnboardCameraCorners(ObjectType type);
+
+
+
+public:
+
+//////////////////////////////////////////////////////////////////////////////
+// UI Icon Details
+//////////////////////////////////////////////////////////////////////////////
+
+// [ui/map] even non-selectable units should be displayed on map (default is false)
+bool GetMapShowEvenUnselectable(ObjectType type);
+// [ui/map] color of map icon (default is MAPCOLOR_NULL)
+MapColor GetMapIconColor(ObjectType type);
+// [ui/map] #id of map icon (default is -1)
+// -1      for objects with empty icon
+// 0-63    for textures on button1.png 
+// 64-127  for textures on button2.png 
+// 128-191 for textures on button3.png 
+// 192-255 for textures on button4.png 
+int GetMapIcon(ObjectType type);
+
+// [ui/shortcut] a contollable building object with a shortcut (default is false)
+bool IsShortcutBuilding(ObjectType type);
+// [ui/shortcut] a contollable moving object with a shortcut (default is false)
+bool IsShortcutMovable(ObjectType type);
+// [ui/shortcut] #id of shortcut icon (default is -1)
+// -1      for objects without icon
+// 0-63    for textures on button1.png 
+// 64-127  for textures on button2.png 
+// 128-191 for textures on button3.png 
+// 192-255 for textures on button4.png 
+int GetShortcutIcon(ObjectType type);
+
+
+
+public:
+
+//////////////////////////////////////////////////////////////////////////////
+// User Interface Details
+//////////////////////////////////////////////////////////////////////////////
+
+// [ui/iface] has program selector interface (default is false)
+bool HasUserInterfaceProgramUI(ObjectType type);
+// [ui/iface] blinks the program selector interface on script execution (default is false)
+bool HasUserInterfaceProgramUIBlink(ObjectType type);
+
+// [ui/iface] raw widget list
+std::vector<CObjectUserInterfaceWidget> GetUserInterfaceWidgetList(ObjectType type);
+
+// [ui/iface] has human builder interface (default is false)
+bool HasUserInterfaceBuilderUIHuman(ObjectType type);
+// [ui/iface] has machine builder interface (default is false)
+bool HasUserInterfaceBuilderUIRobot(ObjectType type);
+// [ui/iface] has machine shielder interface (default is false)
+bool HasUserInterfaceShielderUIRobot(ObjectType type);
+// [ui/iface] has machine shooter interface (default is false)
+bool HasUserInterfaceShooterUIRobot(ObjectType type);
+// [ui/iface] has machine scribbler interface (default is false)
+bool HasUserInterfaceScribblerUIRobot(ObjectType type);
+
+// [ui/iface] fly buttons are disabled when something is grabbed (default is false)
+bool HasUserInterfaceDisableFlyWhileGrabbing(ObjectType type);
+
 };
-
-
-
-//! Global function to get object details instance
-inline CObjectDetails & GetObjectDetails()
-{
-    return CObjectDetails::GetInstance();
-}
-
-//! Global function to get object camera details for object
-inline CObjectCameraDetails GetObjectCameraDetails(CObject* obj)
-{
-    ObjectType type = (obj != nullptr) ? obj->GetType() : OBJECT_NULL;
-    return CObjectDetails::GetInstance().GetObjectCameraDetails(type);
-}
-
-//! Global function to get object camera details for object
-inline CObjectIconDetails GetObjectIconDetails(CObject* obj)
-{
-    ObjectType type = (obj != nullptr) ? obj->GetType() : OBJECT_NULL;
-    return CObjectDetails::GetInstance().GetObjectIconDetails(type);
-}
-
-//! Global function to get object UI details for object
-inline CObjectUserInterfaceDetails GetObjectUserInterfaceDetails(CObject* obj)
-{
-    ObjectType type = (obj != nullptr) ? obj->GetType() : OBJECT_NULL;
-    return CObjectDetails::GetInstance().GetObjectUserInterfaceDetails(type);
-} 

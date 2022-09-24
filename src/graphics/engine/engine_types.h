@@ -17,54 +17,48 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
+/**
+ * \file graphics/engine/engine.h
+ * \brief Main graphics engine - CEngine class
+ */
+
 #pragma once
 
-#include "common/event.h"
-
-#include "math/point.h"
-
-#include "object/object_type.h"
-
-#include <vector>
-
-class CRobotMain;
-class CObject;
-
+// Graphics module namespace
 namespace Gfx
 {
-class CEngine;
-} // namespace Gfx
 
-namespace Ui
+/**
+  \enum EngineObjectType
+  \brief Class of graphics engine object */
+enum EngineObjectType
 {
-
-class CInterface;
-
-class CMainShort
-{
-public:
-    CMainShort();
-    ~CMainShort();
-
-    void        SetMode(bool bBuilding);
-    bool        CreateShortcuts();
-    bool        UpdateShortcuts();
-    void        SelectShortcut(EventType event);
-    void        SelectNext();
-    CObject*    DetectShort(Math::Point pos);
-    void        SetHighlight(CObject* pObj);
-
-protected:
-    int         GetShortcutIcon(CObject* pObj);
-
-protected:
-    CEventQueue*      m_event;
-    Gfx::CEngine*     m_engine;
-    CInterface*     m_interface;
-    CRobotMain*     m_main;
-
-    std::vector<CObject*> m_shortcuts;
-    bool            m_bBuilding;
+    //! Object doesn't exist
+    ENG_OBJTYPE_NULL        = 0,
+    //! Terrain
+    ENG_OBJTYPE_TERRAIN     = 1,
+    //! Fixed object
+    ENG_OBJTYPE_FIX         = 2,
+    //! Moving object
+    ENG_OBJTYPE_VEHICLE    = 3,
+    //! Part of a moving object
+    ENG_OBJTYPE_DESCENDANT  = 4,
+    //! Fixed object type quartz
+    ENG_OBJTYPE_QUARTZ      = 5,
+    //! Fixed object type metal
+    ENG_OBJTYPE_METAL       = 6
 };
 
-} // namespace Ui
+/**
+ * \struct EngineShadowType
+ * \brief Type of shadow drawn by the graphics engine
+ */
+enum EngineShadowType
+{
+    //! Normal shadow
+    ENG_SHADOW_NORM = 0,
+    //! TODO: ?
+    ENG_SHADOW_WORM = 1
+};
+
+} // namespace Gfx

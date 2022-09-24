@@ -368,30 +368,30 @@ void CMap::Draw()
 
     i = MAPMAXOBJECT-1;
     if ( m_map[i].bUsed )  // selection:
-        DrawFocus(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color);
+        DrawFocus(m_map[i].pos, m_map[i].dir, m_map[i].color);
 
     for ( i=0 ; i<m_totalFix ; i++ ) // fixed objects:
     {
         if ( i == m_highlightRank )
             continue;
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, false, false);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, false, false);
     }
 
     for ( i=MAPMAXOBJECT-2 ; i>m_totalMove ; i-- ) // moving objects:
     {
         if ( i == m_highlightRank )
             continue;
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, false, false);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, false, false);
     }
 
     i = MAPMAXOBJECT-1;
     if ( m_map[i].bUsed && i != m_highlightRank )  // selection:
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, true, false);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, true, false);
 
     if ( m_highlightRank != -1 && m_map[m_highlightRank].bUsed )
     {
         i = m_highlightRank;
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, false, true);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, false, true);
         DrawHighlight(m_map[i].pos);
     }
 }
@@ -443,7 +443,7 @@ Math::Point CMap::MapInter(Math::Point pos, float dir)
 
 // Draw the field of vision of the selected object.
 
-void CMap::DrawFocus(Math::Point pos, float dir, ObjectType type, MapColor color)
+void CMap::DrawFocus(Math::Point pos, float dir, MapColor color)
 {
     Math::Point p0, p1, p2, uv1, uv2, rel;
     float   aMin, aMax, aOct, focus, a;
@@ -526,7 +526,7 @@ void CMap::DrawFocus(Math::Point pos, float dir, ObjectType type, MapColor color
 // Draw an object.
 
 void CMap::DrawObject(Math::Point pos, float dir, ObjectType type, MapColor color,
-                      bool bSelect, bool bHilite)
+                      int icon, bool bSelect, bool bHilite)
 {
     Math::Point     p1, p2, p3, p4, p5, dim, uv1, uv2;
     bool        bOut, bUp, bDown, bLeft, bRight;
@@ -691,7 +691,7 @@ void CMap::DrawObject(Math::Point pos, float dir, ObjectType type, MapColor colo
     if ( color == MAPCOLOR_BASE ||
          color == MAPCOLOR_FIX  )
     {
-        DrawObjectIcon(pos, dim, color, type, bHilite);
+        DrawObjectIcon(pos, dim, color, icon, bHilite);
     }
 
     if ( color == MAPCOLOR_MOVE )
@@ -717,7 +717,7 @@ void CMap::DrawObject(Math::Point pos, float dir, ObjectType type, MapColor colo
                 DrawTriangle(p1, p2, p3, uv1, uv2);
             }
         }
-        DrawObjectIcon(pos, dim, color, type, bHilite);
+        DrawObjectIcon(pos, dim, color, icon, bHilite);
     }
 
     if ( color == MAPCOLOR_BBOX )
@@ -738,7 +738,7 @@ void CMap::DrawObject(Math::Point pos, float dir, ObjectType type, MapColor colo
     {
         if ( m_bRadar )
         {
-            DrawObjectIcon(pos, dim, color, type, true);
+            DrawObjectIcon(pos, dim, color, icon, true);
         }
     }
 
@@ -797,11 +797,10 @@ void CMap::DrawObject(Math::Point pos, float dir, ObjectType type, MapColor colo
 // Draws the icon of an object.
 
 void CMap::DrawObjectIcon(Math::Point pos, Math::Point dim, MapColor color,
-                          ObjectType type, bool bHilite)
+                          int icon, bool bHilite)
 {
     Math::Point ppos, ddim, uv1, uv2;
     float   dp;
-    int     icon;
 
     dp = 0.5f/256.0f;
 
@@ -832,10 +831,9 @@ void CMap::DrawObjectIcon(Math::Point pos, Math::Point dim, MapColor color,
 
     if ( bHilite )
     {
-        icon = GetObjectDetails().GetMapIcon(type);
         if ( icon == -1 )  return;
 
-        switch ( type << 6 )
+        switch ( icon << 6 )
         {
             case 0:
                 m_engine->SetTexture("textures/interface/button1.png"); break;
@@ -1116,6 +1114,7 @@ void CMap::UpdateObject(CObject* pObj)
 {
     ObjectType      type;
     MapColor        color;
+    int             icon;
     Math::Vector        pos;
     Math::Point         ppos;
     float           dir;
@@ -1125,7 +1124,7 @@ void CMap::UpdateObject(CObject* pObj)
 
     type = pObj->GetType();
     if ( !pObj->GetDetectable() )  return;
-    if ( !GetObjectDetails().GetMapShowEvenUnselectable(type) )
+    if ( !GetObjectIconDetails(pObj).isForcedDisplayOnMap )
     {
         if (pObj->Implements(ObjectInterfaceType::Controllable) && !dynamic_cast<CControllableObject&>(*pObj).GetSelectable()) return;
     }
@@ -1143,7 +1142,8 @@ void CMap::UpdateObject(CObject* pObj)
         dir += m_angle;
     }
 
-    color = GetObjectDetails().GetMapIconColor(type);
+    color = GetObjectIconDetails(pObj).mapIconColor;
+    icon = GetObjectIconDetails(pObj).mapIcon;
 
     if ( color == MAPCOLOR_NULL )  return;
 
@@ -1163,6 +1163,7 @@ void CMap::UpdateObject(CObject* pObj)
         m_map[MAPMAXOBJECT-1].type   = type;
         m_map[MAPMAXOBJECT-1].object = pObj;
         m_map[MAPMAXOBJECT-1].color  = color;
+        m_map[MAPMAXOBJECT-1].icon   = icon;
         m_map[MAPMAXOBJECT-1].pos.x  = pos.x;
         m_map[MAPMAXOBJECT-1].pos.y  = pos.z;
         m_map[MAPMAXOBJECT-1].dir    = dir;
@@ -1176,6 +1177,7 @@ void CMap::UpdateObject(CObject* pObj)
             m_map[m_totalFix].type   = type;
             m_map[m_totalFix].object = pObj;
             m_map[m_totalFix].color  = color;
+            m_map[m_totalFix].icon   = icon;
             m_map[m_totalFix].pos.x  = pos.x;
             m_map[m_totalFix].pos.y  = pos.z;
             m_map[m_totalFix].dir    = dir;
@@ -1187,6 +1189,7 @@ void CMap::UpdateObject(CObject* pObj)
             m_map[m_totalMove].type   = type;
             m_map[m_totalMove].object = pObj;
             m_map[m_totalMove].color  = color;
+            m_map[m_totalMove].icon   = icon;
             m_map[m_totalMove].pos.x  = pos.x;
             m_map[m_totalMove].pos.y  = pos.z;
             m_map[m_totalMove].dir    = dir;

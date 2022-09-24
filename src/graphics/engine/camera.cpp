@@ -314,12 +314,9 @@ void CCamera::SetType(CameraType type)
         m_addDirectionH = 0.0f;
         m_addDirectionV = -Math::PI*0.05f;
 
-        ObjectType oType;
-        if ( m_cameraObj == nullptr )  oType = OBJECT_NULL;
-        else                     oType = m_cameraObj->GetType();
-
-        m_backDist = GetObjectDetails().GetBackCameraDistance(oType);
-        m_backMin = GetObjectDetails().GetBackCameraDistanceMin(oType);
+        auto cameraDetails = GetObjectCameraDetails(m_cameraObj);
+        m_backDist = cameraDetails.backCameraDistance;
+        m_backMin = cameraDetails.backCameraDistanceMin;
     }
 
     //if ( type != CAM_TYPE_ONBOARD && m_cameraObj != 0 )
@@ -791,11 +788,8 @@ void CCamera::IsCollision(Math::Vector &eye, Math::Vector lookat)
 
 void CCamera::IsCollisionBack()
 {
-    ObjectType iType;
-    if (m_cameraObj == nullptr)
-        iType = OBJECT_NULL;
-    else
-        iType = m_cameraObj->GetType();
+    auto cameraDetails = GetObjectCameraDetails(m_cameraObj);
+    bool noTransparency = cameraDetails.disableOtherObjectsTransparencyOnBackCamera;
 
     Math::Vector min;
     min.x = Math::Min(m_actualEye.x, m_actualLookat.x);
@@ -815,11 +809,10 @@ void CCamera::IsCollisionBack()
         SetTransparency(obj, 0.0f);  // opaque object
 
         if (obj == m_cameraObj) continue;
+        if ( noTransparency ) continue;
 
-        if ( !GetObjectDetails().GetBackCameraCanForceTransparency(iType) ) continue;
-
-        ObjectType oType = obj->GetType();
-        if ( !GetObjectDetails().GetBackCameraCanViewAsTransparent(oType) ) continue;
+        auto otherObjectCameraDetails = GetObjectCameraDetails(obj);
+        if ( otherObjectCameraDetails.disableObjectTransparencyOnBackCamera ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector oPos = objSphere.pos;
@@ -837,7 +830,7 @@ void CCamera::IsCollisionBack()
         float dpp = Math::Distance(proj, oPos);
         if ( dpp > oRadius )  continue;
 
-        if ( oType == OBJECT_FACTORY )
+        if ( otherObjectCameraDetails.hasGateTransparencyOnBackCamera )
         {
             float angle = Math::RotateAngle(m_actualEye.x-oPos.x, oPos.z-m_actualEye.z);  // CW !
             angle = Math::Direction(angle, obj->GetRotationY());
@@ -845,7 +838,7 @@ void CCamera::IsCollisionBack()
         }
 
         float del = Math::Distance(m_actualEye, m_actualLookat);
-        if (oType == OBJECT_FACTORY)
+        if ( otherObjectCameraDetails.hasGateTransparencyOnBackCamera )
             del += oRadius;
 
         float len = Math::Distance(m_actualEye, proj);
@@ -861,8 +854,7 @@ void CCamera::IsCollisionFix(Math::Vector &eye, Math::Vector lookat)
     {
         if (obj == m_cameraObj) continue;
 
-        ObjectType type = obj->GetType();
-        if ( !GetObjectDetails().IsFixCameraCollideThis(type) ) continue;
+        if ( GetObjectCameraDetails(obj).disableCollisionsOnFixCamera ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector objPos = objSphere.pos;
@@ -1113,21 +1105,21 @@ bool CCamera::EventFrameBack(const Event &event)
 
     if (m_cameraObj != nullptr)
     {
-        ObjectType type = m_cameraObj->GetType();
+        auto cameraDetails = GetObjectCameraDetails(m_cameraObj);
 
         Math::Vector lookatPt = m_cameraObj->GetPosition();
-        lookatPt.y += GetObjectDetails().GetBackCameraHeight(type);
+        lookatPt.y += cameraDetails.backCameraHeight;
 
 
         float h = -m_cameraObj->GetRotationY();  // angle vehicle / building
-        h += Math::PI * GetObjectDetails().GetBackCameraRotationY(type);
+        h += Math::PI * cameraDetails.backCameraRotationY;
         h = Math::NormAngle(h);
 
         h += m_centeringCurrentH;
         h += m_addDirectionH * (1.0f - centeringH);
         h = Math::NormAngle(h);
 
-        float v = 0.0f - Math::PI * GetObjectDetails().GetBackCameraRotationZ(type);  // Camera top
+        float v = 0.0f - Math::PI * cameraDetails.backCameraRotationZ;  // Camera top
         v += m_centeringCurrentV;
         v += m_addDirectionV * (1.0f - centeringV);
 

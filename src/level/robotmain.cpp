@@ -1850,8 +1850,8 @@ void CRobotMain::SelectOneObject(CObject* obj, bool displayError)
     dynamic_cast<CControllableObject&>(*obj).SetSelect(true, displayError);
     m_camera->SetControllingObject(obj);
 
-    ObjectType type = obj->GetType();
-    if ( GetObjectDetails().IsCameraTypePersistent(type) )
+    auto cameraDetails = GetObjectCameraDetails(obj);
+    if ( cameraDetails.isCameraTypePersistent )
     {
         m_camera->SetType(dynamic_cast<CControllableObject&>(*obj).GetCameraType());
     }
@@ -2192,11 +2192,12 @@ void CRobotMain::ChangeCamera()
 
     if (controllableObj->GetCameraLock()) return;
 
-    ObjectType oType = obj->GetType();
+    auto cameraDetails = GetObjectCameraDetails(obj);
+    if ( !cameraDetails.isCameraTypeChangable )  return;
+
     Gfx::CameraType type = controllableObj->GetCameraType();
 
-    if ( !GetObjectDetails().IsCameraTypeChangable(oType) )  return;
-
+    ObjectType oType = obj->GetType();
     if (oType == OBJECT_MOBILEdr)  // designer?
     {
              if (type == Gfx::CAM_TYPE_PLANE  )  type = Gfx::CAM_TYPE_BACK;

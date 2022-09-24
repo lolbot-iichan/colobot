@@ -90,6 +90,18 @@ struct Point
         return sqrtf(x*x + y*y);
     }
 
+    //! Compares two points
+    inline friend const bool operator==(const Point &left, const Point &right)
+    {
+        return left.x == right.x && left.y == right.y;
+    }
+
+    //! Checks if two points are different
+    inline friend const bool operator!=(const Point &left, const Point &right)
+    {
+        return left.x != right.x || left.y != right.y;
+    }
+
     //! Returns the inverted point
     inline Point operator-() const
     {

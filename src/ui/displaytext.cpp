@@ -124,8 +124,11 @@ void CDisplayText::DisplayError(Error err, CObject* pObj, float time)
     if (pObj == nullptr)  return;
 
     Math::Vector pos = pObj->GetPosition();
-    float h = GetIdealHeight(pObj->GetType());
-    float d = GetIdealDist(pObj->GetType());
+
+    auto cameraDetails = GetObjectCameraDetails(pObj);
+    float h = cameraDetails.visitCameraHeight;
+    float d = cameraDetails.visitCameraDistance;
+
     DisplayError(err, pos, h, d, time);
 }
 
@@ -163,8 +166,11 @@ void CDisplayText::DisplayText(const char *text, CObject* pObj,
     if (pObj == nullptr)  return;
 
     Math::Vector pos = pObj->GetPosition();
-    float h = GetIdealHeight(pObj->GetType());
-    float d = GetIdealDist(pObj->GetType());
+
+    auto cameraDetails = GetObjectCameraDetails(pObj);
+    float h = cameraDetails.visitCameraHeight;
+    float d = cameraDetails.visitCameraDistance;
+
     DisplayText(text, pos, h, d, time, type);
 }
 
@@ -444,21 +450,6 @@ float CDisplayText::GetVisitHeight(EventType event)
     int i = event-EVENT_DT_VISIT0;
     if (i < 0 || i >= MAXDTLINE)  return 0.0f;
     return m_textLines[i].visitHeight;
-}
-
-
-// Ranges from ideal visit for a given object.
-
-float CDisplayText::GetIdealDist(ObjectType type)
-{
-    return GetObjectDetails().GetVisitCameraDistance(type);
-}
-
-// Returns the height of ideal visit for a given object.
-
-float CDisplayText::GetIdealHeight(ObjectType type)
-{
-    return GetObjectDetails().GetVisitCameraHeight(type);
 }
 
 
