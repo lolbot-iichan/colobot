@@ -43,6 +43,8 @@
 #include "object/auto/automush.h"
 #include "object/auto/autoroot.h"
 
+#include "object/motion/motion.h"
+
 #include "object/subclass/base_alien.h"
 #include "object/subclass/base_building.h"
 #include "object/subclass/base_robot.h"
@@ -68,6 +70,8 @@ CObjectFactory::CObjectFactory(Gfx::CEngine* engine,
 
 CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
 {
+    if ( params.type == OBJECT_NULL ) return nullptr;
+
     if (CStaticObject::IsStaticObject(params.type))
     {
         return CStaticObject::Create(params.id,
@@ -80,14 +84,10 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
                                      m_engine->GetTerrain());
     }
 
-    BaseClass bc = GetObjectDetails().GetCreationBaseClass(params.type);
-    switch (bc)
+    switch ( GetObjectCreationDetails(params.type).baseClass )
     {
-        case BASE_CLASS_NONE:
-            return nullptr;
-
         case BASE_CLASS_SIMPLE:
-            return CreateSimpleObject(params);
+            return CreateSimpleObject(params, m_oldModelManager);
 
         case BASE_CLASS_BUILDING:
             return CBaseBuilding::Create(params, m_oldModelManager, m_engine);
@@ -113,7 +113,7 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
 
 // Creates a small object set on the ground.
 
-CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params)
+CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params, Gfx::COldModelManager* modelManager)
 {
     Math::Vector pos = params.pos;
     float angle = params.angle;
@@ -124,12 +124,13 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params)
 
     obj->SetType(type);
     obj->SetTeam(params.team);
-    obj->SetEnergyLevel(params.power);
     obj->SetOption(params.option);
+    obj->SetEnergyLevel(params.power);
 
     float fShadow = Math::Norm(1.0f-height/10.0f);
 
-    auto model = GetObjectDetails().GetCreationModel(type);
+    auto creationDetails = GetObjectCreationDetails(params.type);
+    auto model = creationDetails.model;
     for ( auto it : model )
     {
         int rank = m_engine->CreateObject();
@@ -145,68 +146,82 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params)
         {
             obj->SetObjectParent(it.chunkId, it.parentId);
             obj->SetPartPosition(it.chunkId, it.position);
-            if (it.rotation.x != 0.0f) obj->SetPartRotationX(it.chunkId, it.rotation.x);
-            if (it.rotation.y != 0.0f) obj->SetPartRotationY(it.chunkId, it.rotation.y);
-            if (it.rotation.z != 0.0f) obj->SetPartRotationZ(it.chunkId, it.rotation.z);
+            obj->SetPartRotation(it.chunkId, it.rotation);
         }
+    }
+    if ( model.size() == 0 )
+    {
+        int rank = m_engine->CreateObject();
+        m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
+        obj->SetObjectRank(0, rank);
+//    }
+//TODO
+//    {
+        obj->SetProgrammable();
     }
 
     obj->SetPosition(pos);
-    obj->SetRotationY(angle);
+    obj->SetRotationY(obj->GetRotationY() + angle);
+    obj->SetScale(creationDetails.scale);
 
-    if ( model.size() > 0 )
-    {
-        height += model[0].position.y;
-        Math::Vector rotation = model[0].rotation;
-        if (rotation.x != 0.0f) obj->SetRotationX(obj->GetRotationX() + rotation.x);
-        if (rotation.y != 0.0f) obj->SetRotationZ(obj->GetRotationX() + rotation.y);
-        if (rotation.z != 0.0f) obj->SetRotationZ(obj->GetRotationX() + rotation.z);
-    }
-
-    float scale = GetObjectDetails().GetCreationScale(type);
-    if ( scale != 1.0f )
-        obj->SetScale(scale);
-
-    for ( auto it : GetObjectDetails().GetCreationCrashSpheres(type) )
+    for ( auto it : creationDetails.crashSpheres )
         obj->AddCrashSphere(it);
 
-    for ( auto it : GetObjectDetails().GetCreationCameraCollisionSpheres(type) )
+    for ( auto it : creationDetails.cameraCollisionSpheres )
         obj->SetCameraCollisionSphere(it);
 
-    for ( auto it : GetObjectDetails().GetCreationJostlingSpheres(type) )
+    for ( auto it : creationDetails.jostlingSpheres )
         obj->SetJostlingSphere(it);
 
-    for ( auto it : GetObjectDetails().GetCreationBuildingLevels(type) )
-        m_terrain->AddBuildingLevel(pos, it.min, it.max, it.height, it.factor);
-
-    auto shadowCircle = GetObjectDetails().GetCreationShadowCircle(type);
+    auto shadowCircle = creationDetails.shadowCircle;
     if ( shadowCircle.intensity > 0.0f )
     {
         float intensity = shadowCircle.factored ? shadowCircle.intensity*fShadow : shadowCircle.intensity;
         obj->CreateShadowCircle(shadowCircle.radius, intensity, shadowCircle.type);
     }
 
-    if ( GetObjectDetails().IsCreationForceLoadTextures(type) )
+    if ( creationDetails.isForceLoadTextures )
         m_engine->LoadAllTextures();
 
-    if ( !GetObjectDetails().IsCreationFixedPosition(type) )
+    if ( !creationDetails.isFixedPosition )
     {
-        pos = obj->GetPosition();
-        obj->SetPosition(pos);  // to display the shadows immediately
-    
-        if ( GetObjectDetails().IsCreationSetFloorHeight(type) )
-            obj->SetFloorHeight(0.0f);
-    
-        if ( GetObjectDetails().IsCreationFloorAdjust(type) )
-            obj->FloorAdjust();
-    
         pos = obj->GetPosition();
         pos.y += height;
         obj->SetPosition(pos);
+        
+        if ( creationDetails.isSetFloorHeight )
+            obj->SetFloorHeight(0.0f);
+    
+        if ( creationDetails.isFloorAdjust )
+            obj->FloorAdjust();
+    }
+
+    for ( auto it : creationDetails.buildingLevels )
+        m_terrain->AddBuildingLevel(pos, it.min, it.max, it.height, it.factor);
+
+    
+    if ( !creationDetails.isFixedPosition )
+    {
+        if ( model.size() > 0 )
+        {
+            obj->SetPosition(obj->GetPosition() + model[0].position);
+            obj->SetRotation(obj->GetRotation() + model[0].rotation);
+        }
     }
 
     AddObjectAuto(obj.get());
     AddObjectHacks(obj.get());
+
+    auto commonDetails = GetObjectCommonInterfaceDetails(params.type);
+    if ( commonDetails.movable.enabled )
+    {
+        std::unique_ptr<CPhysics> physics = MakeUnique<CPhysics>(obj.get());
+        std::unique_ptr<CMotion> motion = MakeUnique<CMotion>(obj.get());
+        motion->SetPhysics(physics.get());
+        physics->SetMotion(motion.get());
+        motion->Create(params.pos, params.angle, params.type, params.power, modelManager);
+        obj->SetMovable(std::move(motion), std::move(physics));
+    }
 
     return std::move(obj);
 }

@@ -70,4 +70,6 @@ protected:
     float               m_lastUpdateTime = 0.0f;
     float               m_lastParticle = 0.0f;
     int                 m_partiSphere = 0;
+    ObjectType          m_input = OBJECT_NULL;
+    ObjectType          m_output = OBJECT_NULL;
 };

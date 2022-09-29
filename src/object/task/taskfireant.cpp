@@ -24,6 +24,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "object/motion/motionant.h"
@@ -89,15 +90,14 @@ bool CTaskFireAnt::EventProcess(const Event &event)
 Error CTaskFireAnt::Start(Math::Vector impact)
 {
     Math::Vector    pos;
-    ObjectType  type;
 
     m_impact = impact;
 
     m_bError = true;  // operation impossible
     if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
 
-    type = m_object->GetType();
-    if ( type != OBJECT_ANT )  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    if (!allowedScripting.shootAsAnt)  return ERR_WRONG_BOT;
 
     // Insect on its back?
     if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  return ERR_WRONG_BOT;

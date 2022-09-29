@@ -227,12 +227,6 @@ bool CAutoRadar::CreateInterface(bool bSelect)
     dim.y =  26.0f/480.0f;
     pw->CreateGauge(pos, dim, 1, EVENT_OBJECT_GRADAR);
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 105, EVENT_OBJECT_TYPE);
-
     UpdateInterface();
     return true;
 }

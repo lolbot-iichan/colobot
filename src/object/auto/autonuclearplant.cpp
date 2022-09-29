@@ -105,6 +105,10 @@ void CAutoNuclearPlant::Init()
     m_progress = 0.0f;
     m_speed    = 1.0f/2.0f;
 
+    auto production = GetObjectAutomationDetails(m_object).production;
+    m_input  = production.input;
+    m_output = production.output;
+
     CAuto::Init();
 }
 
@@ -294,43 +298,13 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
 }
 
 
-// Creates all the interface when the object is selected.
-
-bool CAutoNuclearPlant::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    Math::Point     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 110, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-
 // Seeking the uranium.
 
 CObject* CAutoNuclearPlant::SearchUranium()
 {
     CObject* obj = m_object->GetSlotContainedObject(0);
     if (obj == nullptr) return nullptr;
-    if (obj->GetType() == OBJECT_URANIUM) return obj;
+    if (obj->GetType() == m_input) return obj;
     return nullptr;
 }
 
@@ -340,8 +314,8 @@ bool CAutoNuclearPlant::SearchVehicle()
 {
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( !GetObjectDetails().IsAutoBlockingNuclearPlant(type) )  continue;
+        auto blocking = GetObjectAutomationDetails(obj).blocking;
+        if (!blocking.blocksNuclearPlant) continue;
 
         if (obj->GetCrashSphereCount() == 0) continue;
 
@@ -361,7 +335,7 @@ void CAutoNuclearPlant::CreatePower()
     float angle = m_object->GetRotationY();
 
     float powerLevel = 1.0f;
-    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, OBJECT_ATOMIC, powerLevel);
+    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, m_output, powerLevel);
 
     dynamic_cast<CTransportableObject&>(*power).SetTransporter(m_object);
     power->SetPosition(Math::Vector(22.0f, 3.0f, 0.0f));
@@ -389,8 +363,8 @@ Error CAutoNuclearPlant::GetError()
     if ( obj == nullptr )  return ERR_NUCLEAR_EMPTY;
     if ( obj->GetLock() )  return ERR_OK;
     ObjectType type = obj->GetType();
-    if ( type == OBJECT_ATOMIC  )  return ERR_OK;
-    if ( type != OBJECT_URANIUM )  return ERR_NUCLEAR_BAD;
+    if ( type == m_output  )  return ERR_OK;
+    if ( type != m_input )  return ERR_NUCLEAR_BAD;
 
     return ERR_OK;
 }

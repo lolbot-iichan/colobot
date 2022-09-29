@@ -203,36 +203,6 @@ bool CAutoRepair::EventProcess(const Event &event)
 }
 
 
-// Creates all the interface when the object is selected.
-
-bool CAutoRepair::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    Math::Point     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 106, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-
 // Seeking the vehicle on the station.
 
 CObject* CAutoRepair::SearchVehicle()

@@ -43,6 +43,7 @@ class CEdit;
 class CEditValue;
 class CEnumSlider;
 class CGroup;
+class CLogo;
 class CImage;
 class CKey;
 class CLabel;
@@ -71,6 +72,7 @@ public:
     CCheck*     CreateCheck(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CKey*       CreateKey(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CGroup*     CreateGroup(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
+    CLogo*      CreateLogo(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CImage*     CreateImage(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CEdit*      CreateEdit(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CEditValue* CreateEditValue(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);

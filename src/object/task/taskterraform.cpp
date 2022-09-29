@@ -366,10 +366,11 @@ bool CTaskTerraform::Terraform()
 
         dist = Math::Distance(m_terraPos, pObj->GetPosition());
 
-        float radius = GetObjectDetails().GetThumperSafeRadius(type);
-        Gfx::PyroType pyroType = GetObjectDetails().GetThumperPyroType(type);
-        float explosiveDamage = GetObjectDetails().GetThumperExplosionDamage(type);
-        bool turnOnBack = GetObjectDetails().GetThumperTurnOnBack(type);
+        auto thumperDetails = GetObjectPhysicsDetails(pObj).thumper;
+        float radius = thumperDetails.safeRadius;
+        Gfx::PyroType pyroType = thumperDetails.effect;
+        float explosiveDamage = thumperDetails.explosionDamage;
+        bool turnOnBack = thumperDetails.turnOnBack;
 
         // turning insects on their back action
         {

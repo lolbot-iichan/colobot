@@ -136,6 +136,7 @@ public:
     float GetScaleX();
     float GetScaleY();
     float GetScaleZ();
+    bool IsFullScale();
     //!@}
 
     //! Sets crash spheres for object

@@ -32,7 +32,7 @@
 
 std::string GetObjectName(ObjectType type)
 {
-    return GetObjectDetails().GetNameInScriptFiles(type);
+    return GetObjectNamingDetails(type).script.name;
 }
 
 // Seeking the name of a secondary object.
@@ -40,7 +40,7 @@ std::string GetObjectName(ObjectType type)
 
 std::string GetObjectAlias(ObjectType type)
 {
-    return GetObjectDetails().GetAliasInScriptFiles(type);
+    return GetObjectNamingDetails(type).script.alias;
 }
 
 
@@ -48,7 +48,7 @@ std::string GetObjectAlias(ObjectType type)
 
 std::string GetHelpFilename(ObjectType type)
 {
-    std::string helpfile = GetObjectDetails().GetHelpTopicPathName(type);
+    std::string helpfile = GetObjectNamingDetails(type).script.helpTopicPath;
     if (helpfile.empty())
         return "";
 

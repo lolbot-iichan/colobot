@@ -35,6 +35,7 @@ class CColor;
 class CCheck;
 class CKey;
 class CGroup;
+class CLogo;
 class CImage;
 class CLabel;
 class CEdit;
@@ -61,6 +62,7 @@ public:
     CCheck*     CreateCheck(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CKey*       CreateKey(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CGroup*     CreateGroup(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
+    CLogo*      CreateLogo(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CImage*     CreateImage(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);
     CLabel*     CreateLabel(Math::Point pos, Math::Point dim, int icon, EventType eventMsg, std::string name);
     CEdit*      CreateEdit(Math::Point pos, Math::Point dim, int icon, EventType eventMsg);

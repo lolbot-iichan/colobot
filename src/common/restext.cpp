@@ -786,7 +786,7 @@ bool GetResource(ResType type, unsigned int num, std::string& text)
     {
         assert(num < OBJECT_MAX);
         ObjectType oType = static_cast<ObjectType>(num);
-        text = GetObjectDetails().GetDisplayedName(oType);
+        text = GetObjectNamingDetails(oType).display.name;
     }
     else if(type == RES_EVENT && num >= EVENT_OBJECT_BUILD_01 && num <= EVENT_OBJECT_BUILD_14 )
     {

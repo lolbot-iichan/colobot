@@ -269,10 +269,11 @@ CObject* CAutoTower::SearchTarget(Math::Vector &impact)
     {
         int oTeam=obj->GetTeam();
         int myTeam=m_object->GetTeam();
-        ObjectType oType = obj->GetType();
 
         // TODO: Maybe should not attack everything from other teams? You can easily discharge tower by using immune units...
-        if ( !GetObjectDetails().IsAutoTargetedByTower(oType) && (oTeam == myTeam || oTeam == 0) )  continue;
+        
+        auto targeted = GetObjectAutomationDetails(obj).targeted; 
+        if (!targeted.attackedByTower && (oTeam == myTeam || oTeam == 0))  continue;
 
         if ( !obj->GetDetectable() )  continue;  // inactive?
 
@@ -417,12 +418,6 @@ bool CAutoTower::CreateInterface(bool bSelect)
     ddim.x = 14.0f/640.0f;
     ddim.y = 66.0f/480.0f;
     pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 107, EVENT_OBJECT_TYPE);
 
     pos.x = ox+sx*10.2f;
     pos.y = oy+sy*0.5f;

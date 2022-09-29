@@ -587,8 +587,8 @@ bool CAutoFactory::NearestVehicle()
 
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( !GetObjectDetails().IsAutoBlockingFactory(type) )  continue;
+        auto blocking = GetObjectAutomationDetails(obj).blocking;
+        if (!blocking.blocksFactory) continue;
 
         if (obj->GetCrashSphereCount() == 0) continue;
 
@@ -767,12 +767,6 @@ bool CAutoFactory::CreateInterface(bool bSelect)
         pos.x += dim.x;
         pw->CreateButton(pos, dim, 128+45, EVENT_OBJECT_FACTORYtg);
     }
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 101, EVENT_OBJECT_TYPE);
 
     UpdateInterface();
     return true;

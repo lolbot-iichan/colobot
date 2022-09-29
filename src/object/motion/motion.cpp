@@ -18,6 +18,7 @@
  */
 
 
+#include "object/object_details.h"
 #include "object/motion/motion.h"
 
 #include "app/app.h"
@@ -80,7 +81,8 @@ bool CMotion::EventProcess(const Event &event)
     Math::Vector    pos, dir;
     float       time;
 
-    if ( m_object->GetType() != OBJECT_TOTO &&
+    auto assistant = GetObjectAssistantDetails();
+    if ( !( m_object->GetType() == assistant.type && assistant.unpausable) &&
          m_engine->GetPause() )  return true;
 
     if ( event.type != EVENT_FRAME )  return true;
@@ -213,4 +215,50 @@ void CMotion::SetTilt(Math::Vector dir)
 Math::Vector CMotion::GetTilt()
 {
     return m_inclinaison;
+}
+
+void CMotion::DeleteObject(bool bAll)
+{
+}
+    
+void CMotion::Create(Math::Vector pos, float angle, ObjectType type,
+                          float power, Gfx::COldModelManager*)
+{
+    auto movable = GetObjectCommonInterfaceDetails(m_object).movable;
+
+    auto character = m_object->GetCharacter();
+    character->wheelFront = movable.wheels.wheelFront;
+    character->wheelBack  = movable.wheels.wheelBack;
+    character->wheelLeft  = movable.wheels.wheelLeft;
+    character->wheelRight = movable.wheels.wheelRight;
+    character->height     = movable.wheels.height;
+
+    if ( m_physics == nullptr )
+        return;
+
+    m_physics->SetLinMotion(MO_ADVACCEL, movable.linMotion.advanceAccel);
+    m_physics->SetLinMotion(MO_RECACCEL, movable.linMotion.recedeAccel );
+    m_physics->SetLinMotion(MO_STOACCEL, movable.linMotion.stopAccel   );
+    m_physics->SetLinMotion(MO_TERSPEED, movable.linMotion.terrainSpeed);
+    m_physics->SetLinMotion(MO_TERSLIDE, movable.linMotion.terrainSlide);
+    m_physics->SetLinMotion(MO_MOTACCEL, movable.linMotion.motorAccel  );
+    m_physics->SetLinMotion(MO_TERFORCE, movable.linMotion.terrainForce);
+    m_physics->SetLinMotion(MO_ADVSPEED, movable.linMotion.advanceSpeed);
+    m_physics->SetLinMotion(MO_RECSPEED, movable.linMotion.recedeSpeed );
+    m_physics->SetLinMotion(MO_MOTSPEED, movable.linMotion.motorSpeed  );
+    m_physics->SetLinMotion(MO_CURSPEED, movable.linMotion.currentSpeed);
+    m_physics->SetLinMotion(MO_REASPEED, movable.linMotion.realSpeed   );
+
+    m_physics->SetCirMotion(MO_ADVACCEL, movable.cirMotion.advanceAccel);
+    m_physics->SetCirMotion(MO_RECACCEL, movable.cirMotion.recedeAccel );
+    m_physics->SetCirMotion(MO_STOACCEL, movable.cirMotion.stopAccel   );
+    m_physics->SetCirMotion(MO_TERSPEED, movable.cirMotion.terrainSpeed);
+    m_physics->SetCirMotion(MO_TERSLIDE, movable.cirMotion.terrainSlide);
+    m_physics->SetCirMotion(MO_MOTACCEL, movable.cirMotion.motorAccel  );
+    m_physics->SetCirMotion(MO_TERFORCE, movable.cirMotion.terrainForce);
+    m_physics->SetCirMotion(MO_ADVSPEED, movable.cirMotion.advanceSpeed);
+    m_physics->SetCirMotion(MO_RECSPEED, movable.cirMotion.recedeSpeed );
+    m_physics->SetCirMotion(MO_MOTSPEED, movable.cirMotion.motorSpeed  );
+    m_physics->SetCirMotion(MO_CURSPEED, movable.cirMotion.currentSpeed);
+    m_physics->SetCirMotion(MO_REASPEED, movable.cirMotion.realSpeed   );
 }

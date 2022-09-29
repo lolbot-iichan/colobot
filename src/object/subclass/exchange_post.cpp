@@ -587,12 +587,6 @@ bool CAutoInfo::CreateInterface(bool select)
     Ui::CList* pl = pw->CreateList(pos, ddim, 1, EVENT_OBJECT_GINFO, 1.10f);
     pl->SetSelectCap(false);
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 112, EVENT_OBJECT_TYPE);
-
     UpdateList();
     return true;
 }

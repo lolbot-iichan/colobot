@@ -86,6 +86,7 @@ class CSoundInterface;
 class CLevelParserLine;
 class CInput;
 class CObjectManager;
+class CObjectDetails;
 class CSceneEndCondition;
 class CAudioChangeCondition;
 class CScoreboard;
@@ -566,6 +567,7 @@ protected:
     CSoundInterface*    m_sound = nullptr;
     CInput*             m_input = nullptr;
     std::unique_ptr<CObjectManager> m_objMan;
+    std::unique_ptr<CObjectDetails> m_objectDetails;
     std::unique_ptr<CMainMovie> m_movie;
     std::unique_ptr<CPauseManager> m_pause;
     std::unique_ptr<Gfx::CModelManager> m_modelManager;

@@ -29,6 +29,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -62,7 +63,7 @@ void CAutoConvert::DeleteObject(bool all)
 {
     if ( !all )
     {
-        CObject* cargo = SearchStone(OBJECT_STONE);
+        CObject* cargo = SearchStone();
         if ( cargo != nullptr )
         {
             CObjectManager::GetInstancePointer()->DeleteObject(cargo);
@@ -90,6 +91,10 @@ void CAutoConvert::Init()
     m_time = 0.0f;
     m_timeVirus = 0.0f;
     m_lastParticle = 0.0f;
+
+    auto production = GetObjectAutomationDetails(m_object).production;
+    m_input  = production.input;
+    m_output = production.output;
 
     CAuto::Init();
 }
@@ -137,7 +142,7 @@ bool CAutoConvert::EventProcess(const Event &event)
     {
         if ( m_progress >= 1.0f )
         {
-            cargo = SearchStone(OBJECT_STONE);  // Has stone transformed?
+            cargo = SearchStone();  // Has stone transformed?
             if ( cargo == nullptr || SearchVehicle() )
             {
                 m_phase    = ACP_WAIT;  // still waiting ...
@@ -233,7 +238,7 @@ bool CAutoConvert::EventProcess(const Event &event)
             m_object->SetPartRotationY(2, 0.0f);
             m_object->SetPartRotationY(3, Math::PI);
 
-            cargo = SearchStone(OBJECT_STONE);
+            cargo = SearchStone();
             if ( cargo != nullptr )
             {
                 CObjectManager::GetInstancePointer()->DeleteObject(cargo);
@@ -330,36 +335,6 @@ bool CAutoConvert::Abort()
 }
 
 
-// Creates all the interface when the object is selected.
-
-bool CAutoConvert::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    Math::Point     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 103, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-
 // Saves all parameters of the controller.
 
 bool CAutoConvert::Write(CLevelParserLine* line)
@@ -395,14 +370,13 @@ bool CAutoConvert::Read(CLevelParserLine* line)
 
 // Searches for the object before or during processing.
 
-CObject* CAutoConvert::SearchStone(ObjectType type)
+CObject* CAutoConvert::SearchStone()
 {
     Math::Vector cPos = m_object->GetPosition();
 
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType oType = obj->GetType();
-        if ( oType != type )  continue;
+        if (obj->GetType() != m_input) continue;
         if (IsObjectBeingTransported(obj)) continue;
 
         Math::Vector oPos = obj->GetPosition();
@@ -423,9 +397,7 @@ bool CAutoConvert::SearchVehicle()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         if (obj == m_object) continue;
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_STONE ) continue;
-
+        if (obj->GetType() == m_input) continue;
         if (obj->GetCrashSphereCount() == 0) continue;
 
         auto crashSphere = obj->GetFirstCrashSphere();
@@ -440,10 +412,12 @@ bool CAutoConvert::SearchVehicle()
 
 void CAutoConvert::CreateMetal()
 {
-    Math::Vector pos = m_object->GetPosition();
-    float angle = m_object->GetRotationY();
-
-    CObjectManager::GetInstancePointer()->CreateObject(pos, angle, OBJECT_METAL);
+    ObjectCreateParams params;
+    params.pos = m_object->GetPosition();
+    params.angle = m_object->GetRotationY();
+    params.team = m_object->GetTeam();
+    params.type = m_output;
+    CObjectManager::GetInstancePointer()->CreateObject(params);
 
     m_main->DisplayError(INFO_CONVERT, m_object);
 }

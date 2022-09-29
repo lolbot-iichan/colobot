@@ -48,8 +48,6 @@ public:
     bool        EventProcess(const Event &event) override;
     Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
@@ -64,6 +62,8 @@ protected:
     float               m_speed = 0.0f;
     float               m_timeVirus = 0.0f;
     float               m_lastParticle = 0.0f;
-    Math::Vector            m_pos;
+    Math::Vector        m_pos;
     int                 m_channelSound = 0;
+    ObjectType          m_input = OBJECT_NULL;
+    ObjectType          m_output = OBJECT_NULL;
 };

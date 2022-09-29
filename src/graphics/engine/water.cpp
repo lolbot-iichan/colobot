@@ -555,7 +555,7 @@ float CWater::GetLevel()
 
 float CWater::GetLevel(CObject* object)
 {
-    return m_level - GetObjectDetails().GetMaxSafeWaterLevel(object->GetType());
+    return m_level - GetObjectPhysicsDetails(object).water.waterLevel;
 }
 
 void CWater::SetLava(bool lava)

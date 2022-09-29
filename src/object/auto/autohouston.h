@@ -54,8 +54,6 @@ public:
     bool        Abort() override;
     Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
 protected:
     float       m_progress = 0.0f;
     float       m_speed = 0.0f;

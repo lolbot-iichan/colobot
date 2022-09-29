@@ -52,9 +52,6 @@ struct CObjectDetail
 };
 
 
-std::map<std::string, ObjectType> m_nameInLevelFilesToObjectType;
-std::map<ObjectType, std::vector<ObjectType> > m_aliasToSearchList;
-
 CObjectButton m_builderMenuObjects[14];
 CObjectButton m_debugMenuObjects[14];
 
@@ -67,113 +64,10 @@ public:
 CObjectDetailsHardcodeCollection();
 
 
-
 // [lists] debug menu item (nullptr on error)
 CObjectButton GetBuilderMenuItem(int index);
-
 // [lists] debug menu item (nullptr on error)
 CObjectButton GetDebugMenuItem(int index);
-
-
-
-
-// [level] object name in level files (default is OBJECT_NULL)
-ObjectType ParseNameOrAliasInLevelFiles(std::string name);
-
-// [script] objects that could be find with radar functions by alias (default is vector with given id)
-std::vector<ObjectType> GetObjectsFindableByType(ObjectType type);
-
-
-
-// [assistant] always moves after camera movement (returns OBJECT_NULL or registered object)
-ObjectType GetAssistantType();
-
-// [assistant] react on SatCom pages, etc (default is false)
-bool IsAssistantReactingOnDisplayedInfo();
-
-// [assistant] react on errors, warnings, etc (default is false)
-bool IsAssistantReactingOnDisplayedText();
-
-// [assistant] always moves after camera movement (default is false)
-bool IsAssistantMovesWithCamera();
-
-// [assistant] open SATCOM_HUSTON on click (default is false)
-bool IsAssistantIgnoredOnSaveLoad();
-
-// [assistant] open SATCOM_HUSTON on click (default is false)
-bool IsAssistantClickable();
-
-// [assistant] ignores collisions, rays, bullets, water, etc (default is false)
-bool IsAssistantUndamagable();
-
-
-
-// [terrain] limits flat surface (default is false) 
-bool IsBlockingBuilding(ObjectType type);
-
-
-
-
-
-// [immunity] true, if immune to fireballs of Shooters (default is false)
-bool IsImmuneToFireballs(ObjectType type);
-
-// [immunity] true, if immune to particle of Ants (default is false)
-bool IsImmuneToInsects(ObjectType type);
-
-// [immunity] true, if immune to fireballs (default is false)
-bool IsImmuneToSpiders(ObjectType type);
-
-// [immunity] true, if immune to fireballs (default is false)
-bool IsImmuneToOrgaballs(ObjectType type);
-
-// [immunity] true, if immune to fireballs (default is false)
-bool IsImmuneToPhazers(ObjectType type);
-
-// [immunity] true, if immune to tower rays (default is true)
-bool IsImmuneToTowerRays(ObjectType type);
-
-
-
-
-// [auto] can be attacked by tower ray (default is false)
-bool IsAutoTargetedByTower(ObjectType type);
-
-// [auto] detected by power station to operate (default is false)
-bool IsAutoChargedAtPowerStation(ObjectType type);
-
-// [auto] required to walk back from power plant to operate (default is false)
-bool IsAutoBlockingPowerPlant(ObjectType type);
-
-// [auto] required to walk back from nuclear plant to operate (default is false)
-bool IsAutoBlockingNuclearPlant(ObjectType type);
-
-// [auto] required to walk back from factory to operate (default is false)
-bool IsAutoBlockingFactory(ObjectType type);
-
-
-
-
-// [level/code] object name in level files (default is "")
-std::string GetNameInLevelFiles(ObjectType type);
-
-// [level/code] object asias in level files (default is "")
-std::string GetAliasInLevelFiles(ObjectType type);
-
-
-
-
-// [script/code] object name in script files (default is "")
-std::string GetNameInScriptFiles(ObjectType type);
-
-// [script/code] object asias in script files (default is "")
-std::string GetAliasInScriptFiles(ObjectType type);
-
-// [script/code] help topic name, e.g. "object/base" (default is "")
-std::string GetHelpTopicPathName(ObjectType type);
-
-
-
 
 // [script/autoparams] object that is automaticaly used in function call (returns OBJECT_NULL or registered object)
 ObjectType GetFunctionDestroyPerformerObject();
@@ -184,147 +78,145 @@ ObjectType GetFunctionReceivePerformerObject();
 
 
 
+public:
 
-// [script/params] can object be used at produce() call (default is false)
-bool IsValidObjectTypeId(ObjectType type);
-// [script/params] object that should also be created at produce() call (default is OBJECT_NULL)
-ObjectType GetProduceContainer(ObjectType type);
-// [script/params] should be charged at produce() with -1 power (default is false)
-bool IsProduceAlreadyCharged(ObjectType type);
-// [script/params] force manual mode for produced item (default is false)
-bool IsProduceManual(ObjectType type);
-// [script/params]  (default is false)
-bool IsRadarExplicitOnly(ObjectType type);
+//////////////////////////////////////////////////////////////////////////////
+// Object naming details
+//////////////////////////////////////////////////////////////////////////////
+
+// [naming/level] object name in level files (default is "")
+std::string GetNameInLevelFiles(ObjectType type);
+// [naming/level] object asias in level files (default is "")
+std::string GetAliasInLevelFiles(ObjectType type);
+
+// [naming/script] object name in script files (default is "")
+std::string GetNameInScriptFiles(ObjectType type);
+// [naming/script] object asias in script files (default is "")
+std::string GetAliasInScriptFiles(ObjectType type);
+// [naming/script] help topic name, e.g. "object/base" (default is "")
+std::string GetHelpTopicPathName(ObjectType type);
+
+// [naming/ui] localizable string used with gettext (default is "")
+std::string GetDisplayedName(ObjectType type);
+// [naming/ui] show player name instead of object name (default is false)
+bool IsDisplayedNameAsPlayer(ObjectType type);
 
 
+
+//////////////////////////////////////////////////////////////////////////////
+// Object scripting details
+//////////////////////////////////////////////////////////////////////////////
 
 // [script/allowed] functions are binded to C++ implementations (default is false)
 bool IsFunctionImplementedBuild(ObjectType type);
 bool IsFunctionImplementedFlags(ObjectType type);
+bool IsFunctionImplementedSniff(ObjectType type);
 bool IsFunctionImplementedShield(ObjectType type);
-bool IsFunctionImplementedDrawAsRobot(ObjectType type);
+bool IsFunctionImplementedRecycle(ObjectType type);
 bool IsFunctionImplementedGrabAsHuman(ObjectType type);
 bool IsFunctionImplementedGrabAsRobot(ObjectType type);
 bool IsFunctionImplementedShootAsAnt(ObjectType type);
 bool IsFunctionImplementedShootAsSpider(ObjectType type);
 bool IsFunctionImplementedShootAsRobot(ObjectType type);
 
+// [script/radar]  (default is false)
+bool IsRadarExplicitOnly(ObjectType type);
+// [script/radar] objects that could be find with radar functions by alias (default is vector with given id)
+std::vector<ObjectType> GetObjectsFindableByType(ObjectType type);
 
-
-// [physics/collision] max radius of collision spheres to ignore (default is 0.0f)
-float GetCollisionOtherObjectRadiusToIgnore(ObjectType type);
-
-// [physics/collision] gets damage when collides with something (default is false)
-bool IsCollisionDamagable(ObjectType type);
-
-// [physics/collision] force of collision is devided by this (default is 200.0f)
-float GetCollisionSoftness(ObjectType type);
-
-
-
-// [physics/exhaust] bubbles around just after entering water (default is true)
-bool IsExhaustBubblesOnEnteringWater(ObjectType type);
-
-// [physics/exhaust] delay before underwater bubbles (default is 8.0f)
-float IsExhaustBubblesOnEnteringWaterTime(ObjectType type);
-
-// [physics/exhaust] drops on coming into water and coming out of water (default is true)
-bool IsExhaustDropsOnLeavingWater(ObjectType type);
-
-// [physics/exhaust] exhaust physics for dust: human type (default is false)
-bool IsExhaustOnCrashAsHuman(ObjectType type);
-
-// [physics/exhaust] exhaust physics for dust: tracked type (default is false)
-bool IsExhaustOnCrashAsTrackedRobot(ObjectType type);
-
-// [physics/exhaust] exhaust physics for dust: heavy type (default is false)
-bool IsExhaustOnCrashAsHeavyRobot(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for land movement: human type (default is false)
-bool IsExhaustOnLandAsHuman(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for land movement: winged type (default is false)
-bool IsExhaustOnLandAsWingedRobot(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for land movement: heavy type (default is false)
-bool IsExhaustOnLandAsHeavyRobot(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for land movement: other robots (default is false)
-bool IsExhaustOnLandAsNormalRobot(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for flight: human type (default is false)
-bool IsExhaustOnFlightAsHuman(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for flight: human type (default is false)
-bool IsExhaustOnFlightAsWingedRobot(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for swimming: human type (default is false)
-bool IsExhaustOnSwimAsHuman(ObjectType type);
-
-// [physics/exhaust] motor exhaust physics for swimming: subber type (default is false)
-bool IsExhaustOnSwimAsAmphibiousRobot(ObjectType type);
+// [script/produce] can object be used at produce() call (default is false)
+bool IsValidObjectTypeId(ObjectType type);
+// [script/produce] object that should also be created at produce() call (default is OBJECT_NULL)
+ObjectType GetProduceContainer(ObjectType type);
+// [script/produce] should be charged at produce() with -1 power (default is false)
+bool IsProduceAlreadyCharged(ObjectType type);
+// [script/produce] force manual mode for produced item (default is false)
+bool IsProduceManual(ObjectType type);
 
 
 
-// [physics/thumper] 
-float GetThumperSafeRadius(ObjectType type);
-Gfx::PyroType GetThumperPyroType(ObjectType type);
-float GetThumperExplosionDamage(ObjectType type);
-bool GetThumperTurnOnBack(ObjectType type);
+//////////////////////////////////////////////////////////////////////////////
+// Creation details
+//////////////////////////////////////////////////////////////////////////////
 
-
-// [physics/water] explodes when going underwater (default is false)
-bool IsExplodesInWater(ObjectType type);
-
-// [physics/water] maximum safe depth of water (default is 0.0f)
-float GetMaxSafeWaterLevel(ObjectType type);
-
-// [physics/water] minimum level of water for splash (default is 0.0f)
-float GetWaterSplashLevelMin(ObjectType type);
-
-// [physics/water] minimum level of water for splash (default is 9.0f)
-float GetWaterSplashLevelMax(ObjectType type);
-
-// [physics/water] radius of water splash (default is 5.0f)
-float GetWaterSplashDiameter(ObjectType type);
-
-// [physics/water] radius of water splash (default is 1.3f)
-float GetWaterSplashForce(ObjectType type);
-
-
-
-
-// [physics/lightning] height of lightning rod, if any (default is 0.0f)
-//  0 for objects destroyable by lightning
-// >0 for objects that have a lightning rod on some height
-float GetLightningRodHeight(ObjectType type);
-
-
-
-
-
-// [ui/name] show player name instead of object name (default is false)
-bool IsDisplayedNameAsPlayer(ObjectType type);
-
-// [ui/name] localizable string used with gettext (default is "")
-std::string GetDisplayedName(ObjectType type);
-
-
-
-
-// [create/model]
+// [create/model] base C++ class for object is switched by this (default is BASE_CLASS_NONE)
 BaseClass GetCreationBaseClass(ObjectType type);
+
+// [create/model] list of nodes of object model
 std::vector<CObjectCreationModelNode> GetCreationModel(ObjectType type);
+// [create/model] list of crash spheres of object model
 std::vector<CrashSphere> GetCreationCrashSpheres(ObjectType type);
+// [create/model] list of camera collision spheres of object model
 std::vector<Math::Sphere> GetCreationCameraCollisionSpheres(ObjectType type);
+// [create/model] list of jostling spheres of object model
 std::vector<Math::Sphere> GetCreationJostlingSpheres(ObjectType type);
+// [create/model] list of building levels platforms of object model
 std::vector<CObjectCreationBuildingLevel> GetCreationBuildingLevels(ObjectType type);
+// [create/model] details on object shadow circle
 CObjectCreationShadowCircle GetCreationShadowCircle(ObjectType type);
+
+// [create/model] additional object scale (default is 1.0f)
 float GetCreationScale(ObjectType type);
+
+// [create/model] should textures be forced to load (default is false)
 bool IsCreationForceLoadTextures(ObjectType type);
+
+// [create/model] should floor be adjusted (default is false)
 bool IsCreationSetFloorHeight(ObjectType type);
+// [create/model] should floor be adjusted x2 (default is false)
 bool IsCreationFloorAdjust(ObjectType type);
+// [create/model] should ignore gravity and hand in the air (default is false)
 bool IsCreationFixedPosition(ObjectType type);
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Common interface details
+//////////////////////////////////////////////////////////////////////////////
+
+bool IsTransportable(ObjectType type);
+
+bool IsMovable(ObjectType type);
+Motion GetLinMotion(ObjectType type);
+Motion GetCirMotion(ObjectType type);
+Character GetWheels(ObjectType type);
+    
+bool IsFlying(ObjectType type);
+bool IsJetFlying(ObjectType type);
+
+bool IsControllable(ObjectType type);
+bool IsSelectableByDefault(ObjectType type);
+
+bool IsPowerContainer(ObjectType type);
+
+bool IsTraceDrawing(ObjectType type);
+bool IsFunctionImplementedDrawAsRobot(ObjectType type);
+
+bool IsRanged(ObjectType type);
+float GetRangedRadius(ObjectType type);
+
+// [damageble] implements interface (default is false)
+bool IsDamageable(ObjectType type);
+
+// [damageble/immunity] true, if immune to fireballs of Shooters (default is false)
+bool IsImmuneToFireballs(ObjectType type);
+// [damageble/immunity] true, if immune to particle of Ants (default is false)
+bool IsImmuneToInsects(ObjectType type);
+// [damageble/immunity] true, if immune to fireballs (default is false)
+bool IsImmuneToSpiders(ObjectType type);
+// [damageble/immunity] true, if immune to fireballs (default is false)
+bool IsImmuneToOrgaballs(ObjectType type);
+// [damageble/immunity] true, if immune to fireballs (default is false)
+bool IsImmuneToPhazers(ObjectType type);
+// [damagable/immunity] true, if immune to tower rays (default is true)
+bool IsImmuneToTowerRays(ObjectType type);
+
+// [destroyable] implements interface (default is false)
+bool IsDestroyable(ObjectType type);
+bool IsExplodesInWater(ObjectType type);
+bool IsSquashedByHeavy(ObjectType type);
+
+// [destroyable/pyro]
 bool IsDestructionRemoveBuildingLevel(ObjectType type);
 Gfx::PyroType GetDestructionByExplosion(ObjectType type);
 Gfx::PyroType GetDestructionByWater(ObjectType type);
@@ -334,9 +226,21 @@ Gfx::PyroType GetDestructionByWin(ObjectType type);
 Gfx::PyroType GetDestructionBySquash(ObjectType type);
 bool IsDestructionKilledByBurning(ObjectType type);
 
+// [fragile] implements interface (default is false)
+bool IsFragile(ObjectType type);
 
+// [shielded] implements interface (default is false)
+bool IsShielded(ObjectType type);
+bool IsShieldAutoregen(ObjectType type);
+float GetShieldAutoregenTime(ObjectType type);
 
-public:
+// [sloted] implements interface (default is false)
+bool IsSloted(ObjectType type);
+bool HasCargoSlot(ObjectType type);
+bool HasPowerSlot(ObjectType type);
+bool HasOtherSlot(ObjectType type);
+Math::Vector GetPowerSlotPosition(ObjectType type);
+Math::Vector GetOtherSlotPosition(ObjectType type);
 
 //////////////////////////////////////////////////////////////////////////////
 // Camera details
@@ -348,6 +252,9 @@ bool IsCameraTypeChangable(ObjectType type);
 // true - remember object camera type while switching between objects
 // false - reset camera to CAM_TYPE_BACK on each selection
 bool IsCameraTypePersistent(ObjectType type);
+
+// [camera/types] camera type on object selection (default is CAM_TYPE_BACK)
+Gfx::CameraType GetDefaultCameraType(ObjectType type);
 
 // [camera/visit] radius of ideal visit (default is 60.0f)
 float GetVisitCameraDistance(ObjectType type);
@@ -377,10 +284,103 @@ bool DisableCollisionsOnFixCamera(ObjectType type);
 
 // [camera/onboard] on-board camera has robotic corners (default is false) 
 bool DisableOnboardCameraCorners(ObjectType type);
+// [camera/onboard] on-board camera has crosshair to target (default is false) 
+bool HasOnboardCameraCrosshair(ObjectType type);
 
 
 
-public:
+//////////////////////////////////////////////////////////////////////////////
+// Physics Details
+//////////////////////////////////////////////////////////////////////////////
+
+// [physics/collision] max radius of collision spheres to ignore (default is 0.0f)
+float GetCollisionOtherObjectRadiusToIgnore(ObjectType type);
+// [physics/collision] gets damage when collides with something (default is false)
+bool IsCollisionDamagable(ObjectType type);
+// [physics/collision] force of collision is devided by this (default is 200.0f)
+float GetCollisionSoftness(ObjectType type);
+
+// [physics/exhaust] bubbles around just after entering water (default is true)
+bool IsExhaustBubblesOnEnteringWater(ObjectType type);
+// [physics/exhaust] delay before underwater bubbles (default is 8.0f)
+float IsExhaustBubblesOnEnteringWaterTime(ObjectType type);
+// [physics/exhaust] drops on coming into water and coming out of water (default is true)
+bool IsExhaustDropsOnLeavingWater(ObjectType type);
+// [physics/exhaust] exhaust physics for dust: human type (default is false)
+bool IsExhaustOnCrashAsHuman(ObjectType type);
+// [physics/exhaust] exhaust physics for dust: tracked type (default is false)
+bool IsExhaustOnCrashAsTrackedRobot(ObjectType type);
+// [physics/exhaust] exhaust physics for dust: heavy type (default is false)
+bool IsExhaustOnCrashAsHeavyRobot(ObjectType type);
+// [physics/exhaust] motor exhaust physics for land movement: human type (default is false)
+bool IsExhaustOnLandAsHuman(ObjectType type);
+// [physics/exhaust] motor exhaust physics for land movement: winged type (default is false)
+bool IsExhaustOnLandAsWingedRobot(ObjectType type);
+// [physics/exhaust] motor exhaust physics for land movement: heavy type (default is false)
+bool IsExhaustOnLandAsHeavyRobot(ObjectType type);
+// [physics/exhaust] motor exhaust physics for land movement: other robots (default is false)
+bool IsExhaustOnLandAsNormalRobot(ObjectType type);
+// [physics/exhaust] motor exhaust physics for flight: human type (default is false)
+bool IsExhaustOnFlightAsHuman(ObjectType type);
+// [physics/exhaust] motor exhaust physics for flight: human type (default is false)
+bool IsExhaustOnFlightAsWingedRobot(ObjectType type);
+// [physics/exhaust] motor exhaust physics for swimming: human type (default is false)
+bool IsExhaustOnSwimAsHuman(ObjectType type);
+// [physics/exhaust] motor exhaust physics for swimming: subber type (default is false)
+bool IsExhaustOnSwimAsAmphibiousRobot(ObjectType type);
+
+// [physics/thumper] 
+float GetThumperSafeRadius(ObjectType type);
+// [physics/thumper] 
+Gfx::PyroType GetThumperPyroType(ObjectType type);
+// [physics/thumper] 
+float GetThumperExplosionDamage(ObjectType type);
+// [physics/thumper] 
+bool GetThumperTurnOnBack(ObjectType type);
+
+// [physics/water] maximum safe depth of water (default is 0.0f)
+float GetMaxSafeWaterLevel(ObjectType type);
+// [physics/water] minimum level of water for splash (default is 0.0f)
+float GetWaterSplashLevelMin(ObjectType type);
+// [physics/water] minimum level of water for splash (default is 9.0f)
+float GetWaterSplashLevelMax(ObjectType type);
+// [physics/water] radius of water splash (default is 5.0f)
+float GetWaterSplashDiameter(ObjectType type);
+// [physics/water] radius of water splash (default is 1.3f)
+float GetWaterSplashForce(ObjectType type);
+
+// [physics/lightning] height of lightning rod, if any (default is 0.0f)
+//  0 for objects destroyable by lightning
+// >0 for objects that have a lightning rod on some height
+float GetLightningRodHeight(ObjectType type);
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Automation Details
+//////////////////////////////////////////////////////////////////////////////
+
+// [auto] limits flat surface (default is false) 
+bool IsBlockingBuilding(ObjectType type);
+// [auto] can be attacked by tower ray (default is false)
+bool IsAutoTargetedByTower(ObjectType type);
+// [auto] can be attacked by mushroom (default is false)
+bool IsAutoTargetedByMushroom(ObjectType type);
+// [auto] detected by power station to operate (default is false)
+bool IsAutoChargedAtPowerStation(ObjectType type);
+// [auto] commented by Toto (default is false)
+bool IsAutoCommentedByAssistant(ObjectType type);
+// [auto] required to walk back from power plant to operate (default is false)
+bool IsAutoBlockingPowerPlant(ObjectType type);
+// [auto] required to walk back from nuclear plant to operate (default is false)
+bool IsAutoBlockingNuclearPlant(ObjectType type);
+// [auto] required to walk back from factory to operate (default is false)
+bool IsAutoBlockingFactory(ObjectType type);
+
+ObjectType GetProductionInput(ObjectType type);
+ObjectType GetProductionOutput(ObjectType type);
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // UI Icon Details
@@ -412,8 +412,6 @@ int GetShortcutIcon(ObjectType type);
 
 
 
-public:
-
 //////////////////////////////////////////////////////////////////////////////
 // User Interface Details
 //////////////////////////////////////////////////////////////////////////////
@@ -424,7 +422,7 @@ bool HasUserInterfaceProgramUI(ObjectType type);
 bool HasUserInterfaceProgramUIBlink(ObjectType type);
 
 // [ui/iface] raw widget list
-std::vector<CObjectUserInterfaceWidget> GetUserInterfaceWidgetList(ObjectType type);
+std::vector<CObjectControlsWidget> GetUserInterfaceWidgetList(ObjectType type);
 
 // [ui/iface] has human builder interface (default is false)
 bool HasUserInterfaceBuilderUIHuman(ObjectType type);
@@ -432,12 +430,32 @@ bool HasUserInterfaceBuilderUIHuman(ObjectType type);
 bool HasUserInterfaceBuilderUIRobot(ObjectType type);
 // [ui/iface] has machine shielder interface (default is false)
 bool HasUserInterfaceShielderUIRobot(ObjectType type);
-// [ui/iface] has machine shooter interface (default is false)
-bool HasUserInterfaceShooterUIRobot(ObjectType type);
 // [ui/iface] has machine scribbler interface (default is false)
 bool HasUserInterfaceScribblerUIRobot(ObjectType type);
 
 // [ui/iface] fly buttons are disabled when something is grabbed (default is false)
 bool HasUserInterfaceDisableFlyWhileGrabbing(ObjectType type);
 
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Assistant global details
+//////////////////////////////////////////////////////////////////////////////
+
+// [assistant] always moves after camera movement (returns OBJECT_NULL or registered object)
+ObjectType GetAssistantType();
+// [assistant] react on SatCom pages, etc (default is false)
+bool IsAssistantReactingOnDisplayedInfo();
+// [assistant] react on errors, warnings, etc (default is false)
+bool IsAssistantReactingOnDisplayedText();
+// [assistant] always moves after camera movement (default is false)
+bool IsAssistantMovesWithCamera();
+// [assistant] open SATCOM_HUSTON on click (default is false)
+bool IsAssistantIgnoredOnSaveLoad();
+// [assistant] open SATCOM_HUSTON on click (default is false)
+bool IsAssistantClickable();
+// [assistant] ignores collisions, rays, bullets, water, etc (default is false)
+bool IsAssistantUndamagable();
+// [assistant] ignores pause (default is false)
+bool IsAssistantUnpausable();
 };

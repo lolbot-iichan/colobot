@@ -25,6 +25,7 @@
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/particle.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "object/subclass/base_alien.h"
@@ -71,6 +72,8 @@ void CMotionAnt::DeleteObject(bool bAll)
 void CMotionAnt::Create(Math::Vector pos, float angle, ObjectType type,
                         float power, Gfx::COldModelManager* modelManager)
 {
+    CMotion::Create(pos, angle, type, power, modelManager);
+
     int rank;
 
     m_object->SetType(type);
@@ -263,7 +266,6 @@ void CMotionAnt::Create(Math::Vector pos, float angle, ObjectType type,
 
 void CMotionAnt::CreatePhysics()
 {
-    Character*  character;
     int         i;
 
     int member_march[] =
@@ -333,30 +335,6 @@ void CMotionAnt::CreatePhysics()
         -15,-35,0,  -20,-60,0,  -15,-75,0,  // s7: legs 1..3
         -35,35,0,   -25,40,0,   -40,65,0,   // s7: feet 1..3
     };
-
-    character = m_object->GetCharacter();
-    character->wheelFront = 3.0f;
-    character->wheelBack  = 3.0f;
-    character->wheelLeft  = 5.0f;
-    character->wheelRight = 5.0f;
-    character->height     = 1.2f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  40.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  10.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  40.0f);
 
     for ( i=0 ; i<3*3*3*3 ; i++ )
     {

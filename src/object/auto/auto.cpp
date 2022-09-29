@@ -30,12 +30,17 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "sound/sound.h"
 
+#include "ui/controls/button.h"
+#include "ui/controls/color.h"
 #include "ui/controls/gauge.h"
+#include "ui/controls/group.h"
 #include "ui/controls/interface.h"
+#include "ui/controls/logo.h"
 #include "ui/controls/window.h"
 
 
@@ -215,15 +220,37 @@ bool CAuto::CreateInterface(bool bSelect)
     ddim.y =  26.0f/480.0f;
     pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GPROGRESS);
 
-    if ( m_type != OBJECT_BASE   &&
-         m_type != OBJECT_SAFE   &&
-         m_type != OBJECT_HUSTON )
+    auto controlsDetails = GetObjectControlsDetails(m_object);
+    for ( auto it : controlsDetails.widgets )
     {
-        pos.x = ox+sx*2.1f;
-        pos.y = oy+sy*0;
-        ddim.x = dim.x*0.6f;
-        ddim.y = dim.y*0.6f;
-        pw->CreateButton(pos, ddim, 12, EVENT_OBJECT_DELETE);
+        bool bSkip = false;
+        for ( auto b : it.onBuildingsEnabled )
+            if ( !m_main->IsBuildingEnabled(b) )
+                bSkip = true;
+
+        for ( auto r : it.onResearchsDone )
+            if ( !m_main->IsResearchDone(r, m_object->GetTeam()) )
+                bSkip = true;
+
+        if ( bSkip ) continue;
+        if ( it.disabledByTrainer && m_object->GetTrainer() ) continue;
+        if ( it.disabledByPlusExplorer && m_main->GetPlusExplorer() ) continue;
+
+        pos.x  = ox + sx * it.position.x;
+        pos.y  = oy + sy * it.position.y;
+        ddim.x = dim.x * it.size.x;
+        ddim.y = dim.y * it.size.y;
+        
+        if ( it.type == WIDGET_ICON_BUTTON )
+            pw->CreateButton(pos, ddim, it.params.icon, it.event)->SetImmediat(it.isImmediat);
+        else if ( it.type == WIDGET_COLOR_BUTTON )
+            pw->CreateColor(pos, ddim, -1, it.event)->SetColor(it.params.color);
+        else if ( it.type == WIDGET_ICON_LOGO )
+            pw->CreateLogo(pos, ddim, it.params.icon, it.event);
+
+//TODO
+//        if ( it.isDefault )
+//            DefaultEnter(pw, it.event);
     }
 
     pos.x = ox+sx*12.3f;

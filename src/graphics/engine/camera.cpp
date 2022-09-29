@@ -314,9 +314,9 @@ void CCamera::SetType(CameraType type)
         m_addDirectionH = 0.0f;
         m_addDirectionV = -Math::PI*0.05f;
 
-        auto cameraDetails = GetObjectCameraDetails(m_cameraObj);
-        m_backDist = cameraDetails.backCameraDistance;
-        m_backMin = cameraDetails.backCameraDistanceMin;
+        auto cameraDetails = GetObjectCameraDetails(m_cameraObj).backCamera;
+        m_backDist = cameraDetails.distance;
+        m_backMin = cameraDetails.distanceMin;
     }
 
     //if ( type != CAM_TYPE_ONBOARD && m_cameraObj != 0 )
@@ -788,8 +788,8 @@ void CCamera::IsCollision(Math::Vector &eye, Math::Vector lookat)
 
 void CCamera::IsCollisionBack()
 {
-    auto cameraDetails = GetObjectCameraDetails(m_cameraObj);
-    bool noTransparency = cameraDetails.disableOtherObjectsTransparencyOnBackCamera;
+    auto cameraDetails = GetObjectCameraDetails(m_cameraObj).backCamera;
+    bool noTransparency = cameraDetails.disableOtherObjectsTransparency;
 
     Math::Vector min;
     min.x = Math::Min(m_actualEye.x, m_actualLookat.x);
@@ -811,8 +811,8 @@ void CCamera::IsCollisionBack()
         if (obj == m_cameraObj) continue;
         if ( noTransparency ) continue;
 
-        auto otherObjectCameraDetails = GetObjectCameraDetails(obj);
-        if ( otherObjectCameraDetails.disableObjectTransparencyOnBackCamera ) continue;
+        auto otherObjectCameraDetails = GetObjectCameraDetails(obj).backCamera;
+        if ( otherObjectCameraDetails.disableObjectTransparency ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector oPos = objSphere.pos;
@@ -830,7 +830,7 @@ void CCamera::IsCollisionBack()
         float dpp = Math::Distance(proj, oPos);
         if ( dpp > oRadius )  continue;
 
-        if ( otherObjectCameraDetails.hasGateTransparencyOnBackCamera )
+        if ( otherObjectCameraDetails.hasGateTransparency )
         {
             float angle = Math::RotateAngle(m_actualEye.x-oPos.x, oPos.z-m_actualEye.z);  // CW !
             angle = Math::Direction(angle, obj->GetRotationY());
@@ -838,7 +838,7 @@ void CCamera::IsCollisionBack()
         }
 
         float del = Math::Distance(m_actualEye, m_actualLookat);
-        if ( otherObjectCameraDetails.hasGateTransparencyOnBackCamera )
+        if ( otherObjectCameraDetails.hasGateTransparency )
             del += oRadius;
 
         float len = Math::Distance(m_actualEye, proj);
@@ -854,7 +854,8 @@ void CCamera::IsCollisionFix(Math::Vector &eye, Math::Vector lookat)
     {
         if (obj == m_cameraObj) continue;
 
-        if ( GetObjectCameraDetails(obj).disableCollisionsOnFixCamera ) continue;
+        auto cameraDetails = GetObjectCameraDetails(obj).fixCamera;
+        if ( cameraDetails.disableCollisions ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         Math::Vector objPos = objSphere.pos;
@@ -1105,21 +1106,21 @@ bool CCamera::EventFrameBack(const Event &event)
 
     if (m_cameraObj != nullptr)
     {
-        auto cameraDetails = GetObjectCameraDetails(m_cameraObj);
+        auto cameraDetails = GetObjectCameraDetails(m_cameraObj).backCamera;
 
         Math::Vector lookatPt = m_cameraObj->GetPosition();
-        lookatPt.y += cameraDetails.backCameraHeight;
+        lookatPt.y += cameraDetails.height;
 
 
         float h = -m_cameraObj->GetRotationY();  // angle vehicle / building
-        h += Math::PI * cameraDetails.backCameraRotationY;
+        h += Math::PI * cameraDetails.rotationY;
         h = Math::NormAngle(h);
 
         h += m_centeringCurrentH;
         h += m_addDirectionH * (1.0f - centeringH);
         h = Math::NormAngle(h);
 
-        float v = 0.0f - Math::PI * cameraDetails.backCameraRotationZ;  // Camera top
+        float v = 0.0f - Math::PI * cameraDetails.rotationZ;  // Camera top
         v += m_centeringCurrentV;
         v += m_addDirectionV * (1.0f - centeringV);
 
@@ -1133,7 +1134,11 @@ bool CCamera::EventFrameBack(const Event &event)
 
         bool ground = true;
         if (m_cameraObj->Implements(ObjectInterfaceType::Movable))
-            ground = dynamic_cast<CMovableObject&>(*m_cameraObj).GetPhysics()->GetLand();
+        {
+            CPhysics* physics = dynamic_cast<CMovableObject&>(*m_cameraObj).GetPhysics();
+            if ( physics != nullptr ) 
+                ground = physics->GetLand();
+        }
         if ( ground )  // ground?
         {
             Math::Vector pos = lookatPt + (lookatPt - m_eyePt);

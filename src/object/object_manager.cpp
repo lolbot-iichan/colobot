@@ -358,7 +358,7 @@ std::vector<CObject*> CObjectManager::RadarAll(CObject* pThis, Math::Vector this
 
         if ( std::find(type.begin(), type.end(), oType) == type.end() && type.size() > 0 )  continue;
 
-        if ( GetObjectDetails().IsRadarExplicitOnly(oType) && type.size() == 0 )  continue; // allow only if explicitly asked in type parameter
+        if ( GetObjectScriptingDetails(oType).radar.isExplicit && type.size() == 0 )  continue; // allow only if explicitly asked in type parameter
 
         if ( filter_flying == FILTER_ONLYLANDING )
         {

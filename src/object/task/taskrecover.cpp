@@ -28,6 +28,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -185,8 +186,8 @@ Error CTaskRecover::Start()
     m_bError = true;  // operation impossible
     if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
 
-    ObjectType type = m_object->GetType();
-    if ( type != OBJECT_MOBILErr )  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    if (!allowedScripting.recycle)  return ERR_WRONG_BOT;
 
     CPowerContainerObject *power = GetObjectPowerCell(m_object);
     if (power == nullptr)  return ERR_RECOVER_ENERGY;

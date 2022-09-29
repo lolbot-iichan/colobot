@@ -57,7 +57,7 @@ public:
     CObjectUPtr CreateObject(const ObjectCreateParams& params);
 
 private:
-    CObjectUPtr CreateSimpleObject(const ObjectCreateParams& params);
+    CObjectUPtr CreateSimpleObject(const ObjectCreateParams& params, Gfx::COldModelManager* modelManager);
     void AddObjectAuto(COldObject* obj);
     void AddObjectHacks(COldObject* obj);
 

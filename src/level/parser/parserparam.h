@@ -103,6 +103,7 @@ public:
     bool AsBool(bool def);
     std::string AsPath(const std::string defaultDir, std::string def);
     Gfx::Color AsColor(Gfx::Color def);
+    Math::Point AsPoint(Math::Point def);
     Math::Vector AsPoint(Math::Vector def);
     ObjectType AsObjectType(ObjectType def);
     DriveType AsDriveType(DriveType def);

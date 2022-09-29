@@ -25,6 +25,7 @@
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/particle.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "object/subclass/base_alien.h"
@@ -70,6 +71,8 @@ void CMotionSpider::DeleteObject(bool bAll)
 void CMotionSpider::Create(Math::Vector pos, float angle, ObjectType type,
                            float power, Gfx::COldModelManager* modelManager)
 {
+    CMotion::Create(pos, angle, type, power, modelManager);
+
     int         rank, i, j, parent;
     char        name[50];
 
@@ -194,7 +197,6 @@ void CMotionSpider::Create(Math::Vector pos, float angle, ObjectType type,
 
 void CMotionSpider::CreatePhysics()
 {
-    Character*  character;
     int         i;
 
     int member_march[] =
@@ -268,30 +270,6 @@ void CMotionSpider::CreatePhysics()
         -55,-25,-30,    -25,0,0,    -25,0,0,    -25,0,0,    // s5: feet 1..4
         -5,0,0,     -5,0,0,     -5,0,0,     -5,0,0,     // s5: fingers 1..4
     };
-
-    character = m_object->GetCharacter();
-    character->wheelFront = 4.0f;
-    character->wheelBack  = 4.0f;
-    character->wheelLeft  = 6.0f;
-    character->wheelRight = 6.0f;
-    character->height     = 0.6f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  40.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  10.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  40.0f);
 
     for ( i=0 ; i<3*4*4*3 ; i++ )
     {

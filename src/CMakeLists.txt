@@ -275,8 +275,6 @@ add_library(colobotbase STATIC
     object/motion/motionbee.h
     object/motion/motionhuman.cpp
     object/motion/motionhuman.h
-    object/motion/motionlevelcontroller.cpp
-    object/motion/motionlevelcontroller.h
     object/motion/motionqueen.cpp
     object/motion/motionqueen.h
     object/motion/motionspider.cpp
@@ -402,6 +400,8 @@ add_library(colobotbase STATIC
     ui/controls/label.h
     ui/controls/list.cpp
     ui/controls/list.h
+    ui/controls/logo.cpp
+    ui/controls/logo.h
     ui/controls/map.cpp
     ui/controls/map.h
     ui/controls/scroll.cpp

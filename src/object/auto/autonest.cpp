@@ -27,6 +27,7 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -78,6 +79,12 @@ void CAutoNest::Init()
     pos = m_object->GetPosition();
     m_terrain->AdjustToFloor(pos);
     m_cargoPos = pos;
+
+    auto production = GetObjectAutomationDetails(m_object).production;
+    m_output = production.output;
+
+    auto creation = GetObjectCreationDetails(m_output);
+    m_scale = creation.scale;
 }
 
 
@@ -106,7 +113,7 @@ bool CAutoNest::EventProcess(const Event &event)
             }
             else
             {
-                CreateCargo(m_cargoPos, 0.0f, OBJECT_BULLET);
+                CreateCargo(m_cargoPos, 0.0f, m_output);
                 m_phase    = ANP_BIRTH;
                 m_progress = 0.0f;
                 m_speed    = 1.0f/5.0f;
@@ -122,14 +129,14 @@ bool CAutoNest::EventProcess(const Event &event)
         {
             if ( cargo != nullptr )
             {
-                cargo->SetScale(m_progress);
+                cargo->SetScale(m_progress * m_scale);
             }
         }
         else
         {
             if ( cargo != nullptr )
             {
-                cargo->SetScale(1.0f);
+                cargo->SetScale(m_scale);
                 cargo->SetLock(false);
             }
 
@@ -150,7 +157,7 @@ bool CAutoNest::SearchFree(Math::Vector pos)
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
-        if ( type == OBJECT_NEST )  continue;
+        if ( type == m_object->GetType() )  continue;
 
         for (const auto& crashSphere : obj->GetAllCrashSpheres())
         {
@@ -184,7 +191,7 @@ CObject* CAutoNest::SearchCargo()
         if ( !obj->GetLock() )  continue;
 
         ObjectType type = obj->GetType();
-        if ( type != OBJECT_BULLET )  continue;
+        if ( type != m_output )  continue;
 
         Math::Vector oPos = obj->GetPosition();
         if ( oPos.x == m_cargoPos.x &&

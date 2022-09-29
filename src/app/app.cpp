@@ -714,8 +714,6 @@ bool CApplication::Create()
 
     m_eventQueue = MakeUnique<CEventQueue>();
 
-    m_objectDetails = MakeUnique<CObjectDetails>();
-
     // Create the robot application.
     m_controller = MakeUnique<CController>();
 

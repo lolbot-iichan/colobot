@@ -38,10 +38,10 @@ class CAuto;
 
 struct Character
 {
-    float        wheelFront = 0.0f;     // position X of the front wheels
-    float        wheelBack = 0.0f;      // position X of the back wheels
-    float        wheelLeft = 0.0f;      // position Z of the left wheels
-    float        wheelRight = 0.0f;     // position Z of the right wheels
+    float        wheelFront = 1.0f;     // position X of the front wheels
+    float        wheelBack = 1.0f;      // position X of the back wheels
+    float        wheelLeft = 1.0f;      // position Z of the left wheels
+    float        wheelRight = 1.0f;     // position Z of the right wheels
     float        height = 0.0f;         // normal height on top of ground
 };
 

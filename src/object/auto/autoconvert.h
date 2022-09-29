@@ -49,13 +49,11 @@ public:
     Error       GetError() override;
     bool        Abort() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
 protected:
-    CObject*    SearchStone(ObjectType type);
+    CObject*    SearchStone();
     bool        SearchVehicle();
     void        CreateMetal();
 
@@ -67,4 +65,6 @@ protected:
     float               m_lastParticle = 0.0f;
     bool                m_bSoundClose = false;
     int                 m_soundChannel = 0;
+    ObjectType          m_input = OBJECT_NULL;
+    ObjectType          m_output = OBJECT_NULL;
 };

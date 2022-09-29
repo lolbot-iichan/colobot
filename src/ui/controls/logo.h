@@ -19,15 +19,23 @@
 
 #pragma once
 
+#include "ui/controls/control.h"
 
-#include "object/motion/motion.h"
+namespace Ui
+{
 
-class CMotionLevelController : public CMotion
+class CLogo : public CControl
 {
 public:
-    CMotionLevelController(COldObject* object);
-    ~CMotionLevelController();
+    CLogo();
+    virtual ~CLogo();
 
-    void        DeleteObject(bool bAll=false) override;
-    void        Create(Math::Vector pos, float angle, ObjectType type, float power, Gfx::COldModelManager* modelManager) override;
+    bool    Create(Math::Point pos, Math::Point dim, int icon, EventType eventType) override;
+
+    bool    EventProcess(const Event &event) override;
+
+    void    Draw() override;
 };
+
+
+} // namespace Ui

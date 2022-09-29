@@ -1112,6 +1112,7 @@ void CMap::FlushObject()
 
 void CMap::UpdateObject(CObject* pObj)
 {
+    CObjectMapIconDetails mapDetails;
     ObjectType      type;
     MapColor        color;
     int             icon;
@@ -1124,7 +1125,9 @@ void CMap::UpdateObject(CObject* pObj)
 
     type = pObj->GetType();
     if ( !pObj->GetDetectable() )  return;
-    if ( !GetObjectIconDetails(pObj).isForcedDisplayOnMap )
+
+    mapDetails = GetObjectIconDetails(pObj).map;
+    if ( !mapDetails.isForced )
     {
         if (pObj->Implements(ObjectInterfaceType::Controllable) && !dynamic_cast<CControllableObject&>(*pObj).GetSelectable()) return;
     }
@@ -1142,8 +1145,8 @@ void CMap::UpdateObject(CObject* pObj)
         dir += m_angle;
     }
 
-    color = GetObjectIconDetails(pObj).mapIconColor;
-    icon = GetObjectIconDetails(pObj).mapIcon;
+    color = mapDetails.color;
+    icon = mapDetails.icon;
 
     if ( color == MAPCOLOR_NULL )  return;
 

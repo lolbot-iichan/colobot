@@ -125,9 +125,9 @@ void CDisplayText::DisplayError(Error err, CObject* pObj, float time)
 
     Math::Vector pos = pObj->GetPosition();
 
-    auto cameraDetails = GetObjectCameraDetails(pObj);
-    float h = cameraDetails.visitCameraHeight;
-    float d = cameraDetails.visitCameraDistance;
+    auto cameraDetails = GetObjectCameraDetails(pObj).visitCamera;
+    float h = cameraDetails.height;
+    float d = cameraDetails.distance;
 
     DisplayError(err, pos, h, d, time);
 }
@@ -167,9 +167,9 @@ void CDisplayText::DisplayText(const char *text, CObject* pObj,
 
     Math::Vector pos = pObj->GetPosition();
 
-    auto cameraDetails = GetObjectCameraDetails(pObj);
-    float h = cameraDetails.visitCameraHeight;
-    float d = cameraDetails.visitCameraDistance;
+    auto cameraDetails = GetObjectCameraDetails(pObj).visitCamera;
+    float h = cameraDetails.height;
+    float d = cameraDetails.distance;
 
     DisplayText(text, pos, h, d, time, type);
 }
@@ -513,8 +513,9 @@ bool CDisplayText::IsVisit(EventType event)
 
 CObject* CDisplayText::SearchToto()
 {
-    if (GetObjectDetails().IsAssistantReactingOnDisplayedText())
-        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, GetObjectDetails().GetAssistantType());
+    auto assistant = GetObjectAssistantDetails();
+    if (assistant.reactOnMessages)
+        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, assistant.type);
     return nullptr;
 }
 

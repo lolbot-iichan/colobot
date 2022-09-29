@@ -796,6 +796,33 @@ CBotTypResult CScriptFunctions::cSearchAll(CBotVar* &var, void* user)
     return compileSearch(var, user, CBotTypResult(CBotTypArrayPointer, CBotTypResult(CBotTypPointer, "object")));
 }
 
+inline void fillSearchList(std::vector<ObjectType>& type_v, bool bArray, int type, CBotVar* array)
+{
+    if (bArray)
+    {
+        while ( array != nullptr )
+        {
+            ObjectType t = static_cast<ObjectType>(array->GetValInt());
+            for (auto it: GetObjectScriptingDetails(t).radar.findableWithThisType)
+            {
+                type_v.push_back(it);
+            }
+            array = array->GetNext();
+        }
+    }
+    else
+    {
+        if (type != OBJECT_NULL)
+        {
+            ObjectType t = static_cast<ObjectType>(type);
+            for (auto it: GetObjectScriptingDetails(t).radar.findableWithThisType)
+            {
+                type_v.push_back(it);
+            }
+        }
+    }
+}
+
 static bool runSearch(CBotVar* var, Math::Vector pos, int& exception, std::function<bool(std::vector<ObjectType>, Math::Vector, float, float, bool, RadarFilter)> code)
 {
     CBotVar*    array;
@@ -855,29 +882,7 @@ static bool runSearch(CBotVar* var, Math::Vector pos, int& exception, std::funct
     }
 
     std::vector<ObjectType> type_v;
-    if (bArray)
-    {
-        while ( array != nullptr )
-        {
-            ObjectType t = static_cast<ObjectType>(array->GetValInt());
-            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
-            {
-                type_v.push_back(it);
-            }
-            array = array->GetNext();
-        }
-    }
-    else
-    {
-        if (type != OBJECT_NULL)
-        {
-            ObjectType t = static_cast<ObjectType>(type);
-            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
-            {
-                type_v.push_back(it);
-            }
-        }
-    }
+    fillSearchList(type_v, bArray, type, array);
 
     return code(type_v, pos, minDist, maxDist, sens < 0, filter);
 }
@@ -1035,29 +1040,7 @@ static bool runRadar(CBotVar* var, std::function<bool(std::vector<ObjectType>, f
     }
 
     std::vector<ObjectType> type_v;
-    if (bArray)
-    {
-        while ( array != nullptr )
-        {
-            ObjectType t = static_cast<ObjectType>(array->GetValInt());
-            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
-            {
-                type_v.push_back(it);
-            }
-            array = array->GetNext();
-        }
-    }
-    else
-    {
-        if (type != OBJECT_NULL)
-        {
-            ObjectType t = static_cast<ObjectType>(type);
-            for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
-            {
-                type_v.push_back(it);
-            }
-        }
-    }
+    fillSearchList(type_v, bArray, type, array);
 
     return code(type_v, angle, focus, minDist, maxDist, sens < 0, filter);
 }
@@ -1214,29 +1197,7 @@ bool CScriptFunctions::rDetect(CBotVar* var, CBotVar* result, int& exception, vo
         }
 
         std::vector<ObjectType> type_v;
-        if (bArray)
-        {
-            while ( array != nullptr )
-            {
-                ObjectType t = static_cast<ObjectType>(array->GetValInt());
-                for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
-                {
-                    type_v.push_back(it);
-                }
-                array = array->GetNext();
-            }
-        }
-        else
-        {
-            if (type != OBJECT_NULL)
-            {
-                ObjectType t = static_cast<ObjectType>(type);
-                for (auto it: GetObjectDetails().GetObjectsFindableByType(t))
-                {
-                    type_v.push_back(it);
-                }
-            }
-        }
+        fillSearchList(type_v, bArray, type, array);
 
         pBest = CObjectManager::GetInstancePointer()->Radar(pThis, type_v, 0.0f, 45.0f*Math::PI/180.0f, 0.0f, 20.0f, false, FILTER_NONE, true);
 
@@ -1362,7 +1323,7 @@ bool CScriptFunctions::rBuild(CBotVar* var, CBotVar* result, int& exception, voi
 
     oType = pThis->GetType();
 
-    if ( !GetObjectDetails().IsFunctionImplementedBuild(oType) )
+    if ( !GetObjectScriptingDetails(oType).allowed.build )
     {
         err = ERR_WRONG_BOT; // Wrong object
     }
@@ -1411,7 +1372,7 @@ bool CScriptFunctions::rFlag(CBotVar* var, CBotVar* result, int& exception, void
     if ( !script->m_taskExecutor->IsForegroundTask() )
     {
         oType = pThis->GetType();
-        if ( !GetObjectDetails().IsFunctionImplementedFlags(oType) )
+        if ( !GetObjectScriptingDetails(oType).allowed.flag )
         {
             err = ERR_WRONG_BOT; // Wrong object
         }
@@ -1458,7 +1419,7 @@ bool CScriptFunctions::rDeflag(CBotVar* var, CBotVar* result, int& exception, vo
     if ( !script->m_taskExecutor->IsForegroundTask() )
     {
         oType = pThis->GetType();
-        if ( !GetObjectDetails().IsFunctionImplementedFlags(oType) )
+        if ( !GetObjectScriptingDetails(oType).allowed.flag )
         {
             err = ERR_WRONG_BOT; // Wrong object
         }
@@ -1603,13 +1564,13 @@ bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, v
 
     CObject* object = nullptr;
 
-    if (GetObjectDetails().IsProduceAlreadyCharged(params.type) && params.power == -1.0f)
+    auto produceDetails = GetObjectScriptingDetails(params.type).produce;
+    if (produceDetails.isProducedCharged && params.power == -1.0f)
     {
         params.power = 1.0f;
     }
 
-    bool exists = GetObjectDetails().IsValidObjectTypeId(params.type);
-    if (exists)
+    if (produceDetails.isProducable)
     {
         object = CObjectManager::GetInstancePointer()->CreateObject(params);
     }
@@ -1619,10 +1580,9 @@ bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, v
         return true;
     }
 
-    ObjectType container = GetObjectDetails().GetProduceContainer(params.type);
-    if (container != OBJECT_NULL)
+    if (produceDetails.container != OBJECT_NULL)
     {
-        params.type = container;
+        params.type = produceDetails.container;
         CObjectManager::GetInstancePointer()->CreateObject(params);
         if (object->Implements(ObjectInterfaceType::Programmable))
         {
@@ -1630,7 +1590,7 @@ bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, v
         }
     }
 
-    if (GetObjectDetails().IsProduceManual(params.type))
+    if (produceDetails.isProducedManual)
     {
         assert(object->Implements(ObjectInterfaceType::Old)); // TODO: temporary hack
         dynamic_cast<COldObject&>(*object).SetManual(true);
@@ -2106,11 +2066,11 @@ bool CScriptFunctions::rGrab(CBotVar* var, CBotVar* result, int& exception, void
         else             type = static_cast<TaskManipArm>(var->GetValInt());
 
         oType = pThis->GetType();
-        if ( GetObjectDetails().IsFunctionImplementedGrabAsHuman(oType) )
+        if ( GetObjectScriptingDetails(oType).allowed.grabAsHuman )
         {
             err = script->m_taskExecutor->StartTaskTake();
         }
-        if ( GetObjectDetails().IsFunctionImplementedGrabAsRobot(oType) )
+        if ( GetObjectScriptingDetails(oType).allowed.grabAsRobot )
         {
             err = script->m_taskExecutor->StartTaskManip(TMO_GRAB, type);
         }
@@ -2148,11 +2108,11 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
         else             type = static_cast<TaskManipArm>(var->GetValInt());
 
         oType = pThis->GetType();
-        if ( GetObjectDetails().IsFunctionImplementedGrabAsHuman(oType) )
+        if ( GetObjectScriptingDetails(oType).allowed.grabAsHuman )
         {
             err = script->m_taskExecutor->StartTaskTake();
         }
-        if ( GetObjectDetails().IsFunctionImplementedGrabAsRobot(oType) )
+        if ( GetObjectScriptingDetails(oType).allowed.grabAsRobot )
         {
             err = script->m_taskExecutor->StartTaskManip(TMO_DROP, type);
         }
@@ -2505,7 +2465,7 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
     Error       err;
 
     // only shielder can use shield()
-    if ( !GetObjectDetails().IsFunctionImplementedShield(pThis->GetType()) )
+    if ( !GetObjectScriptingDetails(pThis->GetType()).allowed.shield )
     {
         result->SetValInt(ERR_WRONG_BOT);  // return error
         if (script->m_errMode == ERM_STOP)
@@ -2563,11 +2523,9 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
 CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
 {
     CObject*    pThis = static_cast<CScript*>(user)->m_object;
-    ObjectType  type;
 
-    type = pThis->GetType();
-
-    if ( GetObjectDetails().IsFunctionImplementedShootAsAnt(type) )
+    auto allowedScripting = GetObjectScriptingDetails(pThis).allowed;
+    if ( allowedScripting.shootAsAnt )
     {
         if ( var == nullptr ) return CBotTypResult(CBotErrLowParam);
         CBotTypResult ret = cPoint(var, user);
@@ -2576,13 +2534,13 @@ CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
         return CBotTypResult(CBotTypFloat);
     }
 
-    if ( GetObjectDetails().IsFunctionImplementedShootAsSpider(type) )
+    if ( allowedScripting.shootAsSpider )
     {
         if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
         return CBotTypResult(CBotTypFloat);
     }
     
-    if ( GetObjectDetails().IsFunctionImplementedShootAsRobot(type) )
+    if ( allowedScripting.shootAsRobot )
     {
         if ( var != nullptr )
         {
@@ -2605,15 +2563,13 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
     float       delay;
     Math::Vector    impact;
     Error       err = ERR_WRONG_BOT;
-    ObjectType  type;
 
     exception = 0;
 
     if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
     {
-        type = pThis->GetType();
-
-        if ( GetObjectDetails().IsFunctionImplementedShootAsAnt(type) )
+        auto allowedScripting = GetObjectScriptingDetails(pThis).allowed;
+        if ( allowedScripting.shootAsAnt )
         {
             if ( !GetPoint(var, exception, impact) )  return true;
             float waterLevel = Gfx::CEngine::GetInstancePointer()->GetWater()->GetLevel();
@@ -2621,12 +2577,12 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
             err = script->m_taskExecutor->StartTaskFireAnt(impact);
         }
 
-        if ( GetObjectDetails().IsFunctionImplementedShootAsSpider(type) )
+        if ( allowedScripting.shootAsSpider )
         {
             err = script->m_taskExecutor->StartTaskSpiderExplo();
         }
 
-        if ( GetObjectDetails().IsFunctionImplementedShootAsRobot(type) )
+        if ( allowedScripting.shootAsRobot )
         {
             if ( var == nullptr )  delay = 0.0f;
             else             delay = var->GetValFloat();
@@ -2963,7 +2919,7 @@ bool CScriptFunctions::rPenDown(CBotVar* var, CBotVar* result, int& exception, v
     }
     traceDrawing->SetTraceDown(true);
 
-    if ( GetObjectDetails().IsFunctionImplementedDrawAsRobot(pThis->GetType()) )
+    if ( GetObjectCommonInterfaceDetails(pThis->GetType()).drawing.penAnimated )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -3012,7 +2968,7 @@ bool CScriptFunctions::rPenUp(CBotVar* var, CBotVar* result, int& exception, voi
     CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
     traceDrawing->SetTraceDown(false);
 
-    if ( GetObjectDetails().IsFunctionImplementedDrawAsRobot(pThis->GetType()) )
+    if ( GetObjectCommonInterfaceDetails(pThis->GetType()).drawing.penAnimated )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -3066,7 +3022,7 @@ bool CScriptFunctions::rPenColor(CBotVar* var, CBotVar* result, int& exception, 
     if ( color > static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max);
     traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
 
-    if ( GetObjectDetails().IsFunctionImplementedDrawAsRobot(pThis->GetType()) )
+    if ( GetObjectCommonInterfaceDetails(pThis->GetType()).drawing.penAnimated )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {

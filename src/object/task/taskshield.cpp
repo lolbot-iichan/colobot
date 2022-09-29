@@ -29,6 +29,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -297,8 +298,8 @@ Error CTaskShield::Start(TaskShieldMode mode, float delay)
         return ERR_OK;
     }
 
-    ObjectType type = m_object->GetType();
-    if ( type != OBJECT_MOBILErs )  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    if (!allowedScripting.shield)  return ERR_WRONG_BOT;
 
     m_bError = true;  // operation impossible
     if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;

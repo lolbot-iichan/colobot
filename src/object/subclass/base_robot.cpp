@@ -26,7 +26,6 @@
 #include "object/object_create_params.h"
 
 #include "object/motion/motionhuman.h"
-#include "object/motion/motionlevelcontroller.h"
 #include "object/motion/motiontoto.h"
 #include "object/motion/motionvehicle.h"
 
@@ -47,6 +46,7 @@ std::unique_ptr<CBaseRobot> CBaseRobot::Create(
 {
     auto obj = MakeUnique<CBaseRobot>(params.id, params.type);
 
+    obj->SetType(params.type);
     obj->SetOption(params.option);
     obj->SetTeam(params.team);
 
@@ -77,10 +77,6 @@ std::unique_ptr<CBaseRobot> CBaseRobot::Create(
          params.type == OBJECT_TECH  )
     {
         motion = MakeUnique<CMotionHuman>(obj.get());
-    }
-    else if ( params.type == OBJECT_CONTROLLER )
-    {
-        motion = MakeUnique<CMotionLevelController>(obj.get());
     }
     else
     {

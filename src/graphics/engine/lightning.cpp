@@ -115,8 +115,7 @@ bool CLightning::EventFrame(const Event &event)
                 m_pos = obj->GetPosition();
                 m_terrain->AdjustToFloor(m_pos, true);
 
-                ObjectType type = obj->GetType();
-                float lightningRodHeight = GetObjectDetails().GetLightningRodHeight(type);
+                float lightningRodHeight = GetObjectPhysicsDetails(obj).lightning.lightningRodHeight;
                 if (lightningRodHeight > 0)
                 {
                     // TODO: CLightningConductorObject
@@ -310,8 +309,7 @@ CObject* CLightning::SearchObject(Math::Vector pos)
 
         if (IsObjectBeingTransported(obj)) continue;
 
-        ObjectType type = obj->GetType();
-        if ( GetObjectDetails().GetLightningRodHeight(type) > 0 )  // building a lightning effect?
+        if ( GetObjectPhysicsDetails(obj).lightning.lightningRodHeight > 0 )  // building a lightning effect?
         {
             paraObj.push_back(obj);
             paraObjPos.push_back(obj->GetPosition());

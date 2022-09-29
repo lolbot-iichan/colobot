@@ -180,13 +180,13 @@ bool CMainShort::CreateShortcuts()
 
 int CMainShort::GetShortcutIcon(CObject* pObj)
 {
-    auto iconDetails = GetObjectIconDetails(pObj);
+    auto shortcutDetails = GetObjectIconDetails(pObj).shortcut;
 
-    if (m_bBuilding && !iconDetails.isShortcutBuilding)
+    if (m_bBuilding && !shortcutDetails.isBuilding)
         return -1;
-    if (!m_bBuilding && !iconDetails.isShortcutMovable)
+    if (!m_bBuilding && !shortcutDetails.isMovable)
         return -1;
-    return iconDetails.shortcutIcon;
+    return shortcutDetails.icon;
 }
 
 // Updates the interface shortcuts to the units.

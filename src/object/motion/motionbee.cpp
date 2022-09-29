@@ -24,6 +24,7 @@
 
 #include "graphics/engine/oldmodelmanager.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "physics/physics.h"
@@ -66,6 +67,8 @@ void CMotionBee::DeleteObject(bool bAll)
 void CMotionBee::Create(Math::Vector pos, float angle, ObjectType type,
                         float power, Gfx::COldModelManager* modelManager)
 {
+    CMotion::Create(pos, angle, type, power, modelManager);
+
     int rank;
 
     m_object->SetType(type);
@@ -277,7 +280,6 @@ void CMotionBee::Create(Math::Vector pos, float angle, ObjectType type,
 
 void CMotionBee::CreatePhysics()
 {
-    Character*  character;
     int         i;
 
     int member_march[] =
@@ -311,35 +313,6 @@ void CMotionBee::CreatePhysics()
         -35,-70,0,  -20,-85,-25,    -25,-100,0, // s2: legs 1..3
         -110,75,-15,    -130,80,-25,    -125,40,0,  // s2: feet 1..3
     };
-
-    character = m_object->GetCharacter();
-    character->wheelFront = 3.0f;
-    character->wheelBack  = 3.0f;
-    character->wheelLeft  = 5.0f;
-    character->wheelRight = 5.0f;
-    character->height     = 2.5f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,  50.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,  50.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  20.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  20.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  20.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,  10.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,  10.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  40.0f);
-    m_physics->SetLinMotionY(MO_ADVSPEED,  60.0f);
-    m_physics->SetLinMotionY(MO_RECSPEED,  60.0f);
-    m_physics->SetLinMotionY(MO_ADVACCEL,  20.0f);
-    m_physics->SetLinMotionY(MO_RECACCEL,  50.0f);
-    m_physics->SetLinMotionY(MO_STOACCEL,  50.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  40.0f);
 
     for ( i=0 ; i<3*3*3*3 ; i++ )
     {

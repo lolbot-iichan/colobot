@@ -334,7 +334,7 @@ std::string CObject::GetTooltipText()
 {
     std::string name;
 
-    if (GetObjectDetails().IsDisplayedNameAsPlayer(m_type))
+    if (GetObjectNamingDetails(m_type).display.usePlayerName)
         name = GetGlobalGamerName();
     else
         GetResource(RES_OBJECT, m_type, name);

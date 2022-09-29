@@ -1789,10 +1789,10 @@ void CPhysics::WaterFrame(float aTime, float rTime)
     if ( pos.y >= m_water->GetLevel(m_object) )  return;  // out of water?
 
     type = m_object->GetType();
-    if (type == GetObjectDetails().GetAssistantType()) // Toto?
-    {
-        if (GetObjectDetails().IsAssistantUndamagable())  return;
-    }
+
+    auto assistant = GetObjectAssistantDetails();
+    if (type == assistant.type && assistant.undamageable)  return; // Toto?
+
     if ( type == OBJECT_NULL )  return;
 
     if ( !m_object->GetDetectable() )  return;
@@ -1802,7 +1802,7 @@ void CPhysics::WaterFrame(float aTime, float rTime)
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
         dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::Drowned);
     }
-    else if ( m_water->GetLava() || GetObjectDetails().IsExplodesInWater(type) )
+    else if ( m_water->GetLava() || GetObjectCommonInterfaceDetails(type).destroyable.water.explodeInWater )
     {
         if (m_object->Implements(ObjectInterfaceType::Destroyable))
         {
@@ -2499,10 +2499,10 @@ int CPhysics::ObjectAdapt(const Math::Vector &pos, const Math::Vector &angle)
         if ( pObj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*pObj).GetDying() == DeathType::Exploding )  continue;  // is exploding?
 
         oType = pObj->GetType();
-        if (oType == GetObjectDetails().GetAssistantType()) // Toto?
-        {
-            if (GetObjectDetails().IsAssistantUndamagable())  continue;
-        }
+
+        auto assistant = GetObjectAssistantDetails();
+        if (oType == assistant.type && assistant.undamageable)  continue; // Toto?
+
         if ( !m_object->CanCollideWith(pObj) )  continue;
 
         if (pObj->Implements(ObjectInterfaceType::Jostleable))
@@ -2539,7 +2539,7 @@ int CPhysics::ObjectAdapt(const Math::Vector &pos, const Math::Vector &angle)
             Math::Vector oPos = crashSphere.sphere.pos;
             float oRad = crashSphere.sphere.radius;
 
-            float ignoredRadius = GetObjectDetails().GetCollisionOtherObjectRadiusToIgnore(iType);
+            float ignoredRadius = GetObjectPhysicsDetails(iType).collisionOtherObjectRadiusToIgnore;
             if ( ignoredRadius > 0 && oRad <= ignoredRadius )  continue;
 
             distance = Math::Distance(oPos, iPos);
@@ -2763,17 +2763,10 @@ bool CPhysics::ExploOther(ObjectType iType,
         }
     }
 
-    if((oType == OBJECT_PLANT0  ||
-        oType == OBJECT_PLANT1  ||
-        oType == OBJECT_PLANT2  ||
-        oType == OBJECT_PLANT3  ||
-        oType == OBJECT_PLANT4  ||
-        oType == OBJECT_PLANT15 ||
-        oType == OBJECT_PLANT16 ||
-        oType == OBJECT_PLANT17 ||
-        oType == OBJECT_PLANT18)&&
-        GetDriveFromObject(iType)==DriveType::Heavy)
+    auto destroyDetails = GetObjectCommonInterfaceDetails(oType).destroyable;
+    if ( destroyDetails.squash.squashedByHeavy && GetDriveFromObject(iType)==DriveType::Heavy)
     {
+        assert(pObj->Implements(ObjectInterfaceType::Destroyable));
         dynamic_cast<CDestroyableObject*>(pObj)->DestroyObject(DestructionType::Squash);
     }
 
@@ -2805,9 +2798,9 @@ int CPhysics::ExploHimself(ObjectType iType, ObjectType oType, float force)
 
     if ( force > 25.0f )
     {
-        if (GetObjectDetails().IsCollisionDamagable(iType))  // vehicle?
+        if (GetObjectPhysicsDetails(iType).isCollisionDamagable)  // vehicle?
         {
-            force /= GetObjectDetails().GetCollisionSoftness(oType);
+            force /= GetObjectPhysicsDetails(oType).collisionSoftness;
 
             // TODO: implement "killer"?
             if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Collision, force) )  return 2;
@@ -2961,10 +2954,11 @@ void CPhysics::MotorParticle(float aTime, float rTime)
     if ( m_object->GetToy() )  return;
 
     type = m_object->GetType();
+    auto exhaustDetails = GetObjectPhysicsDetails(m_object).exhaust;
 
-    if ( GetObjectDetails().IsExhaustBubblesOnEnteringWater(type) )
+    if ( exhaustDetails.bubblesOnEnteringWater )
     {
-        delay = GetObjectDetails().IsExhaustBubblesOnEnteringWaterTime(type);
+        delay = exhaustDetails.bubblesOnEnteringWaterTime;
         if ( m_bSwim && m_timeUnderWater < delay )  // bubbles when entering water?
         {
             if ( aTime-m_lastUnderParticle >= m_engine->ParticleAdapt(0.05f) )
@@ -2989,7 +2983,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
     
-    if ( GetObjectDetails().IsExhaustDropsOnLeavingWater(type) )
+    if ( exhaustDetails.dropsOnLeavingWater )
     {
         level = m_water->GetLevel();
         pos = m_object->GetPosition();
@@ -3032,7 +3026,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnCrashAsHuman(type) ) // human?
+    if ( exhaustDetails.onCrashAsHuman ) // human?
     {
         if ( m_bLand &&
              aTime-m_lastSlideParticle >= m_engine->ParticleAdapt(0.05f) )
@@ -3059,7 +3053,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnCrashAsTrackedRobot(type) )  // caterpillars?
+    if ( exhaustDetails.onCrashAsTrackedRobot )  // caterpillars?
     {
         if ( aTime-m_lastSlideParticle >= m_engine->ParticleAdapt(0.05f) )
         {
@@ -3083,7 +3077,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnCrashAsHeavyRobot(type) )  // large caterpillars?
+    if ( exhaustDetails.onCrashAsHeavyRobot )  // large caterpillars?
     {
         if ( aTime-m_lastSlideParticle >= m_engine->ParticleAdapt(0.05f) )
         {
@@ -3107,7 +3101,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnLandAsHuman(type) && !m_bSwim && m_bLand ) // on the ground?
+    if ( exhaustDetails.onLandAsHuman && !m_bSwim && m_bLand ) // on the ground?
     {
         if ( m_reactorTemperature > 0.0f )
         {
@@ -3136,7 +3130,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISMOKE2, 3.0f, 0.0f, 0.1f);
     }
 
-    if ( GetObjectDetails().IsExhaustOnFlightAsHuman(type) && !m_bSwim && !m_bLand ) // in flight?
+    if ( exhaustDetails.onFlightAsHuman && !m_bSwim && !m_bLand ) // in flight?
     {
         if ( !m_bMotor || (m_object->Implements(ObjectInterfaceType::JetFlying) && dynamic_cast<CJetFlyingObject&>(*m_object).GetReactorRange() == 0.0f) )  return;
 
@@ -3205,7 +3199,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT, 0.3f, 10.0f);
     }
 
-    if ( GetObjectDetails().IsExhaustOnFlightAsWingedRobot(type) && !m_bSwim && m_bLand ) // on the ground?
+    if ( exhaustDetails.onFlightAsWingedRobot && !m_bSwim && m_bLand ) // on the ground?
     {
         if ( m_motorSpeed.x == 0.0f &&  // glide slope due to ground?
              m_cirMotion.realSpeed.y == 0.0f )
@@ -3256,7 +3250,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnFlightAsWingedRobot(type) && !m_bSwim && !m_bLand ) // in flight?
+    if ( exhaustDetails.onFlightAsWingedRobot && !m_bSwim && !m_bLand ) // in flight?
     {
         if ( !m_bMotor || (m_object->Implements(ObjectInterfaceType::JetFlying) && dynamic_cast<CJetFlyingObject&>(*m_object).GetReactorRange() == 0.0f) )  return;
 
@@ -3316,7 +3310,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT, 0.5f, 10.0f);
     }
 
-    if ( GetObjectDetails().IsExhaustOnSwimAsHuman(type) && m_bSwim )
+    if ( exhaustDetails.onSwimAsHuman && m_bSwim )
     {
         m_reactorTemperature = 0.0f;  // reactor cold
 
@@ -3347,7 +3341,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnSwimAsAmphibiousRobot(type) && m_bSwim )
+    if ( exhaustDetails.onSwimAsAmphibiousRobot && m_bSwim )
     {
         h = Math::Mod(aTime, 3.0f);
         if ( h < 1.5f && ( h < 0.5f || h > 0.9f ) )  return;
@@ -3373,7 +3367,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( GetObjectDetails().IsExhaustOnLandAsHeavyRobot(type) && !m_bSwim && m_bLand ) // Create engine smoke
+    if ( exhaustDetails.onLandAsHeavyRobot && !m_bSwim && m_bLand ) // Create engine smoke
     {
         if ( !m_bMotor )  return;
 
@@ -3396,7 +3390,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIMOTOR, 2.0f);
     }
 
-    if ( GetObjectDetails().IsExhaustOnLandAsNormalRobot(type) && !m_bSwim && m_bLand )
+    if ( exhaustDetails.onLandAsNormalRobot && !m_bSwim && m_bLand )
     {
         if ( !m_bMotor )  return;
 
@@ -3445,10 +3439,11 @@ void CPhysics::WaterParticle(float aTime, Math::Vector pos, ObjectType type,
     level = m_water->GetLevel();
     if ( floor >= level )  return;
 
-    min = GetObjectDetails().GetWaterSplashLevelMin(type);
-    max = GetObjectDetails().GetWaterSplashLevelMax(type);
-    diam = GetObjectDetails().GetWaterSplashDiameter(type);
-    factor = GetObjectDetails().GetWaterSplashForce(type);
+    auto waterDetails = GetObjectPhysicsDetails(type).water;
+    min = waterDetails.splashLevelMin;
+    max = waterDetails.splashLevelMax;
+    diam = waterDetails.splashDiameter;
+    factor = waterDetails.splashForce;
 
     if ( pos.y+max < level || pos.y-min > level )  return;
 

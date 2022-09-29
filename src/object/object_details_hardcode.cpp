@@ -19,6 +19,8 @@
 
 #include <unordered_set>
 
+#include "graphics/engine/lightning.h"
+
 #include "object/object_details_hardcode.h"
 
 /* Macro to mark which texts are translatable by gettext
@@ -34,116 +36,6 @@
 
 CObjectDetailsHardcodeCollection::CObjectDetailsHardcodeCollection()
 {
-    m_objects[OBJECT_PORTICO].displayedName      = TR("Gantry crane");
-    m_objects[OBJECT_BASE].displayedName         = TR("Spaceship");
-    m_objects[OBJECT_DERRICK].displayedName      = TR("Derrick");
-    m_objects[OBJECT_FACTORY].displayedName      = TR("Bot factory");
-    m_objects[OBJECT_REPAIR].displayedName       = TR("Repair center");
-    m_objects[OBJECT_DESTROYER].displayedName    = TR("Destroyer");
-    m_objects[OBJECT_STATION].displayedName      = TR("Power station");
-    m_objects[OBJECT_CONVERT].displayedName      = TR("Converts ore to titanium");
-    m_objects[OBJECT_TOWER].displayedName        = TR("Defense tower");
-    m_objects[OBJECT_NEST].displayedName         = TR("Nest");
-    m_objects[OBJECT_RESEARCH].displayedName     = TR("Research center");
-    m_objects[OBJECT_RADAR].displayedName        = TR("Radar station");
-    m_objects[OBJECT_INFO].displayedName         = TR("Information exchange post");
-    m_objects[OBJECT_ENERGY].displayedName       = TR("Power cell factory");
-    m_objects[OBJECT_LABO].displayedName         = TR("Autolab");
-    m_objects[OBJECT_NUCLEAR].displayedName      = TR("Nuclear power station");
-    m_objects[OBJECT_PARA].displayedName         = TR("Lightning conductor");
-    m_objects[OBJECT_SAFE].displayedName         = TR("Vault");
-    m_objects[OBJECT_HUSTON].displayedName       = TR("Houston Mission Control");
-    m_objects[OBJECT_TARGET1].displayedName      = TR("Target");
-    m_objects[OBJECT_TARGET2].displayedName      = TR("Target");
-    m_objects[OBJECT_START].displayedName        = TR("Start");
-    m_objects[OBJECT_END].displayedName          = TR("Finish");
-    m_objects[OBJECT_STONE].displayedName        = TR("Titanium ore");
-    m_objects[OBJECT_URANIUM].displayedName      = TR("Uranium ore");
-    m_objects[OBJECT_BULLET].displayedName       = TR("Organic matter");
-    m_objects[OBJECT_METAL].displayedName        = TR("Titanium");
-    m_objects[OBJECT_POWER].displayedName        = TR("Power cell");
-    m_objects[OBJECT_ATOMIC].displayedName       = TR("Nuclear power cell");
-    m_objects[OBJECT_BBOX].displayedName         = TR("Black box");
-    m_objects[OBJECT_KEYa].displayedName         = TR("Key A");
-    m_objects[OBJECT_KEYb].displayedName         = TR("Key B");
-    m_objects[OBJECT_KEYc].displayedName         = TR("Key C");
-    m_objects[OBJECT_KEYd].displayedName         = TR("Key D");
-    m_objects[OBJECT_TNT].displayedName          = TR("Explosive");
-    m_objects[OBJECT_BOMB].displayedName         = TR("Fixed mine");
-    m_objects[OBJECT_BAG].displayedName          = TR("Survival kit");
-    m_objects[OBJECT_WAYPOINT].displayedName     = TR("Checkpoint");
-    m_objects[OBJECT_FLAGb].displayedName        = TR("Blue flag");
-    m_objects[OBJECT_FLAGr].displayedName        = TR("Red flag");
-    m_objects[OBJECT_FLAGg].displayedName        = TR("Green flag");
-    m_objects[OBJECT_FLAGy].displayedName        = TR("Yellow flag");
-    m_objects[OBJECT_FLAGv].displayedName        = TR("Violet flag");
-    m_objects[OBJECT_MARKPOWER].displayedName    = TR("Energy deposit (site for power station)");
-    m_objects[OBJECT_MARKURANIUM].displayedName  = TR("Uranium deposit (site for derrick)");
-    m_objects[OBJECT_MARKKEYa].displayedName     = TR("Found key A (site for derrick)");
-    m_objects[OBJECT_MARKKEYb].displayedName     = TR("Found key B (site for derrick)");
-    m_objects[OBJECT_MARKKEYc].displayedName     = TR("Found key C (site for derrick)");
-    m_objects[OBJECT_MARKKEYd].displayedName     = TR("Found key D (site for derrick)");
-    m_objects[OBJECT_MARKSTONE].displayedName    = TR("Titanium deposit (site for derrick)");
-    m_objects[OBJECT_MOBILEft].displayedName     = TR("Practice bot");
-    m_objects[OBJECT_MOBILEtt].displayedName     = TR("Practice bot");
-    m_objects[OBJECT_MOBILEwt].displayedName     = TR("Practice bot");
-    m_objects[OBJECT_MOBILEit].displayedName     = TR("Practice bot");
-    m_objects[OBJECT_MOBILErp].displayedName     = TR("Practice bot");
-    m_objects[OBJECT_MOBILEst].displayedName     = TR("Practice bot");
-    m_objects[OBJECT_MOBILEfa].displayedName     = TR("Winged grabber");
-    m_objects[OBJECT_MOBILEta].displayedName     = TR("Tracked grabber");
-    m_objects[OBJECT_MOBILEwa].displayedName     = TR("Wheeled grabber");
-    m_objects[OBJECT_MOBILEia].displayedName     = TR("Legged grabber");
-    m_objects[OBJECT_MOBILEfb].displayedName     = TR("Winged builder");
-    m_objects[OBJECT_MOBILEtb].displayedName     = TR("Tracked builder");
-    m_objects[OBJECT_MOBILEwb].displayedName     = TR("Wheeled builder");
-    m_objects[OBJECT_MOBILEib].displayedName     = TR("Legged builder");
-    m_objects[OBJECT_MOBILEfc].displayedName     = TR("Winged shooter");
-    m_objects[OBJECT_MOBILEtc].displayedName     = TR("Tracked shooter");
-    m_objects[OBJECT_MOBILEwc].displayedName     = TR("Wheeled shooter");
-    m_objects[OBJECT_MOBILEic].displayedName     = TR("Legged shooter");
-    m_objects[OBJECT_MOBILEfi].displayedName     = TR("Winged orga shooter");
-    m_objects[OBJECT_MOBILEti].displayedName     = TR("Tracked orga shooter");
-    m_objects[OBJECT_MOBILEwi].displayedName     = TR("Wheeled orga shooter");
-    m_objects[OBJECT_MOBILEii].displayedName     = TR("Legged orga shooter");
-    m_objects[OBJECT_MOBILEfs].displayedName     = TR("Winged sniffer");
-    m_objects[OBJECT_MOBILEts].displayedName     = TR("Tracked sniffer");
-    m_objects[OBJECT_MOBILEws].displayedName     = TR("Wheeled sniffer");
-    m_objects[OBJECT_MOBILEis].displayedName     = TR("Legged sniffer");
-    m_objects[OBJECT_MOBILErt].displayedName     = TR("Thumper");
-    m_objects[OBJECT_MOBILErc].displayedName     = TR("Phazer shooter");
-    m_objects[OBJECT_MOBILErr].displayedName     = TR("Recycler");
-    m_objects[OBJECT_MOBILErs].displayedName     = TR("Shielder");
-    m_objects[OBJECT_MOBILEsa].displayedName     = TR("Subber");
-    m_objects[OBJECT_MOBILEtg].displayedName     = TR("Target bot");
-    m_objects[OBJECT_MOBILEdr].displayedName     = TR("Drawer bot");
-    m_objects[OBJECT_TECH].displayedName         = TR("Engineer");
-    m_objects[OBJECT_TOTO].displayedName         = TR("Robbie");
-    m_objects[OBJECT_MOTHER].displayedName       = TR("Alien Queen");
-    m_objects[OBJECT_ANT].displayedName          = TR("Ant");
-    m_objects[OBJECT_SPIDER].displayedName       = TR("Spider");
-    m_objects[OBJECT_BEE].displayedName          = TR("Wasp");
-    m_objects[OBJECT_WORM].displayedName         = TR("Worm");
-    m_objects[OBJECT_EGG].displayedName          = TR("Egg");
-    m_objects[OBJECT_RUINmobilew1].displayedName = TR("Wreckage");
-    m_objects[OBJECT_RUINmobilew2].displayedName = TR("Wreckage");
-    m_objects[OBJECT_RUINmobilet1].displayedName = TR("Wreckage");
-    m_objects[OBJECT_RUINmobilet2].displayedName = TR("Wreckage");
-    m_objects[OBJECT_RUINmobiler1].displayedName = TR("Wreckage");
-    m_objects[OBJECT_RUINmobiler2].displayedName = TR("Wreckage");
-    m_objects[OBJECT_RUINfactory].displayedName  = TR("Ruin");
-    m_objects[OBJECT_RUINdoor].displayedName     = TR("Ruin");
-    m_objects[OBJECT_RUINsupport].displayedName  = TR("Waste");
-    m_objects[OBJECT_RUINradar].displayedName    = TR("Ruin");
-    m_objects[OBJECT_RUINconvert].displayedName  = TR("Ruin");
-    m_objects[OBJECT_RUINbase].displayedName     = TR("Spaceship ruin");
-    m_objects[OBJECT_RUINhead].displayedName     = TR("Spaceship ruin");
-    m_objects[OBJECT_APOLLO1].displayedName      = TR("Remains of Apollo mission");
-    m_objects[OBJECT_APOLLO3].displayedName      = TR("Remains of Apollo mission");
-    m_objects[OBJECT_APOLLO4].displayedName      = TR("Remains of Apollo mission");
-    m_objects[OBJECT_APOLLO5].displayedName      = TR("Remains of Apollo mission");
-    m_objects[OBJECT_APOLLO2].displayedName      = TR("Lunar Roving Vehicle");
-
     m_builderMenuObjects[0]  = { OBJECT_RESEARCH, 128+35, TR("Build a research center") };
     m_builderMenuObjects[1]  = { OBJECT_FACTORY,  128+32, TR("Build a bot factory") };
     m_builderMenuObjects[2]  = { OBJECT_CONVERT,  128+34, TR("Build a converter") };
@@ -172,30 +64,6 @@ CObjectDetailsHardcodeCollection::CObjectDetailsHardcodeCollection()
     m_debugMenuObjects[10] = {OBJECT_URANIUM,  -1,     "UraniumOre"};
     m_debugMenuObjects[11] = {OBJECT_POWER,    -1,     "PowerCell"};
     m_debugMenuObjects[12] = {OBJECT_ATOMIC,   -1,     "NuclearCell"};
-
-    m_aliasToSearchList[OBJECT_MOBILEpr].push_back(OBJECT_MOBILEwt);
-    m_aliasToSearchList[OBJECT_MOBILEpr].push_back(OBJECT_MOBILEtt);
-    m_aliasToSearchList[OBJECT_MOBILEpr].push_back(OBJECT_MOBILEft);
-    m_aliasToSearchList[OBJECT_MOBILEpr].push_back(OBJECT_MOBILEit);
-    m_aliasToSearchList[OBJECT_MOBILEpr].push_back(OBJECT_MOBILErp);
-    m_aliasToSearchList[OBJECT_MOBILEpr].push_back(OBJECT_MOBILEst);
-
-    for ( int i = 0 ; i < OBJECT_MAX ; i++ )
-    {
-        ObjectType type = static_cast<ObjectType>(i);
-
-        std::string name = GetNameInLevelFiles(type);
-        if (name.size())
-        {
-            m_nameInLevelFilesToObjectType[name] = type;
-        }
-
-        std::string alias = GetAliasInLevelFiles(type);
-        if (alias.size())
-        {
-            m_nameInLevelFilesToObjectType[alias] = type;
-        }
-    }
 }
 
 CObjectButton CObjectDetailsHardcodeCollection::GetBuilderMenuItem(int index)
@@ -210,28 +78,88 @@ CObjectButton CObjectDetailsHardcodeCollection::GetDebugMenuItem(int index)
     return m_debugMenuObjects[index];
 }
 
-ObjectType CObjectDetailsHardcodeCollection::ParseNameOrAliasInLevelFiles(std::string value)
+ObjectType CObjectDetailsHardcodeCollection::GetFunctionDestroyPerformerObject()
 {
-    auto it = m_nameInLevelFilesToObjectType.find(value);
-    if (it != m_nameInLevelFilesToObjectType.end())
-        return it->second;
-    return OBJECT_NULL;
+    return OBJECT_DESTROYER;
 }
 
-std::vector<ObjectType> CObjectDetailsHardcodeCollection::GetObjectsFindableByType(ObjectType type)
+ObjectType CObjectDetailsHardcodeCollection::GetFunctionFactoryPerformerObject()
 {
-    auto it = m_aliasToSearchList.find(type);
-    if (it != m_aliasToSearchList.end())
-        return it->second;
-
-    std::vector<ObjectType> result;
-    result.push_back(type);
-    return result;
+    return OBJECT_FACTORY;
 }
 
-bool CObjectDetailsHardcodeCollection::IsBlockingBuilding(ObjectType type)
+ObjectType CObjectDetailsHardcodeCollection::GetFunctionResearchPerformerObject(ResearchType type)
 {
-    if ( type == OBJECT_DERRICK  ||
+    if ( type == RESEARCH_iPAW       ||
+         type == RESEARCH_iGUN       ||
+         type == RESEARCH_TARGET      ) return OBJECT_LABO;
+    return OBJECT_RESEARCH;
+}
+
+ObjectType CObjectDetailsHardcodeCollection::GetFunctionTakeOffPerformerObject()
+{
+    return OBJECT_BASE;
+}
+
+ObjectType CObjectDetailsHardcodeCollection::GetFunctionReceivePerformerObject()
+{
+    return OBJECT_INFO;
+}
+
+float CObjectDetailsHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER ) return 1.2f;
+    if ( type == OBJECT_ANT    ) return 1.2f;
+    if ( type == OBJECT_SPIDER ) return 1.2f;
+    if ( type == OBJECT_BEE    ) return 1.2f;
+    if ( type == OBJECT_WORM   ) return 1.2f;
+
+    return 0.0f;
+}
+
+bool CObjectDetailsHardcodeCollection::IsCollisionDamagable(ObjectType type)
+{
+    if ( type == OBJECT_HUMAN    ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_MOBILEdr ||
+         type == OBJECT_APOLLO2  ) return true;
+
+    return false;
+}
+
+float CObjectDetailsHardcodeCollection::GetCollisionSoftness(ObjectType type)
+{
+   if ( type == OBJECT_DERRICK  ||
          type == OBJECT_FACTORY  ||
          type == OBJECT_STATION  ||
          type == OBJECT_CONVERT  ||
@@ -240,263 +168,467 @@ bool CObjectDetailsHardcodeCollection::IsBlockingBuilding(ObjectType type)
          type == OBJECT_TOWER    ||
          type == OBJECT_RESEARCH ||
          type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
          type == OBJECT_ENERGY   ||
          type == OBJECT_LABO     ||
          type == OBJECT_NUCLEAR  ||
-         type == OBJECT_START    ||
-         type == OBJECT_END      ||
-         type == OBJECT_INFO     ||
          type == OBJECT_PARA     ||
          type == OBJECT_SAFE     ||
-         type == OBJECT_HUSTON   ) return true;
+         type == OBJECT_HUSTON   )  // building?
+    {
+        return 200.0f;
+    }
+    else if ( type == OBJECT_MOTHER ||
+              type == OBJECT_ANT    ||
+              type == OBJECT_SPIDER ||
+              type == OBJECT_BEE    ||
+              type == OBJECT_WORM   )  // insect?
+    {
+        return 400.0f;
+    }
+    else
+    if ( type == OBJECT_STONE ||
+         type == OBJECT_METAL )
+    {
+        return 500.0f;
+    }
+    else
+    if ( type == OBJECT_URANIUM ||
+         type == OBJECT_POWER   ||
+         type == OBJECT_ATOMIC  )
+    {
+        return 100.0f;
+    }
+    else
+    {
+        return 200.0f;
+    }
+}
+
+float CObjectDetailsHardcodeCollection::GetMaxSafeWaterLevel(ObjectType type)
+{
+    if ( type == OBJECT_HUMAN ||
+         type == OBJECT_TECH  )
+    {
+        return 3.0f;
+    }
+
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEtg ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_MOBILEdr )
+    {
+        return 2.0f;
+    }
+
+    return 0.0f; 
+}
+
+bool CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWater(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit ||  // legs?
+         type == OBJECT_MOBILEdr ||
+         type == OBJECT_MOTHER   ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_WORM     ||
+         type == OBJECT_APOLLO2  )  return false;
+
+    return true;
+}
+
+float CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWaterTime(ObjectType type)
+{
+    if ( type == OBJECT_HUMAN )  return 3.0f;
+    return 8.0f;
+}
+
+bool CObjectDetailsHardcodeCollection::IsExhaustDropsOnLeavingWater(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit ||  // legs?
+         type == OBJECT_MOBILEdr ||
+         type == OBJECT_MOTHER   ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_WORM     ||
+         type == OBJECT_APOLLO2  )  return false;
+
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHuman(ObjectType type)
+{
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToFireballs(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsTrackedRobot(ObjectType type)
 {
-    if (type == OBJECT_MOTHER)  return true;
+    if ((type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToInsects(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHeavyRobot(ObjectType type)
 {
-    return ( type == OBJECT_ANT      ||
-             type == OBJECT_SPIDER   ||
-             type == OBJECT_BEE      ||
-             type == OBJECT_WORM     ||
-             type == OBJECT_MOTHER   ||
-             type == OBJECT_NEST     ||
-             type == OBJECT_BULLET   ||
-             type == OBJECT_EGG      ||
-             type == OBJECT_TEEN28   ||
-             type == OBJECT_TEEN31   );
-}
-
-bool CObjectDetailsHardcodeCollection::IsImmuneToSpiders(ObjectType type)
-{
-    return ( type == OBJECT_ANT      ||
-             type == OBJECT_SPIDER   ||
-             type == OBJECT_BEE      ||
-             type == OBJECT_WORM     ||
-             type == OBJECT_MOTHER   ||
-             type == OBJECT_NEST     ||
-             type == OBJECT_BULLET   ||
-             type == OBJECT_EGG      ||
-             type == OBJECT_TEEN28   ||
-             type == OBJECT_TEEN31   );
-}
-
-bool CObjectDetailsHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
-{
-    if (type == OBJECT_MOTHER)  return true;
+    if ((type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToPhazers(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHuman(ObjectType type)
 {
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsWingedRobot(ObjectType type)
 {
-    if (type == OBJECT_MOBILEtg ||
-     type == OBJECT_TEEN28   ||
-     type == OBJECT_TEEN31   ||
-     type == OBJECT_ANT      ||
-     type == OBJECT_SPIDER   ||
-     type == OBJECT_BEE      ||
-     type == OBJECT_WORM     ||
-     type == OBJECT_MOTHER   ||
-     type == OBJECT_NEST) return false;
-
-     return true;
+    if ((type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft  ) )   return true;
+    return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoTargetedByTower(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsHuman(ObjectType type)
 {
-    if (type == OBJECT_ANT      ||
-        type == OBJECT_SPIDER   ||
-        type == OBJECT_BEE      ||
-        type == OBJECT_WORM     ||
-        type == OBJECT_MOTHER) return true;
-
-     return false;
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return true;
+    return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoChargedAtPowerStation(ObjectType type)
+bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHeavyRobot(ObjectType type)
 {
-    if ( type != OBJECT_HUMAN    &&
-         type != OBJECT_MOBILEfa &&
-         type != OBJECT_MOBILEta &&
-         type != OBJECT_MOBILEwa &&
-         type != OBJECT_MOBILEia &&
-         type != OBJECT_MOBILEfb &&
-         type != OBJECT_MOBILEtb &&
-         type != OBJECT_MOBILEwb &&
-         type != OBJECT_MOBILEib &&
-         type != OBJECT_MOBILEfc &&
-         type != OBJECT_MOBILEtc &&
-         type != OBJECT_MOBILEwc &&
-         type != OBJECT_MOBILEic &&
-         type != OBJECT_MOBILEfi &&
-         type != OBJECT_MOBILEti &&
-         type != OBJECT_MOBILEwi &&
-         type != OBJECT_MOBILEii &&
-         type != OBJECT_MOBILEfs &&
-         type != OBJECT_MOBILEts &&
-         type != OBJECT_MOBILEws &&
-         type != OBJECT_MOBILEis &&
-         type != OBJECT_MOBILErt &&
-         type != OBJECT_MOBILErc &&
-         type != OBJECT_MOBILErr &&
-         type != OBJECT_MOBILErs &&
-         type != OBJECT_MOBILEsa &&
-         type != OBJECT_MOBILEft &&
-         type != OBJECT_MOBILEtt &&
-         type != OBJECT_MOBILEwt &&
-         type != OBJECT_MOBILEit &&
-         type != OBJECT_MOBILErp &&
-         type != OBJECT_MOBILEst &&
-         type != OBJECT_MOBILEtg &&
-         type != OBJECT_MOBILEdr) return false;
-
-     return true;
+    if ((type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp  ) )   return true;
+    return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoBlockingPowerPlant(ObjectType type)
+bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsNormalRobot(ObjectType type)
 {
-    if ( type != OBJECT_HUMAN    &&
-         type != OBJECT_MOBILEfa &&
-         type != OBJECT_MOBILEta &&
-         type != OBJECT_MOBILEwa &&
-         type != OBJECT_MOBILEia &&
-         type != OBJECT_MOBILEfb &&
-         type != OBJECT_MOBILEtb &&
-         type != OBJECT_MOBILEwb &&
-         type != OBJECT_MOBILEib &&
-         type != OBJECT_MOBILEfc &&
-         type != OBJECT_MOBILEtc &&
-         type != OBJECT_MOBILEwc &&
-         type != OBJECT_MOBILEic &&
-         type != OBJECT_MOBILEfi &&
-         type != OBJECT_MOBILEti &&
-         type != OBJECT_MOBILEwi &&
-         type != OBJECT_MOBILEii &&
-         type != OBJECT_MOBILEfs &&
-         type != OBJECT_MOBILEts &&
-         type != OBJECT_MOBILEws &&
-         type != OBJECT_MOBILEis &&
-         type != OBJECT_MOBILErt &&
-         type != OBJECT_MOBILErc &&
-         type != OBJECT_MOBILErr &&
-         type != OBJECT_MOBILErs &&
-         type != OBJECT_MOBILEsa &&
-         type != OBJECT_MOBILEtg &&
-         type != OBJECT_MOBILEft &&
-         type != OBJECT_MOBILEtt &&
-         type != OBJECT_MOBILEwt &&
-         type != OBJECT_MOBILEit &&
-         type != OBJECT_MOBILErp &&
-         type != OBJECT_MOBILEst &&
-         type != OBJECT_MOBILEdr &&
-         type != OBJECT_MOTHER   &&
-         type != OBJECT_ANT      &&
-         type != OBJECT_SPIDER   &&
-         type != OBJECT_BEE      &&
-         type != OBJECT_WORM) return false;
-
-     return true;
+    if ((type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEtg ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst  ) )   return true;
+    return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoBlockingNuclearPlant(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsWingedRobot(ObjectType type)
 {
-    if ( type != OBJECT_HUMAN    &&
-         type != OBJECT_MOBILEfa &&
-         type != OBJECT_MOBILEta &&
-         type != OBJECT_MOBILEwa &&
-         type != OBJECT_MOBILEia &&
-         type != OBJECT_MOBILEfb &&
-         type != OBJECT_MOBILEtb &&
-         type != OBJECT_MOBILEwb &&
-         type != OBJECT_MOBILEib &&
-         type != OBJECT_MOBILEfc &&
-         type != OBJECT_MOBILEtc &&
-         type != OBJECT_MOBILEwc &&
-         type != OBJECT_MOBILEic &&
-         type != OBJECT_MOBILEfi &&
-         type != OBJECT_MOBILEti &&
-         type != OBJECT_MOBILEwi &&
-         type != OBJECT_MOBILEii &&
-         type != OBJECT_MOBILEfs &&
-         type != OBJECT_MOBILEts &&
-         type != OBJECT_MOBILEws &&
-         type != OBJECT_MOBILEis &&
-         type != OBJECT_MOBILErt &&
-         type != OBJECT_MOBILErc &&
-         type != OBJECT_MOBILErr &&
-         type != OBJECT_MOBILErs &&
-         type != OBJECT_MOBILEsa &&
-         type != OBJECT_MOBILEtg &&
-         type != OBJECT_MOBILEft &&
-         type != OBJECT_MOBILEtt &&
-         type != OBJECT_MOBILEwt &&
-         type != OBJECT_MOBILEit &&
-         type != OBJECT_MOBILErp &&
-         type != OBJECT_MOBILEst &&
-         type != OBJECT_MOBILEdr &&
-         type != OBJECT_MOTHER   &&
-         type != OBJECT_ANT      &&
-         type != OBJECT_SPIDER   &&
-         type != OBJECT_BEE      &&
-         type != OBJECT_WORM) return false;
-
-     return true;
+    if ((type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft  ) )   return true;
+    return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoBlockingFactory(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsExhaustOnSwimAsHuman(ObjectType type)
 {
-    if ( type != OBJECT_HUMAN    &&
-         type != OBJECT_MOBILEfa &&
-         type != OBJECT_MOBILEta &&
-         type != OBJECT_MOBILEwa &&
-         type != OBJECT_MOBILEia &&
-         type != OBJECT_MOBILEfb &&
-         type != OBJECT_MOBILEtb &&
-         type != OBJECT_MOBILEwb &&
-         type != OBJECT_MOBILEib &&
-         type != OBJECT_MOBILEfc &&
-         type != OBJECT_MOBILEtc &&
-         type != OBJECT_MOBILEwc &&
-         type != OBJECT_MOBILEic &&
-         type != OBJECT_MOBILEfi &&
-         type != OBJECT_MOBILEti &&
-         type != OBJECT_MOBILEwi &&
-         type != OBJECT_MOBILEii &&
-         type != OBJECT_MOBILEfs &&
-         type != OBJECT_MOBILEts &&
-         type != OBJECT_MOBILEws &&
-         type != OBJECT_MOBILEis &&
-         type != OBJECT_MOBILErt &&
-         type != OBJECT_MOBILErc &&
-         type != OBJECT_MOBILErr &&
-         type != OBJECT_MOBILErs &&
-         type != OBJECT_MOBILEsa &&
-         type != OBJECT_MOBILEtg &&
-         type != OBJECT_MOBILEft &&
-         type != OBJECT_MOBILEtt &&
-         type != OBJECT_MOBILEwt &&
-         type != OBJECT_MOBILEit &&
-         type != OBJECT_MOBILErp &&
-         type != OBJECT_MOBILEst &&
-         type != OBJECT_MOBILEdr &&
-         type != OBJECT_MOTHER   &&
-         type != OBJECT_ANT      &&
-         type != OBJECT_SPIDER   &&
-         type != OBJECT_BEE      &&
-         type != OBJECT_WORM ) return false;
-
-     return true;
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return true;
+    return false;
 }
+
+bool CObjectDetailsHardcodeCollection::IsExhaustOnSwimAsAmphibiousRobot(ObjectType type)
+{
+    if ( (type == OBJECT_MOBILEst ||
+          type == OBJECT_MOBILEsa  ) )   return true;
+    return false;
+}
+
+float CObjectDetailsHardcodeCollection::GetThumperSafeRadius(ObjectType type)
+{
+    if ( type == OBJECT_BULLET ||
+         type == OBJECT_NEST   ||
+         type == OBJECT_EGG    ) // Alien Organic?
+    {
+        return 5.0f;
+    }
+    else if ( type == OBJECT_TNT  ||
+              type == OBJECT_BOMB ) // Explosives?
+    {
+        return 5.0f;
+    }
+    else if ( type == OBJECT_PLANT0    ||
+              type == OBJECT_PLANT1    ||
+              type == OBJECT_PLANT2    ||
+              type == OBJECT_PLANT3    ||
+              type == OBJECT_PLANT4    ||
+              type == OBJECT_PLANT5    ||
+              type == OBJECT_PLANT6    ||
+              type == OBJECT_PLANT7    ||
+              type == OBJECT_PLANT15   ||
+              type == OBJECT_PLANT16   ||
+              type == OBJECT_PLANT17   ||
+              type == OBJECT_PLANT18   ||
+              type == OBJECT_PLANT19   ) // Plants?
+    {
+        return 7.5f;
+
+    }
+    else  if ( type == OBJECT_TEEN0        ||
+     type == OBJECT_TEEN1        ||
+     type == OBJECT_TEEN2        ||
+     type == OBJECT_TEEN4        ||
+     type == OBJECT_TEEN5        ||
+     type == OBJECT_TEEN34       ||
+     type == OBJECT_POWER        ||
+     type == OBJECT_ATOMIC       ||
+     type == OBJECT_STONE        ||
+     type == OBJECT_URANIUM      ||
+     type == OBJECT_METAL        ||
+     type == OBJECT_BBOX         ||
+     type == OBJECT_KEYa         ||
+     type == OBJECT_KEYb         ||
+     type == OBJECT_KEYc         ||
+     type == OBJECT_KEYd         ||
+     type == OBJECT_WINFIRE      ||
+     type == OBJECT_BAG          ||
+     type == OBJECT_RUINmobilew1 ||
+     type == OBJECT_RUINmobilew2 ||
+     type == OBJECT_RUINmobilet1 ||
+     type == OBJECT_RUINmobilet2 ||
+     type == OBJECT_RUINdoor     ||
+     type == OBJECT_RUINsupport  ||
+     type == OBJECT_RUINradar    ||
+     type == OBJECT_BARRIER0     ||
+     type == OBJECT_BARRIER1     ||
+     type == OBJECT_BARRIER2     ||
+     type == OBJECT_BARRIER3     ||
+     type == OBJECT_APOLLO4      )  // everything what fits?
+    {
+        return 5.0f;
+    }
+
+    else  if ( type == OBJECT_BEE || type == OBJECT_WORM )
+    {
+        return 5.0f;
+    }
+
+    else  if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
+    {
+        return 5.0f;
+    }
+
+
+    return -1;
+}
+
+Gfx::PyroType CObjectDetailsHardcodeCollection::GetThumperPyroType(ObjectType type)
+{
+        if ( type == OBJECT_BULLET ||
+             type == OBJECT_NEST   ||
+             type == OBJECT_EGG    ) // Alien Organic?
+        {
+            return Gfx::PT_FRAGO;
+        }
+        else if ( type == OBJECT_TNT  ||
+                  type == OBJECT_BOMB ) // Explosives?
+        {
+            return Gfx::PT_EXPLOT;
+        }
+        else if ( type == OBJECT_PLANT0    ||
+                  type == OBJECT_PLANT1    ||
+                  type == OBJECT_PLANT2    ||
+                  type == OBJECT_PLANT3    ||
+                  type == OBJECT_PLANT4    ||
+                  type == OBJECT_PLANT5    ||
+                  type == OBJECT_PLANT6    ||
+                  type == OBJECT_PLANT7    ||
+                  type == OBJECT_PLANT15   ||
+                  type == OBJECT_PLANT16   ||
+                  type == OBJECT_PLANT17   ||
+                  type == OBJECT_PLANT18   ||
+                  type == OBJECT_PLANT19   ) // Plants?
+        {
+            return Gfx::PT_FRAGV;
+
+        }
+        else  if ( type == OBJECT_TEEN0        ||
+         type == OBJECT_TEEN1        ||
+         type == OBJECT_TEEN2        ||
+         type == OBJECT_TEEN4        ||
+         type == OBJECT_TEEN5        ||
+         type == OBJECT_TEEN34       ||
+         type == OBJECT_POWER        ||
+         type == OBJECT_ATOMIC       ||
+         type == OBJECT_STONE        ||
+         type == OBJECT_URANIUM      ||
+         type == OBJECT_METAL        ||
+         type == OBJECT_BBOX         ||
+         type == OBJECT_KEYa         ||
+         type == OBJECT_KEYb         ||
+         type == OBJECT_KEYc         ||
+         type == OBJECT_KEYd         ||
+         type == OBJECT_WINFIRE      ||
+         type == OBJECT_BAG          ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_BARRIER0     ||
+         type == OBJECT_BARRIER1     ||
+         type == OBJECT_BARRIER2     ||
+         type == OBJECT_BARRIER3     ||
+         type == OBJECT_APOLLO4      )  // everything what fits?
+        {
+            return Gfx::PT_FRAGT;
+        }
+
+        else  if ( type == OBJECT_BEE || type == OBJECT_WORM )
+        {
+            return Gfx::PT_EXPLOO;
+        }
+
+        else  if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
+        {
+            return Gfx::PT_EXPLOO;
+        }
+
+    return Gfx::PT_NULL;
+}
+
+float CObjectDetailsHardcodeCollection::GetThumperExplosionDamage(ObjectType type)
+{
+    if ( type == OBJECT_TNT || type == OBJECT_BOMB ) // Explosives?
+    {
+        return 0.9f;
+    }
+
+    return 0.0f;
+}
+
+bool CObjectDetailsHardcodeCollection::GetThumperTurnOnBack(ObjectType type)
+{
+    return type == OBJECT_ANT || type == OBJECT_SPIDER;
+}
+
+float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMin(ObjectType type)
+{
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return 3.0f;
+
+    return 0.0f;
+}
+
+float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMax(ObjectType type)
+{
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return 3.0f;
+
+    return 9.0f;
+}
+
+float CObjectDetailsHardcodeCollection::GetWaterSplashDiameter(ObjectType type)
+{
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return 5.0f;
+
+    return 2.5f;
+}
+
+float CObjectDetailsHardcodeCollection::GetWaterSplashForce(ObjectType type)
+{
+    if ( (type == OBJECT_HUMAN ||
+          type == OBJECT_TECH  ) )   return 1.0f;
+
+    return 1.3f;
+}
+
+float CObjectDetailsHardcodeCollection::GetLightningRodHeight(ObjectType type)
+{
+    if (type == OBJECT_BASE)
+    {
+        return 120.0f;
+    }
+    if (type == OBJECT_PARA)
+    {
+        return 67.0f;
+    }
+
+    return 0.0f; 
+}
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Object naming details
+//////////////////////////////////////////////////////////////////////////////
 
 std::string CObjectDetailsHardcodeCollection::GetNameInLevelFiles(ObjectType type)
 {
@@ -925,58 +1057,132 @@ std::string CObjectDetailsHardcodeCollection::GetHelpTopicPathName(ObjectType ty
     return "";
 }
 
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionDestroyPerformerObject()
+bool CObjectDetailsHardcodeCollection::IsDisplayedNameAsPlayer(ObjectType type)
 {
-    return OBJECT_DESTROYER;
+    if ( type == OBJECT_HUMAN ) return true;
+
+    return false;
 }
 
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionFactoryPerformerObject()
+std::string CObjectDetailsHardcodeCollection::GetDisplayedName(ObjectType type)
 {
-    return OBJECT_FACTORY;
+    if( type == OBJECT_PORTICO ) return TR("Gantry crane");
+    if( type == OBJECT_BASE ) return TR("Spaceship");
+    if( type == OBJECT_DERRICK ) return TR("Derrick");
+    if( type == OBJECT_FACTORY ) return TR("Bot factory");
+    if( type == OBJECT_REPAIR ) return TR("Repair center");
+    if( type == OBJECT_DESTROYER ) return TR("Destroyer");
+    if( type == OBJECT_STATION ) return TR("Power station");
+    if( type == OBJECT_CONVERT ) return TR("Converts ore to titanium");
+    if( type == OBJECT_TOWER ) return TR("Defense tower");
+    if( type == OBJECT_NEST ) return TR("Nest");
+    if( type == OBJECT_RESEARCH ) return TR("Research center");
+    if( type == OBJECT_RADAR ) return TR("Radar station");
+    if( type == OBJECT_INFO ) return TR("Information exchange post");
+    if( type == OBJECT_ENERGY ) return TR("Power cell factory");
+    if( type == OBJECT_LABO ) return TR("Autolab");
+    if( type == OBJECT_NUCLEAR ) return TR("Nuclear power station");
+    if( type == OBJECT_PARA ) return TR("Lightning conductor");
+    if( type == OBJECT_SAFE ) return TR("Vault");
+    if( type == OBJECT_HUSTON ) return TR("Houston Mission Control");
+    if( type == OBJECT_TARGET1 ) return TR("Target");
+    if( type == OBJECT_TARGET2 ) return TR("Target");
+    if( type == OBJECT_START ) return TR("Start");
+    if( type == OBJECT_END ) return TR("Finish");
+    if( type == OBJECT_STONE ) return TR("Titanium ore");
+    if( type == OBJECT_URANIUM ) return TR("Uranium ore");
+    if( type == OBJECT_BULLET ) return TR("Organic matter");
+    if( type == OBJECT_METAL ) return TR("Titanium");
+    if( type == OBJECT_POWER ) return TR("Power cell");
+    if( type == OBJECT_ATOMIC ) return TR("Nuclear power cell");
+    if( type == OBJECT_BBOX ) return TR("Black box");
+    if( type == OBJECT_KEYa ) return TR("Key A");
+    if( type == OBJECT_KEYb ) return TR("Key B");
+    if( type == OBJECT_KEYc ) return TR("Key C");
+    if( type == OBJECT_KEYd ) return TR("Key D");
+    if( type == OBJECT_TNT ) return TR("Explosive");
+    if( type == OBJECT_BOMB ) return TR("Fixed mine");
+    if( type == OBJECT_BAG ) return TR("Survival kit");
+    if( type == OBJECT_WAYPOINT ) return TR("Checkpoint");
+    if( type == OBJECT_FLAGb ) return TR("Blue flag");
+    if( type == OBJECT_FLAGr ) return TR("Red flag");
+    if( type == OBJECT_FLAGg ) return TR("Green flag");
+    if( type == OBJECT_FLAGy ) return TR("Yellow flag");
+    if( type == OBJECT_FLAGv ) return TR("Violet flag");
+    if( type == OBJECT_MARKPOWER ) return TR("Energy deposit (site for power station)");
+    if( type == OBJECT_MARKURANIUM ) return TR("Uranium deposit (site for derrick)");
+    if( type == OBJECT_MARKKEYa ) return TR("Found key A (site for derrick)");
+    if( type == OBJECT_MARKKEYb ) return TR("Found key B (site for derrick)");
+    if( type == OBJECT_MARKKEYc ) return TR("Found key C (site for derrick)");
+    if( type == OBJECT_MARKKEYd ) return TR("Found key D (site for derrick)");
+    if( type == OBJECT_MARKSTONE ) return TR("Titanium deposit (site for derrick)");
+    if( type == OBJECT_MOBILEft ) return TR("Practice bot");
+    if( type == OBJECT_MOBILEtt ) return TR("Practice bot");
+    if( type == OBJECT_MOBILEwt ) return TR("Practice bot");
+    if( type == OBJECT_MOBILEit ) return TR("Practice bot");
+    if( type == OBJECT_MOBILErp ) return TR("Practice bot");
+    if( type == OBJECT_MOBILEst ) return TR("Practice bot");
+    if( type == OBJECT_MOBILEfa ) return TR("Winged grabber");
+    if( type == OBJECT_MOBILEta ) return TR("Tracked grabber");
+    if( type == OBJECT_MOBILEwa ) return TR("Wheeled grabber");
+    if( type == OBJECT_MOBILEia ) return TR("Legged grabber");
+    if( type == OBJECT_MOBILEfb ) return TR("Winged builder");
+    if( type == OBJECT_MOBILEtb ) return TR("Tracked builder");
+    if( type == OBJECT_MOBILEwb ) return TR("Wheeled builder");
+    if( type == OBJECT_MOBILEib ) return TR("Legged builder");
+    if( type == OBJECT_MOBILEfc ) return TR("Winged shooter");
+    if( type == OBJECT_MOBILEtc ) return TR("Tracked shooter");
+    if( type == OBJECT_MOBILEwc ) return TR("Wheeled shooter");
+    if( type == OBJECT_MOBILEic ) return TR("Legged shooter");
+    if( type == OBJECT_MOBILEfi ) return TR("Winged orga shooter");
+    if( type == OBJECT_MOBILEti ) return TR("Tracked orga shooter");
+    if( type == OBJECT_MOBILEwi ) return TR("Wheeled orga shooter");
+    if( type == OBJECT_MOBILEii ) return TR("Legged orga shooter");
+    if( type == OBJECT_MOBILEfs ) return TR("Winged sniffer");
+    if( type == OBJECT_MOBILEts ) return TR("Tracked sniffer");
+    if( type == OBJECT_MOBILEws ) return TR("Wheeled sniffer");
+    if( type == OBJECT_MOBILEis ) return TR("Legged sniffer");
+    if( type == OBJECT_MOBILErt ) return TR("Thumper");
+    if( type == OBJECT_MOBILErc ) return TR("Phazer shooter");
+    if( type == OBJECT_MOBILErr ) return TR("Recycler");
+    if( type == OBJECT_MOBILErs ) return TR("Shielder");
+    if( type == OBJECT_MOBILEsa ) return TR("Subber");
+    if( type == OBJECT_MOBILEtg ) return TR("Target bot");
+    if( type == OBJECT_MOBILEdr ) return TR("Drawer bot");
+    if( type == OBJECT_TECH ) return TR("Engineer");
+    if( type == OBJECT_TOTO ) return TR("Robbie");
+    if( type == OBJECT_MOTHER ) return TR("Alien Queen");
+    if( type == OBJECT_ANT ) return TR("Ant");
+    if( type == OBJECT_SPIDER ) return TR("Spider");
+    if( type == OBJECT_BEE ) return TR("Wasp");
+    if( type == OBJECT_WORM ) return TR("Worm");
+    if( type == OBJECT_EGG ) return TR("Egg");
+    if( type == OBJECT_RUINmobilew1 ) return TR("Wreckage");
+    if( type == OBJECT_RUINmobilew2 ) return TR("Wreckage");
+    if( type == OBJECT_RUINmobilet1 ) return TR("Wreckage");
+    if( type == OBJECT_RUINmobilet2 ) return TR("Wreckage");
+    if( type == OBJECT_RUINmobiler1 ) return TR("Wreckage");
+    if( type == OBJECT_RUINmobiler2 ) return TR("Wreckage");
+    if( type == OBJECT_RUINfactory ) return TR("Ruin");
+    if( type == OBJECT_RUINdoor ) return TR("Ruin");
+    if( type == OBJECT_RUINsupport ) return TR("Waste");
+    if( type == OBJECT_RUINradar ) return TR("Ruin");
+    if( type == OBJECT_RUINconvert ) return TR("Ruin");
+    if( type == OBJECT_RUINbase ) return TR("Spaceship ruin");
+    if( type == OBJECT_RUINhead ) return TR("Spaceship ruin");
+    if( type == OBJECT_APOLLO1 ) return TR("Remains of Apollo mission");
+    if( type == OBJECT_APOLLO3 ) return TR("Remains of Apollo mission");
+    if( type == OBJECT_APOLLO4 ) return TR("Remains of Apollo mission");
+    if( type == OBJECT_APOLLO5 ) return TR("Remains of Apollo mission");
+    if( type == OBJECT_APOLLO2 ) return TR("Lunar Roving Vehicle");
+    return "";
 }
 
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionResearchPerformerObject(ResearchType type)
-{
-    if ( type == RESEARCH_iPAW       ||
-         type == RESEARCH_iGUN       ||
-         type == RESEARCH_TARGET      ) return OBJECT_LABO;
-    return OBJECT_RESEARCH;
-}
 
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionTakeOffPerformerObject()
-{
-    return OBJECT_BASE;
-}
 
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionReceivePerformerObject()
-{
-    return OBJECT_INFO;
-}
-
-ObjectType CObjectDetailsHardcodeCollection::GetProduceContainer(ObjectType type)
-{
-    if (type == OBJECT_ANT   ||
-        type == OBJECT_SPIDER ||
-        type == OBJECT_BEE    ||
-        type == OBJECT_WORM   ) return OBJECT_EGG;
-
-    return OBJECT_NULL;
-}
-
-bool CObjectDetailsHardcodeCollection::IsProduceAlreadyCharged(ObjectType type)
-{
-    return (type == OBJECT_POWER || type == OBJECT_ATOMIC);
-}
-
-bool CObjectDetailsHardcodeCollection::IsProduceManual(ObjectType type)
-{
-    return (type == OBJECT_MOBILEdr);
-}
-
-bool CObjectDetailsHardcodeCollection::IsRadarExplicitOnly(ObjectType type)
-{
-    return (type == OBJECT_TOTO || type == OBJECT_CONTROLLER);
-}
+//////////////////////////////////////////////////////////////////////////////
+// Object scripting details
+//////////////////////////////////////////////////////////////////////////////
 
 bool CObjectDetailsHardcodeCollection::IsFunctionImplementedBuild(ObjectType type)
 {
@@ -1000,9 +1206,19 @@ bool CObjectDetailsHardcodeCollection::IsFunctionImplementedFlags(ObjectType typ
     return true;
 }
 
+bool CObjectDetailsHardcodeCollection::IsFunctionImplementedSniff(ObjectType type)
+{
+    return type == OBJECT_MOBILErs;
+}
+
 bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShield(ObjectType type)
 {
     return type == OBJECT_MOBILErs;
+}
+
+bool CObjectDetailsHardcodeCollection::IsFunctionImplementedRecycle(ObjectType type)
+{
+    return type == OBJECT_MOBILErr;
 }
 
 bool CObjectDetailsHardcodeCollection::IsFunctionImplementedDrawAsRobot(ObjectType type)
@@ -1040,9 +1256,18 @@ bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShootAsSpider(Object
 
 bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShootAsRobot(ObjectType type)
 {
-    return type == OBJECT_MOBILEdr;
-}
+    if ( type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILErc ) return true;
 
+    return false;
+}
 
 bool CObjectDetailsHardcodeCollection::IsValidObjectTypeId(ObjectType type)
 {
@@ -1254,616 +1479,62 @@ bool CObjectDetailsHardcodeCollection::IsValidObjectTypeId(ObjectType type)
     return validIds.count(type);
 }
 
-ObjectType CObjectDetailsHardcodeCollection::GetAssistantType()
+std::vector<ObjectType> CObjectDetailsHardcodeCollection::GetObjectsFindableByType(ObjectType type)
 {
-    return OBJECT_TOTO;
-}
+    std::vector<ObjectType> result;
 
-bool CObjectDetailsHardcodeCollection::IsAssistantReactingOnDisplayedInfo()
-{
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsAssistantReactingOnDisplayedText()
-{
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsAssistantIgnoredOnSaveLoad()
-{
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsAssistantMovesWithCamera()
-{
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsAssistantClickable()
-{
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsAssistantUndamagable()
-{
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExplodesInWater(ObjectType type)
-{
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2 ) return true;
-
-    return false;
-}
-
-float CObjectDetailsHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(ObjectType type)
-{
-    if ( type == OBJECT_MOTHER ) return 1.2f;
-    if ( type == OBJECT_ANT    ) return 1.2f;
-    if ( type == OBJECT_SPIDER ) return 1.2f;
-    if ( type == OBJECT_BEE    ) return 1.2f;
-    if ( type == OBJECT_WORM   ) return 1.2f;
-
-    return 0.0f;
-}
-
-bool CObjectDetailsHardcodeCollection::IsCollisionDamagable(ObjectType type)
-{
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2  ) return true;
-
-    return false;
-}
-
-float CObjectDetailsHardcodeCollection::GetCollisionSoftness(ObjectType type)
-{
-   if ( type == OBJECT_DERRICK  ||
-         type == OBJECT_FACTORY  ||
-         type == OBJECT_STATION  ||
-         type == OBJECT_CONVERT  ||
-         type == OBJECT_REPAIR   ||
-         type == OBJECT_DESTROYER||
-         type == OBJECT_TOWER    ||
-         type == OBJECT_RESEARCH ||
-         type == OBJECT_RADAR    ||
-         type == OBJECT_INFO     ||
-         type == OBJECT_ENERGY   ||
-         type == OBJECT_LABO     ||
-         type == OBJECT_NUCLEAR  ||
-         type == OBJECT_PARA     ||
-         type == OBJECT_SAFE     ||
-         type == OBJECT_HUSTON   )  // building?
+    if ( type == OBJECT_MOBILEpr)
     {
-        return 200.0f;
-    }
-    else if ( type == OBJECT_MOTHER ||
-              type == OBJECT_ANT    ||
-              type == OBJECT_SPIDER ||
-              type == OBJECT_BEE    ||
-              type == OBJECT_WORM   )  // insect?
-    {
-        return 400.0f;
-    }
-    else
-    if ( type == OBJECT_STONE ||
-         type == OBJECT_METAL )
-    {
-        return 500.0f;
-    }
-    else
-    if ( type == OBJECT_URANIUM ||
-         type == OBJECT_POWER   ||
-         type == OBJECT_ATOMIC  )
-    {
-        return 100.0f;
+        result.push_back(OBJECT_MOBILEwt);
+        result.push_back(OBJECT_MOBILEtt);
+        result.push_back(OBJECT_MOBILEft);
+        result.push_back(OBJECT_MOBILEit);
+        result.push_back(OBJECT_MOBILErp);
+        result.push_back(OBJECT_MOBILEst);
     }
     else
     {
-        return 200.0f;
-    }
-}
-
-float CObjectDetailsHardcodeCollection::GetMaxSafeWaterLevel(ObjectType type)
-{
-    if ( type == OBJECT_HUMAN ||
-         type == OBJECT_TECH  )
-    {
-        return 3.0f;
+        result.push_back(type);
     }
 
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr )
-    {
-        return 2.0f;
-    }
-
-    return 0.0f; 
+    return result;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWater(ObjectType type)
+ObjectType CObjectDetailsHardcodeCollection::GetProduceContainer(ObjectType type)
 {
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEit ||  // legs?
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_APOLLO2  )  return false;
+    if (type == OBJECT_ANT   ||
+        type == OBJECT_SPIDER ||
+        type == OBJECT_BEE    ||
+        type == OBJECT_WORM   ) return OBJECT_EGG;
 
-    return true;
+    return OBJECT_NULL;
 }
 
-float CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWaterTime(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsProduceAlreadyCharged(ObjectType type)
 {
-    if ( type == OBJECT_HUMAN )  return 3.0f;
-    return 8.0f;
+    return (type == OBJECT_POWER || type == OBJECT_ATOMIC);
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustDropsOnLeavingWater(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsProduceManual(ObjectType type)
 {
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEit ||  // legs?
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_APOLLO2  )  return false;
-
-    return true;
+    return (type == OBJECT_MOBILEdr);
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHuman(ObjectType type)
+bool CObjectDetailsHardcodeCollection::IsRadarExplicitOnly(ObjectType type)
 {
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return true;
-    return false;
+    return (type == OBJECT_TOTO || type == OBJECT_CONTROLLER);
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsTrackedRobot(ObjectType type)
-{
-    if ((type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEtt  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHeavyRobot(ObjectType type)
-{
-    if ((type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILErp  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHuman(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsWingedRobot(ObjectType type)
-{
-    if ((type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEft  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsHuman(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return true;
-    return false;
-}
-
-bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHeavyRobot(ObjectType type)
-{
-    if ((type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILErp  ) )   return true;
-    return false;
-}
-
-bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsNormalRobot(ObjectType type)
-{
-    if ((type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEst  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsWingedRobot(ObjectType type)
-{
-    if ((type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEwt  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnSwimAsHuman(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return true;
-    return false;
-}
-
-bool CObjectDetailsHardcodeCollection::IsExhaustOnSwimAsAmphibiousRobot(ObjectType type)
-{
-    if ( (type == OBJECT_MOBILEst ||
-          type == OBJECT_MOBILEsa  ) )   return true;
-    return false;
-}
-
-float CObjectDetailsHardcodeCollection::GetThumperSafeRadius(ObjectType type)
-{
-    if ( type == OBJECT_BULLET ||
-         type == OBJECT_NEST   ||
-         type == OBJECT_EGG    ) // Alien Organic?
-    {
-        return 5.0f;
-    }
-    else if ( type == OBJECT_TNT  ||
-              type == OBJECT_BOMB ) // Explosives?
-    {
-        return 5.0f;
-    }
-    else if ( type == OBJECT_PLANT0    ||
-              type == OBJECT_PLANT1    ||
-              type == OBJECT_PLANT2    ||
-              type == OBJECT_PLANT3    ||
-              type == OBJECT_PLANT4    ||
-              type == OBJECT_PLANT5    ||
-              type == OBJECT_PLANT6    ||
-              type == OBJECT_PLANT7    ||
-              type == OBJECT_PLANT15   ||
-              type == OBJECT_PLANT16   ||
-              type == OBJECT_PLANT17   ||
-              type == OBJECT_PLANT18   ||
-              type == OBJECT_PLANT19   ) // Plants?
-    {
-        return 7.5f;
-
-    }
-    else  if ( type == OBJECT_TEEN0        ||
-     type == OBJECT_TEEN1        ||
-     type == OBJECT_TEEN2        ||
-     type == OBJECT_TEEN4        ||
-     type == OBJECT_TEEN5        ||
-     type == OBJECT_TEEN34       ||
-     type == OBJECT_POWER        ||
-     type == OBJECT_ATOMIC       ||
-     type == OBJECT_STONE        ||
-     type == OBJECT_URANIUM      ||
-     type == OBJECT_METAL        ||
-     type == OBJECT_BBOX         ||
-     type == OBJECT_KEYa         ||
-     type == OBJECT_KEYb         ||
-     type == OBJECT_KEYc         ||
-     type == OBJECT_KEYd         ||
-     type == OBJECT_WINFIRE      ||
-     type == OBJECT_BAG          ||
-     type == OBJECT_RUINmobilew1 ||
-     type == OBJECT_RUINmobilew2 ||
-     type == OBJECT_RUINmobilet1 ||
-     type == OBJECT_RUINmobilet2 ||
-     type == OBJECT_RUINdoor     ||
-     type == OBJECT_RUINsupport  ||
-     type == OBJECT_RUINradar    ||
-     type == OBJECT_BARRIER0     ||
-     type == OBJECT_BARRIER1     ||
-     type == OBJECT_BARRIER2     ||
-     type == OBJECT_BARRIER3     ||
-     type == OBJECT_APOLLO4      )  // everything what fits?
-    {
-        return 5.0f;
-    }
-
-    else  if ( type == OBJECT_BEE || type == OBJECT_WORM )
-    {
-        return 5.0f;
-    }
-
-    else  if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
-    {
-        return 5.0f;
-    }
 
 
-    return -1;
-}
-
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetThumperPyroType(ObjectType type)
-{
-        if ( type == OBJECT_BULLET ||
-             type == OBJECT_NEST   ||
-             type == OBJECT_EGG    ) // Alien Organic?
-        {
-            return Gfx::PT_FRAGO;
-        }
-        else if ( type == OBJECT_TNT  ||
-                  type == OBJECT_BOMB ) // Explosives?
-        {
-            return Gfx::PT_EXPLOT;
-        }
-        else if ( type == OBJECT_PLANT0    ||
-                  type == OBJECT_PLANT1    ||
-                  type == OBJECT_PLANT2    ||
-                  type == OBJECT_PLANT3    ||
-                  type == OBJECT_PLANT4    ||
-                  type == OBJECT_PLANT5    ||
-                  type == OBJECT_PLANT6    ||
-                  type == OBJECT_PLANT7    ||
-                  type == OBJECT_PLANT15   ||
-                  type == OBJECT_PLANT16   ||
-                  type == OBJECT_PLANT17   ||
-                  type == OBJECT_PLANT18   ||
-                  type == OBJECT_PLANT19   ) // Plants?
-        {
-            return Gfx::PT_FRAGV;
-
-        }
-        else  if ( type == OBJECT_TEEN0        ||
-         type == OBJECT_TEEN1        ||
-         type == OBJECT_TEEN2        ||
-         type == OBJECT_TEEN4        ||
-         type == OBJECT_TEEN5        ||
-         type == OBJECT_TEEN34       ||
-         type == OBJECT_POWER        ||
-         type == OBJECT_ATOMIC       ||
-         type == OBJECT_STONE        ||
-         type == OBJECT_URANIUM      ||
-         type == OBJECT_METAL        ||
-         type == OBJECT_BBOX         ||
-         type == OBJECT_KEYa         ||
-         type == OBJECT_KEYb         ||
-         type == OBJECT_KEYc         ||
-         type == OBJECT_KEYd         ||
-         type == OBJECT_WINFIRE      ||
-         type == OBJECT_BAG          ||
-         type == OBJECT_RUINmobilew1 ||
-         type == OBJECT_RUINmobilew2 ||
-         type == OBJECT_RUINmobilet1 ||
-         type == OBJECT_RUINmobilet2 ||
-         type == OBJECT_RUINdoor     ||
-         type == OBJECT_RUINsupport  ||
-         type == OBJECT_RUINradar    ||
-         type == OBJECT_BARRIER0     ||
-         type == OBJECT_BARRIER1     ||
-         type == OBJECT_BARRIER2     ||
-         type == OBJECT_BARRIER3     ||
-         type == OBJECT_APOLLO4      )  // everything what fits?
-        {
-            return Gfx::PT_FRAGT;
-        }
-
-        else  if ( type == OBJECT_BEE || type == OBJECT_WORM )
-        {
-            return Gfx::PT_EXPLOO;
-        }
-
-        else  if ( type == OBJECT_ANT || type == OBJECT_SPIDER )
-        {
-            return Gfx::PT_EXPLOO;
-        }
-
-    return Gfx::PT_NULL;
-}
-
-float CObjectDetailsHardcodeCollection::GetThumperExplosionDamage(ObjectType type)
-{
-    if ( type == OBJECT_TNT || type == OBJECT_BOMB ) // Explosives?
-    {
-        return 0.9f;
-    }
-
-    return 0.0f;
-}
-
-bool CObjectDetailsHardcodeCollection::GetThumperTurnOnBack(ObjectType type)
-{
-    return type == OBJECT_ANT || type == OBJECT_SPIDER;
-}
-
-float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMin(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return 3.0f;
-
-    return 0.0f;
-}
-
-float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMax(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return 3.0f;
-
-    return 9.0f;
-}
-
-float CObjectDetailsHardcodeCollection::GetWaterSplashDiameter(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return 5.0f;
-
-    return 2.5f;
-}
-
-float CObjectDetailsHardcodeCollection::GetWaterSplashForce(ObjectType type)
-{
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) )   return 1.0f;
-
-    return 1.3f;
-}
-
-float CObjectDetailsHardcodeCollection::GetLightningRodHeight(ObjectType type)
-{
-    if (type == OBJECT_BASE)
-    {
-        return 120.0f;
-    }
-    if (type == OBJECT_PARA)
-    {
-        return 67.0f;
-    }
-
-    return 0.0f; 
-}
-
-bool CObjectDetailsHardcodeCollection::IsDisplayedNameAsPlayer(ObjectType type)
-{
-    if ( type == OBJECT_HUMAN ) return true;
-
-    return false;
-}
-
-std::string CObjectDetailsHardcodeCollection::GetDisplayedName(ObjectType type)
-{
-    auto it = m_objects.find(type);
-    if (it != m_objects.end())
-        return it->second.displayedName;
-    return "";
-}
+//////////////////////////////////////////////////////////////////////////////
+// Creation details
+//////////////////////////////////////////////////////////////////////////////
 
 BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type)
 {
     switch(type)
     {
-        case OBJECT_NULL:
-            return BASE_CLASS_NONE;
-
         case OBJECT_PORTICO:
         case OBJECT_BASE:
         case OBJECT_DERRICK:
@@ -2050,6 +1721,9 @@ BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type
         case OBJECT_APOLLO5:
             return BASE_CLASS_SIMPLE;
 
+        case OBJECT_CONTROLLER:
+            return BASE_CLASS_SIMPLE;
+
         case OBJECT_MOTHER:
         case OBJECT_ANT:
         case OBJECT_SPIDER:
@@ -2093,14 +1767,13 @@ BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type
         case OBJECT_MOBILEst:
         case OBJECT_MOBILEdr:
         case OBJECT_APOLLO2:
-        case OBJECT_CONTROLLER:
             return BASE_CLASS_ROBOT;
 
         case OBJECT_MOBILErs:
             return BASE_CLASS_SHIELDER;
 
         default:
-            return BASE_CLASS_NONE;
+            return BASE_CLASS_SIMPLE;
     }
 }
 
@@ -2396,7 +2069,7 @@ std::vector<CObjectCreationModelNode> CObjectDetailsHardcodeCollection::GetCreat
 
     if ( type == OBJECT_RUINconvert  )
     {
-        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin8.mod", Math::Vector(0.0f, -1.0f, 0.0f)});
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, "ruin8.mod"});
         return result;
     }
 
@@ -4355,6 +4028,1527 @@ bool CObjectDetailsHardcodeCollection::IsCreationFixedPosition(ObjectType type)
     return type == OBJECT_SHOW;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Common interface details
+//////////////////////////////////////////////////////////////////////////////
+
+bool CObjectDetailsHardcodeCollection::IsTransportable(ObjectType type)
+{
+    // TODO: Hacking in progress...
+    if ( type == OBJECT_STONE   ||
+         type == OBJECT_URANIUM ||
+         type == OBJECT_BULLET  ||
+         type == OBJECT_METAL   ||
+         type == OBJECT_POWER   ||
+         type == OBJECT_ATOMIC  ||
+         type == OBJECT_BBOX    ||
+         type == OBJECT_KEYa    ||
+         type == OBJECT_KEYb    ||
+         type == OBJECT_KEYc    ||
+         type == OBJECT_KEYd    ||
+         type == OBJECT_TNT     ) return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsMovable(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER ) return true;
+    if ( type == OBJECT_ANT ) return true;
+    if ( type == OBJECT_SPIDER ) return true;
+    if ( type == OBJECT_BEE ) return true;
+    if ( type == OBJECT_WORM ) return true;
+    if ( type == OBJECT_HUMAN ) return true;
+    if ( type == OBJECT_TECH ) return true;
+    if ( type == OBJECT_CONTROLLER ) return true;
+    if ( type == OBJECT_APOLLO2 ) return true;
+    if ( type == OBJECT_MOBILEdr ) return true;
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst ) return true;
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp) return true;
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft ) return true;
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit) return true;
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt ) return true;
+    if ( type == OBJECT_MOBILEtg ) return true;
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt ) return true;
+
+    return false;
+}
+
+Motion CObjectDetailsHardcodeCollection::GetLinMotion(ObjectType type)
+{
+    CPhysics physics(nullptr);
+
+    if ( type == OBJECT_MOTHER )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED,   8.0f);
+        physics.SetLinMotionX(MO_RECSPEED,   8.0f);
+        physics.SetLinMotionX(MO_ADVACCEL,  10.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  10.0f);
+        physics.SetLinMotionX(MO_STOACCEL,  40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionX(MO_TERFORCE,  30.0f);
+        physics.SetLinMotionZ(MO_TERFORCE,  20.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL,  40.0f);
+    }
+    if ( type == OBJECT_ANT )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED,  12.0f);
+        physics.SetLinMotionX(MO_RECSPEED,  12.0f);
+        physics.SetLinMotionX(MO_ADVACCEL,  15.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  15.0f);
+        physics.SetLinMotionX(MO_STOACCEL,  40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionX(MO_TERFORCE,   5.0f);
+        physics.SetLinMotionZ(MO_TERFORCE,   5.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL,  10.0f);
+    }
+    if ( type == OBJECT_SPIDER )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED,  12.0f);
+        physics.SetLinMotionX(MO_RECSPEED,  12.0f);
+        physics.SetLinMotionX(MO_ADVACCEL,  15.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  15.0f);
+        physics.SetLinMotionX(MO_STOACCEL,  40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionX(MO_TERFORCE,   5.0f);
+        physics.SetLinMotionZ(MO_TERFORCE,   5.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL,  10.0f);
+    }
+    if ( type == OBJECT_BEE )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED,  50.0f);
+        physics.SetLinMotionX(MO_RECSPEED,  50.0f);
+        physics.SetLinMotionX(MO_ADVACCEL,  20.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  20.0f);
+        physics.SetLinMotionX(MO_STOACCEL,  20.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionX(MO_TERFORCE,  10.0f);
+        physics.SetLinMotionZ(MO_TERFORCE,  10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL,  40.0f);
+        physics.SetLinMotionY(MO_ADVSPEED,  60.0f);
+        physics.SetLinMotionY(MO_RECSPEED,  60.0f);
+        physics.SetLinMotionY(MO_ADVACCEL,  20.0f);
+        physics.SetLinMotionY(MO_RECACCEL,  50.0f);
+        physics.SetLinMotionY(MO_STOACCEL,  50.0f);
+    }
+    if ( type == OBJECT_WORM )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED,   3.0f);
+        physics.SetLinMotionX(MO_RECSPEED,   3.0f);
+        physics.SetLinMotionX(MO_ADVACCEL,  10.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  10.0f);
+        physics.SetLinMotionX(MO_STOACCEL,  40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,   5.0f);
+        physics.SetLinMotionX(MO_TERFORCE,   5.0f);
+        physics.SetLinMotionZ(MO_TERFORCE,   5.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL,  40.0f);
+    }
+    if ( type == OBJECT_HUMAN )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 50.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 35.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 20.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 70.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 40.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+        physics.SetLinMotionY(MO_ADVSPEED, 60.0f);
+        physics.SetLinMotionY(MO_RECSPEED, 60.0f);
+        physics.SetLinMotionY(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionY(MO_RECACCEL, 50.0f);
+        physics.SetLinMotionY(MO_STOACCEL, 50.0f);
+    }
+    if ( type == OBJECT_TECH )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 40.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 15.0f);
+        physics.SetLinMotionX(MO_ADVACCEL,  8.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  8.0f);
+        physics.SetLinMotionX(MO_STOACCEL,  8.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 50.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 50.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+        physics.SetLinMotionY(MO_ADVSPEED, 60.0f);
+        physics.SetLinMotionY(MO_RECSPEED, 60.0f);
+        physics.SetLinMotionY(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionY(MO_RECACCEL, 50.0f);
+        physics.SetLinMotionY(MO_STOACCEL, 50.0f);
+    }
+    if ( type == OBJECT_CONTROLLER )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 50.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 50.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 20.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  0.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  0.0f);
+        physics.SetLinMotionX(MO_TERFORCE,  0.0f);
+        physics.SetLinMotionZ(MO_TERFORCE,  0.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+        physics.SetLinMotionY(MO_ADVSPEED, 60.0f);
+        physics.SetLinMotionY(MO_RECSPEED, 60.0f);
+        physics.SetLinMotionY(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionY(MO_RECACCEL, 50.0f);
+        physics.SetLinMotionY(MO_STOACCEL, 50.0f);
+    }
+    if ( type == OBJECT_APOLLO2 )  // jeep?
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 15.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 10.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  2.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  2.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 30.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 20.0f);
+    }
+    if ( type == OBJECT_MOBILEdr )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 15.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 10.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 10.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 20.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+    }
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst )
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 15.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 10.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 10.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 20.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+    }
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp)  // large caterpillars?
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 10.0f);
+        physics.SetLinMotionX(MO_RECSPEED,  5.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 10.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  5.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 20.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft )  // flying?
+    {
+
+        physics.SetLinMotionX(MO_ADVSPEED, 50.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 50.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 20.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 50.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 50.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+        physics.SetLinMotionY(MO_ADVSPEED, 60.0f);
+        physics.SetLinMotionY(MO_RECSPEED, 60.0f);
+        physics.SetLinMotionY(MO_ADVACCEL, 20.0f);
+        physics.SetLinMotionY(MO_RECACCEL, 50.0f);
+        physics.SetLinMotionY(MO_STOACCEL, 50.0f);
+    }
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit)  // legs?
+    {
+
+        physics.SetLinMotionX(MO_ADVSPEED, 15.0f);
+        physics.SetLinMotionX(MO_RECSPEED,  8.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 40.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 10.0f);
+//?     physics.SetLinMotionX(MO_TERFORCE, 15.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+    }
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt )  // caterpillars?
+    {
+
+        physics.SetLinMotionX(MO_ADVSPEED, 15.0f);
+        physics.SetLinMotionX(MO_RECSPEED,  8.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 15.0f);
+        physics.SetLinMotionX(MO_RECACCEL,  8.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 20.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 10.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 40.0f);
+    }
+    if ( type == OBJECT_MOBILEtg )
+    {
+
+        physics.SetLinMotionX(MO_ADVSPEED, 20.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 10.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 40.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 50.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 20.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 20.0f);
+    }
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt )  // wheels?
+    {
+        physics.SetLinMotionX(MO_ADVSPEED, 20.0f);
+        physics.SetLinMotionX(MO_RECSPEED, 10.0f);
+        physics.SetLinMotionX(MO_ADVACCEL, 40.0f);
+        physics.SetLinMotionX(MO_RECACCEL, 20.0f);
+        physics.SetLinMotionX(MO_STOACCEL, 40.0f);
+        physics.SetLinMotionX(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionZ(MO_TERSLIDE,  5.0f);
+        physics.SetLinMotionX(MO_TERFORCE, 50.0f);
+        physics.SetLinMotionZ(MO_TERFORCE, 30.0f);
+        physics.SetLinMotionZ(MO_MOTACCEL, 20.0f);
+    }
+
+    Motion result;
+    result.advanceAccel = physics.GetLinMotion(MO_ADVACCEL);
+    result.recedeAccel  = physics.GetLinMotion(MO_RECACCEL);
+    result.stopAccel    = physics.GetLinMotion(MO_STOACCEL);
+    result.terrainSpeed = physics.GetLinMotion(MO_TERSPEED);
+    result.terrainSlide = physics.GetLinMotion(MO_TERSLIDE);
+    result.motorAccel   = physics.GetLinMotion(MO_MOTACCEL);
+    result.terrainForce = physics.GetLinMotion(MO_TERFORCE);
+    result.advanceSpeed = physics.GetLinMotion(MO_ADVSPEED);
+    result.recedeSpeed  = physics.GetLinMotion(MO_RECSPEED);
+    result.motorSpeed   = physics.GetLinMotion(MO_MOTSPEED);
+    result.currentSpeed = physics.GetLinMotion(MO_CURSPEED);
+    result.realSpeed    = physics.GetLinMotion(MO_REASPEED);
+    return result;
+}
+
+Motion CObjectDetailsHardcodeCollection::GetCirMotion(ObjectType type)
+{
+    CPhysics physics(nullptr);
+
+    if ( type == OBJECT_MOTHER )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,   0.1f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,   0.1f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  10.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  10.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  20.0f);
+    }
+    if ( type == OBJECT_ANT )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  20.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  20.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  40.0f);
+    }
+    if ( type == OBJECT_SPIDER )
+    {    
+        physics.SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  20.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  20.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  40.0f);
+
+    }
+    if ( type == OBJECT_BEE )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  20.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  20.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  40.0f);
+    }
+    if ( type == OBJECT_WORM )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,   0.2f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,   0.2f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  10.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  10.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  20.0f);
+    }
+    if ( type == OBJECT_HUMAN )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.8f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.8f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  6.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  6.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  4.0f);
+    }
+    if ( type == OBJECT_TECH )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.6f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.6f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  4.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  4.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  3.0f);
+    }
+    if ( type == OBJECT_CONTROLLER )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.4f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.4f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  2.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  2.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  2.0f);
+    }
+    if ( type == OBJECT_APOLLO2 )  // jeep?
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.4f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.4f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  2.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  2.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  4.0f);
+    }
+    if ( type == OBJECT_MOBILEdr )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  5.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  5.0f);
+        physics.SetCirMotionY(MO_STOACCEL, 10.0f);
+    }
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst )
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  5.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  5.0f);
+        physics.SetCirMotionY(MO_STOACCEL, 10.0f);
+    }
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp)  // large caterpillars?
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.3f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.3f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  2.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  2.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  4.0f);
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft )  // flying?
+    {
+
+        physics.SetCirMotionY(MO_ADVSPEED,  0.4f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.4f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  2.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  2.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  2.0f);
+    }
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit)  // legs?
+    {
+
+        physics.SetCirMotionY(MO_ADVSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL, 10.0f);
+        physics.SetCirMotionY(MO_RECACCEL, 10.0f);
+        physics.SetCirMotionY(MO_STOACCEL, 15.0f);
+    }
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt )  // caterpillars?
+    {
+
+        physics.SetCirMotionY(MO_ADVSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.5f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL, 10.0f);
+        physics.SetCirMotionY(MO_RECACCEL, 10.0f);
+        physics.SetCirMotionY(MO_STOACCEL,  6.0f);
+    }
+    if ( type == OBJECT_MOBILEtg )
+    {
+
+        physics.SetCirMotionY(MO_ADVSPEED,  0.8f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.8f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL, 10.0f);
+        physics.SetCirMotionY(MO_RECACCEL, 10.0f);
+        physics.SetCirMotionY(MO_STOACCEL, 15.0f);
+    }
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt )  // wheels?
+    {
+        physics.SetCirMotionY(MO_ADVSPEED,  0.8f*Math::PI);
+        physics.SetCirMotionY(MO_RECSPEED,  0.8f*Math::PI);
+        physics.SetCirMotionY(MO_ADVACCEL,  8.0f);
+        physics.SetCirMotionY(MO_RECACCEL,  8.0f);
+        physics.SetCirMotionY(MO_STOACCEL, 12.0f);
+    }
+
+    Motion result;
+    result.advanceAccel = physics.GetCirMotion(MO_ADVACCEL);
+    result.recedeAccel  = physics.GetCirMotion(MO_RECACCEL);
+    result.stopAccel    = physics.GetCirMotion(MO_STOACCEL);
+    result.terrainSpeed = physics.GetCirMotion(MO_TERSPEED);
+    result.terrainSlide = physics.GetCirMotion(MO_TERSLIDE);
+    result.motorAccel   = physics.GetCirMotion(MO_MOTACCEL);
+    result.terrainForce = physics.GetCirMotion(MO_TERFORCE);
+    result.advanceSpeed = physics.GetCirMotion(MO_ADVSPEED);
+    result.recedeSpeed  = physics.GetCirMotion(MO_RECSPEED);
+    result.motorSpeed   = physics.GetCirMotion(MO_MOTSPEED);
+    result.currentSpeed = physics.GetCirMotion(MO_CURSPEED);
+    result.realSpeed    = physics.GetCirMotion(MO_REASPEED);
+    return result;
+}
+
+Character CObjectDetailsHardcodeCollection::GetWheels(ObjectType type)
+{
+    Character character;
+    if ( type == OBJECT_MOTHER )
+    {
+        character.wheelFront = 10.0f;
+        character.wheelBack  = 10.0f;
+        character.wheelLeft  = 20.0f;
+        character.wheelRight = 20.0f;
+        character.height     =  3.0f;
+    }
+    if ( type == OBJECT_ANT )
+    {
+        character.wheelFront = 3.0f;
+        character.wheelBack  = 3.0f;
+        character.wheelLeft  = 5.0f;
+        character.wheelRight = 5.0f;
+        character.height     = 1.2f;
+    }
+    if ( type == OBJECT_SPIDER )
+    {    
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 6.0f;
+        character.wheelRight = 6.0f;
+        character.height     = 0.6f;
+    }
+    if ( type == OBJECT_BEE )
+    {
+        character.wheelFront = 3.0f;
+        character.wheelBack  = 3.0f;
+        character.wheelLeft  = 5.0f;
+        character.wheelRight = 5.0f;
+        character.height     = 2.5f;
+    }
+    if ( type == OBJECT_WORM )
+    {
+        character.wheelFront = 10.0f;
+        character.wheelBack  = 10.0f;
+        character.wheelLeft  =  2.0f;
+        character.wheelRight =  2.0f;
+        character.height     = -0.2f;
+    }
+    if ( type == OBJECT_HUMAN )
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.0f;
+        character.wheelRight = 4.0f;
+        character.height     = 3.5f;
+    }
+    if ( type == OBJECT_TECH )
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.0f;
+        character.wheelRight = 4.0f;
+        character.height     = 3.5f;
+    }
+    if ( type == OBJECT_CONTROLLER )
+    {
+        // default
+    }
+    if ( type == OBJECT_APOLLO2 )  // jeep?
+    {
+        character.wheelFront = 6.0f;
+        character.wheelBack  = 6.0f;
+        character.wheelLeft  = 5.0f;
+        character.wheelRight = 5.0f;
+    }
+    if ( type == OBJECT_MOBILEdr )
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.0f;
+        character.wheelRight = 4.0f;
+    }
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst )
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.0f;
+        character.wheelRight = 4.0f;
+    }
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp)  // large caterpillars?
+    {
+        character.wheelFront = 5.0f;
+        character.wheelBack  = 5.0f;
+        character.wheelLeft  = 6.0f;
+        character.wheelRight = 6.0f;
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft )  // flying?
+    {
+        character.wheelFront = 5.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.5f;
+        character.wheelRight = 4.5f;
+    }
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit)  // legs?
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 5.0f;
+        character.wheelRight = 5.0f;
+    }
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt )  // caterpillars?
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.8f;
+        character.wheelRight = 4.8f;
+    }
+    if ( type == OBJECT_MOBILEtg )
+    {
+        character.wheelFront = 4.0f;
+        character.wheelBack  = 3.0f;
+        character.wheelLeft  = 4.0f;
+        character.wheelRight = 4.0f;
+    }
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt )  // wheels?
+    {
+        character.wheelFront = 3.0f;
+        character.wheelBack  = 4.0f;
+        character.wheelLeft  = 4.0f;
+        character.wheelRight = 4.0f;
+    }
+
+    return character;
+}
+
+bool CObjectDetailsHardcodeCollection::IsFlying(ObjectType type)
+{
+    // TODO: Temporary hack
+    if ( type == OBJECT_MOBILEfa || // WingedGrabber
+         type == OBJECT_MOBILEfb || // WingedBuilder
+         type == OBJECT_MOBILEfs || // WingedSniffer
+         type == OBJECT_MOBILEfc || // WingedShooter
+         type == OBJECT_MOBILEfi || // WingedOrgaShooter
+         type == OBJECT_MOBILEft || // WingedTrainer
+         type == OBJECT_HUMAN    || // Me
+         type == OBJECT_TECH     || // Tech
+         type == OBJECT_BEE      ||
+         type == OBJECT_CONTROLLER) return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsJetFlying(ObjectType type)
+{
+    // TODO: Temporary hack
+    if ( type == OBJECT_MOBILEfa || // WingedGrabber
+         type == OBJECT_MOBILEfb || // WingedBuilder
+         type == OBJECT_MOBILEfs || // WingedSniffer
+         type == OBJECT_MOBILEfc || // WingedShooter
+         type == OBJECT_MOBILEfi || // WingedOrgaShooter
+         type == OBJECT_MOBILEft || // WingedTrainer
+         type == OBJECT_HUMAN    || // Me
+         type == OBJECT_TECH     || // Tech
+         type == OBJECT_CONTROLLER) return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsSelectableByDefault(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER   ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_WORM     )
+    {
+        return false;
+    }
+    return true;
+}
+
+
+bool CObjectDetailsHardcodeCollection::IsControllable(ObjectType type)
+{
+    // TODO: You have been hacked!
+    if (type == OBJECT_HUMAN    ||
+        type == OBJECT_TOTO     ||
+        type == OBJECT_MOBILEfa ||
+        type == OBJECT_MOBILEta ||
+        type == OBJECT_MOBILEwa ||
+        type == OBJECT_MOBILEia ||
+        type == OBJECT_MOBILEfb ||
+        type == OBJECT_MOBILEtb ||
+        type == OBJECT_MOBILEwb ||
+        type == OBJECT_MOBILEib ||
+        type == OBJECT_MOBILEfc ||
+        type == OBJECT_MOBILEtc ||
+        type == OBJECT_MOBILEwc ||
+        type == OBJECT_MOBILEic ||
+        type == OBJECT_MOBILEfi ||
+        type == OBJECT_MOBILEti ||
+        type == OBJECT_MOBILEwi ||
+        type == OBJECT_MOBILEii ||
+        type == OBJECT_MOBILEfs ||
+        type == OBJECT_MOBILEts ||
+        type == OBJECT_MOBILEws ||
+        type == OBJECT_MOBILEis ||
+        type == OBJECT_MOBILErt ||
+        type == OBJECT_MOBILErc ||
+        type == OBJECT_MOBILErr ||
+        type == OBJECT_MOBILErs ||
+        type == OBJECT_MOBILEsa ||
+        type == OBJECT_MOBILEft ||
+        type == OBJECT_MOBILEtt ||
+        type == OBJECT_MOBILEwt ||
+        type == OBJECT_MOBILEit ||
+        type == OBJECT_MOBILErp ||
+        type == OBJECT_MOBILEst ||
+        type == OBJECT_MOBILEtg ||
+        type == OBJECT_MOBILEdr ||
+        type == OBJECT_APOLLO2  ||
+        type == OBJECT_BASE     ||
+        type == OBJECT_DERRICK  ||
+        type == OBJECT_FACTORY  ||
+        type == OBJECT_REPAIR   ||
+        type == OBJECT_DESTROYER||
+        type == OBJECT_STATION  ||
+        type == OBJECT_CONVERT  ||
+        type == OBJECT_TOWER    ||
+        type == OBJECT_RESEARCH ||
+        type == OBJECT_RADAR    ||
+        type == OBJECT_INFO     ||
+        type == OBJECT_ENERGY   ||
+        type == OBJECT_LABO     ||
+        type == OBJECT_NUCLEAR  ||
+        type == OBJECT_PARA     ||
+        type == OBJECT_SAFE     ||
+        type == OBJECT_HUSTON   ||
+        type == OBJECT_TARGET1  ||
+        type == OBJECT_ANT      ||
+        type == OBJECT_WORM     ||
+        type == OBJECT_SPIDER   ||
+        type == OBJECT_BEE      ||
+        type == OBJECT_MOTHER   ||
+        type == OBJECT_CONTROLLER) return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsPowerContainer(ObjectType type)
+{
+    // TODO: Another one? :/
+    if ( type == OBJECT_POWER   || // PowerCell
+         type == OBJECT_ATOMIC  || // NuclearCell
+         type == OBJECT_STATION || // PowerStation
+         type == OBJECT_ENERGY   ) // PowerPlant
+             return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsTraceDrawing(ObjectType type)
+{
+    return true; // huh!!!
+}
+
+bool CObjectDetailsHardcodeCollection::IsRanged(ObjectType type)
+{
+    return true; // huh
+}
+
+float CObjectDetailsHardcodeCollection::GetRangedRadius(ObjectType type)
+{
+    if ( type == OBJECT_BASE     ) return 200.0f; // SpaceShip
+    if ( type == OBJECT_MOBILErt ) return 400.0f; // Thumper
+    if ( type == OBJECT_TOWER    ) return Gfx::LTNG_PROTECTION_RADIUS; // DefenseTower
+    if ( type == OBJECT_PARA     ) return Gfx::LTNG_PROTECTION_RADIUS; // PowerCaptor
+    return 0.0f;
+}
+
+bool CObjectDetailsHardcodeCollection::IsDamageable(ObjectType type)
+{
+    // TODO: Hacking some more
+    if ( type == OBJECT_MOBILEtg ||
+         type == OBJECT_STONE    ||
+         type == OBJECT_METAL    ||
+         type == OBJECT_URANIUM  ||
+         type == OBJECT_POWER    ||
+         type == OBJECT_ATOMIC   ||
+         type == OBJECT_TNT      ||
+         type == OBJECT_BULLET   ||
+         type == OBJECT_EGG      ||
+         type == OBJECT_BOMB     ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_WORM     ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_TEEN28    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_HUMAN ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_DERRICK  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_MOTHER    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_HUSTON ||
+             type == OBJECT_BASE    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_RUINmobilew1 ||
+             type == OBJECT_RUINmobilew2 ||
+             type == OBJECT_RUINmobilet1 ||
+             type == OBJECT_RUINmobilet2 ||
+             type == OBJECT_RUINmobiler1 ||
+             type == OBJECT_RUINmobiler2 ||
+             type == OBJECT_RUINfactory  ||
+             type == OBJECT_RUINdoor     ||
+             type == OBJECT_RUINsupport  ||
+             type == OBJECT_RUINradar    ||
+             type == OBJECT_RUINconvert   )
+    {
+        return true;
+    }
+    else if (type == OBJECT_PLANT0  ||
+             type == OBJECT_PLANT1  ||
+             type == OBJECT_PLANT2  ||
+             type == OBJECT_PLANT3  ||
+             type == OBJECT_PLANT4  ||
+             type == OBJECT_PLANT15 ||
+             type == OBJECT_PLANT16 ||
+             type == OBJECT_PLANT17 ||
+             type == OBJECT_PLANT18 )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsDestroyable(ObjectType type)
+{
+    // TODO: Hacking some more
+    if ( type == OBJECT_MOBILEtg ||
+         type == OBJECT_STONE    ||
+         type == OBJECT_METAL    ||
+         type == OBJECT_URANIUM  ||
+         type == OBJECT_POWER    ||
+         type == OBJECT_ATOMIC   ||
+         type == OBJECT_TNT      ||
+         type == OBJECT_BULLET   ||
+         type == OBJECT_EGG      ||
+         type == OBJECT_BOMB     ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_WORM     ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_TEEN28    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_HUMAN ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_DERRICK  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_MOTHER    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_HUSTON ||
+             type == OBJECT_BASE    )
+    {
+        return false;
+    }
+    else if (type == OBJECT_RUINmobilew1 ||
+             type == OBJECT_RUINmobilew2 ||
+             type == OBJECT_RUINmobilet1 ||
+             type == OBJECT_RUINmobilet2 ||
+             type == OBJECT_RUINmobiler1 ||
+             type == OBJECT_RUINmobiler2 ||
+             type == OBJECT_RUINfactory  ||
+             type == OBJECT_RUINdoor     ||
+             type == OBJECT_RUINsupport  ||
+             type == OBJECT_RUINradar    ||
+             type == OBJECT_RUINconvert   )
+    {
+        return true;
+    }
+    else if (type == OBJECT_PLANT0  ||
+             type == OBJECT_PLANT1  ||
+             type == OBJECT_PLANT2  ||
+             type == OBJECT_PLANT3  ||
+             type == OBJECT_PLANT4  ||
+             type == OBJECT_PLANT15 ||
+             type == OBJECT_PLANT16 ||
+             type == OBJECT_PLANT17 ||
+             type == OBJECT_PLANT18 )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsFragile(ObjectType type)
+{
+    // TODO: Hacking some more
+    if ( type == OBJECT_MOBILEtg ||
+         type == OBJECT_STONE    ||
+         type == OBJECT_METAL    ||
+         type == OBJECT_URANIUM  ||
+         type == OBJECT_POWER    ||
+         type == OBJECT_ATOMIC   ||
+         type == OBJECT_TNT      ||
+         type == OBJECT_BULLET   ||
+         type == OBJECT_EGG      ||
+         type == OBJECT_BOMB     ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_WORM     ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_TEEN28    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_HUMAN ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_DERRICK  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_MOTHER    )
+    {
+        return false;
+    }
+    else if (type == OBJECT_HUSTON ||
+             type == OBJECT_BASE    )
+    {
+        return false;
+    }
+    else if (type == OBJECT_RUINmobilew1 ||
+             type == OBJECT_RUINmobilew2 ||
+             type == OBJECT_RUINmobilet1 ||
+             type == OBJECT_RUINmobilet2 ||
+             type == OBJECT_RUINmobiler1 ||
+             type == OBJECT_RUINmobiler2 ||
+             type == OBJECT_RUINfactory  ||
+             type == OBJECT_RUINdoor     ||
+             type == OBJECT_RUINsupport  ||
+             type == OBJECT_RUINradar    ||
+             type == OBJECT_RUINconvert   )
+    {
+        return true;
+    }
+    else if (type == OBJECT_PLANT0  ||
+             type == OBJECT_PLANT1  ||
+             type == OBJECT_PLANT2  ||
+             type == OBJECT_PLANT3  ||
+             type == OBJECT_PLANT4  ||
+             type == OBJECT_PLANT15 ||
+             type == OBJECT_PLANT16 ||
+             type == OBJECT_PLANT17 ||
+             type == OBJECT_PLANT18 )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsShielded(ObjectType type)
+{
+    // TODO: Hacking some more
+    if ( type == OBJECT_MOBILEtg ||
+         type == OBJECT_STONE    ||
+         type == OBJECT_METAL    ||
+         type == OBJECT_URANIUM  ||
+         type == OBJECT_POWER    ||
+         type == OBJECT_ATOMIC   ||
+         type == OBJECT_TNT      ||
+         type == OBJECT_BULLET   ||
+         type == OBJECT_EGG      ||
+         type == OBJECT_BOMB     ||
+         type == OBJECT_ANT      ||
+         type == OBJECT_WORM     ||
+         type == OBJECT_SPIDER   ||
+         type == OBJECT_BEE      ||
+         type == OBJECT_TEEN28    )
+    {
+        return false;
+    }
+    else if (type == OBJECT_HUMAN ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_DERRICK  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_MOTHER    )
+    {
+        return true;
+    }
+    else if (type == OBJECT_HUSTON ||
+             type == OBJECT_BASE    )
+    {
+        return false;
+    }
+    else if (type == OBJECT_RUINmobilew1 ||
+             type == OBJECT_RUINmobilew2 ||
+             type == OBJECT_RUINmobilet1 ||
+             type == OBJECT_RUINmobilet2 ||
+             type == OBJECT_RUINmobiler1 ||
+             type == OBJECT_RUINmobiler2 ||
+             type == OBJECT_RUINfactory  ||
+             type == OBJECT_RUINdoor     ||
+             type == OBJECT_RUINsupport  ||
+             type == OBJECT_RUINradar    ||
+             type == OBJECT_RUINconvert   )
+    {
+        return false;
+    }
+    else if (type == OBJECT_PLANT0  ||
+             type == OBJECT_PLANT1  ||
+             type == OBJECT_PLANT2  ||
+             type == OBJECT_PLANT3  ||
+             type == OBJECT_PLANT4  ||
+             type == OBJECT_PLANT15 ||
+             type == OBJECT_PLANT16 ||
+             type == OBJECT_PLANT17 ||
+             type == OBJECT_PLANT18 )
+    {
+        return false;
+    }
+
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsImmuneToFireballs(ObjectType type)
+{
+    if (type == OBJECT_MOTHER)  return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsImmuneToInsects(ObjectType type)
+{
+    return ( type == OBJECT_ANT      ||
+             type == OBJECT_SPIDER   ||
+             type == OBJECT_BEE      ||
+             type == OBJECT_WORM     ||
+             type == OBJECT_MOTHER   ||
+             type == OBJECT_NEST     ||
+             type == OBJECT_BULLET   ||
+             type == OBJECT_EGG      ||
+             type == OBJECT_TEEN28   ||
+             type == OBJECT_TEEN31   );
+}
+
+bool CObjectDetailsHardcodeCollection::IsImmuneToSpiders(ObjectType type)
+{
+    return ( type == OBJECT_ANT      ||
+             type == OBJECT_SPIDER   ||
+             type == OBJECT_BEE      ||
+             type == OBJECT_WORM     ||
+             type == OBJECT_MOTHER   ||
+             type == OBJECT_NEST     ||
+             type == OBJECT_BULLET   ||
+             type == OBJECT_EGG      ||
+             type == OBJECT_TEEN28   ||
+             type == OBJECT_TEEN31   );
+}
+
+bool CObjectDetailsHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
+{
+    if (type == OBJECT_MOTHER)  return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsImmuneToPhazers(ObjectType type)
+{
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
+{
+    if (type == OBJECT_MOBILEtg ||
+     type == OBJECT_TEEN28   ||
+     type == OBJECT_TEEN31   ||
+     type == OBJECT_ANT      ||
+     type == OBJECT_SPIDER   ||
+     type == OBJECT_BEE      ||
+     type == OBJECT_WORM     ||
+     type == OBJECT_MOTHER   ||
+     type == OBJECT_NEST) return false;
+
+     return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsShieldAutoregen(ObjectType type)
+{
+    return type == OBJECT_HUMAN;
+}
+
+float CObjectDetailsHardcodeCollection::GetShieldAutoregenTime(ObjectType type)
+{
+    return type == OBJECT_HUMAN ? 120.0f : 0.0f;
+}
+
+bool CObjectDetailsHardcodeCollection::IsSloted(ObjectType type)
+{
+    return HasCargoSlot(type) || HasPowerSlot(type) || HasOtherSlot(type);
+}
+
+bool CObjectDetailsHardcodeCollection::HasCargoSlot(ObjectType type)
+{
+    if ( type == OBJECT_HUMAN ||
+         type == OBJECT_TECH ||
+         type == OBJECT_MOBILEfa || // Grabbers
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEsa) // subber
+         return true;
+
+    // DEV BRACH MISSED THIS
+    if ( type == OBJECT_BEE ) return true;
+
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::HasPowerSlot(ObjectType type)
+{
+    // TODO: Another temporary hack
+    if (type == OBJECT_MOBILEfa ||
+        type == OBJECT_MOBILEta ||
+        type == OBJECT_MOBILEwa ||
+        type == OBJECT_MOBILEia ||
+        type == OBJECT_MOBILEfb ||
+        type == OBJECT_MOBILEtb ||
+        type == OBJECT_MOBILEwb ||
+        type == OBJECT_MOBILEib ||
+        type == OBJECT_MOBILEfc ||
+        type == OBJECT_MOBILEtc ||
+        type == OBJECT_MOBILEwc ||
+        type == OBJECT_MOBILEic ||
+        type == OBJECT_MOBILEfi ||
+        type == OBJECT_MOBILEti ||
+        type == OBJECT_MOBILEwi ||
+        type == OBJECT_MOBILEii ||
+        type == OBJECT_MOBILEfs ||
+        type == OBJECT_MOBILEts ||
+        type == OBJECT_MOBILEws ||
+        type == OBJECT_MOBILEis ||
+        type == OBJECT_MOBILErt ||
+        type == OBJECT_MOBILErc ||
+        type == OBJECT_MOBILErr ||
+        type == OBJECT_MOBILErs ||
+        type == OBJECT_MOBILEsa ||
+        type == OBJECT_MOBILEtg ||
+        type == OBJECT_MOBILEft ||
+        type == OBJECT_MOBILEtt ||
+        type == OBJECT_MOBILEwt ||
+        type == OBJECT_MOBILEit ||
+        type == OBJECT_MOBILErp ||
+        type == OBJECT_MOBILEst ||
+        type == OBJECT_TOWER    ||
+        type == OBJECT_RESEARCH ) return true;
+
+    return false;
+}
+
+Math::Vector CObjectDetailsHardcodeCollection::GetPowerSlotPosition(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt )  // wheels?
+    {
+        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_MOBILEtg )
+    {
+        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt )  // caterpillars?
+    {
+        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit)  // legs?
+    {
+        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft )  // flying?
+    {
+        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp)  // large caterpillars?
+    {
+        return (Math::Vector(-5.8f, 4.0f, 0.0f));
+    }
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst )
+    {
+        return (Math::Vector(-5.0f, 3.0f, 0.0f));
+    }
+
+    if ( type == OBJECT_MOBILEdr )
+    {
+        return (Math::Vector(-5.0f, 3.0f, 0.0f));
+    }
+
+    if ( type == OBJECT_RESEARCH )
+    {
+        return (Math::Vector(7.5f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_TOWER )
+    {
+        return (Math::Vector(5.0f, 3.0f, 0.0f));
+    }
+    return Math::Vector();
+}
+
+bool CObjectDetailsHardcodeCollection::HasOtherSlot(ObjectType type)
+{
+    if (type == OBJECT_ENERGY   ||
+        type == OBJECT_LABO     ||
+        type == OBJECT_NUCLEAR  ) return true;
+    return false;
+}
+
+Math::Vector CObjectDetailsHardcodeCollection::GetOtherSlotPosition(ObjectType type)
+{
+    if ( type == OBJECT_ENERGY )
+    {
+        return (Math::Vector(0.0f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_LABO )
+    {
+        return (Math::Vector(0.0f, 3.0f, 0.0f));
+    }
+    if ( type == OBJECT_NUCLEAR )
+    {
+        return (Math::Vector(22.0f, 3.0f, 0.0f));
+    }
+    return Math::Vector();
+}
+
+bool CObjectDetailsHardcodeCollection::IsSquashedByHeavy(ObjectType type)
+{
+    if (type == OBJECT_PLANT0  ||
+        type == OBJECT_PLANT1  ||
+        type == OBJECT_PLANT2  ||
+        type == OBJECT_PLANT3  ||
+        type == OBJECT_PLANT4  ||
+        type == OBJECT_PLANT15 ||
+        type == OBJECT_PLANT16 ||
+        type == OBJECT_PLANT17 ||
+        type == OBJECT_PLANT18) return true;
+
+    return false;
+}
+
 bool CObjectDetailsHardcodeCollection::IsDestructionRemoveBuildingLevel(ObjectType type)
 {
     if ( type == OBJECT_BASE     ||
@@ -4486,13 +5680,43 @@ bool CObjectDetailsHardcodeCollection::IsDestructionKilledByBurning(ObjectType t
     return type != OBJECT_HUMAN;
 }
 
+bool CObjectDetailsHardcodeCollection::IsExplodesInWater(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEtg ||
+         type == OBJECT_MOBILEdr ||
+         type == OBJECT_APOLLO2 ) return true;
 
-
-
-
-
-
-
+    return false;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -4579,6 +5803,23 @@ bool CObjectDetailsHardcodeCollection::IsCameraTypePersistent(ObjectType type)
          type == OBJECT_APOLLO2 )  return true;
 
     return false;
+}
+
+Gfx::CameraType CObjectDetailsHardcodeCollection::GetDefaultCameraType(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILErc )  // cannon vehicle?
+    {
+        return Gfx::CAM_TYPE_ONBOARD;
+    }
+    return Gfx::CAM_TYPE_BACK;
 }
 
 float CObjectDetailsHardcodeCollection::GetBackCameraDistance(ObjectType type)
@@ -4759,6 +6000,347 @@ bool CObjectDetailsHardcodeCollection::DisableOnboardCameraCorners(ObjectType ty
     return false;
 }
 
+bool CObjectDetailsHardcodeCollection::HasOnboardCameraCrosshair(ObjectType type)
+{
+    if ( (type == OBJECT_MOBILEfc ||
+          type == OBJECT_MOBILEtc ||
+          type == OBJECT_MOBILEwc ||
+          type == OBJECT_MOBILEic ||
+          type == OBJECT_MOBILEfi ||
+          type == OBJECT_MOBILEti ||
+          type == OBJECT_MOBILEwi ||
+          type == OBJECT_MOBILEii ||
+          type == OBJECT_MOBILErc ) )  return true;
+
+    return false;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Automation Details
+//////////////////////////////////////////////////////////////////////////////
+
+bool CObjectDetailsHardcodeCollection::IsBlockingBuilding(ObjectType type)
+{
+    if ( type == OBJECT_DERRICK  ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_START    ||
+         type == OBJECT_END      ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_SAFE     ||
+         type == OBJECT_HUSTON   ) return true;
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoTargetedByTower(ObjectType type)
+{
+    if (type == OBJECT_ANT      ||
+        type == OBJECT_SPIDER   ||
+        type == OBJECT_BEE      ||
+        type == OBJECT_WORM     ||
+        type == OBJECT_MOTHER) return true;
+
+     return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoTargetedByMushroom(ObjectType type)
+{
+        if ( type == OBJECT_MOBILEfa ||
+             type == OBJECT_MOBILEta ||
+             type == OBJECT_MOBILEwa ||
+             type == OBJECT_MOBILEia ||
+             type == OBJECT_MOBILEfb ||
+             type == OBJECT_MOBILEtb ||
+             type == OBJECT_MOBILEwb ||
+             type == OBJECT_MOBILEib ||
+             type == OBJECT_MOBILEfc ||
+             type == OBJECT_MOBILEtc ||
+             type == OBJECT_MOBILEwc ||
+             type == OBJECT_MOBILEic ||
+             type == OBJECT_MOBILEfi ||
+             type == OBJECT_MOBILEti ||
+             type == OBJECT_MOBILEwi ||
+             type == OBJECT_MOBILEii ||
+             type == OBJECT_MOBILEfs ||
+             type == OBJECT_MOBILEts ||
+             type == OBJECT_MOBILEws ||
+             type == OBJECT_MOBILEis ||
+             type == OBJECT_MOBILErt ||
+             type == OBJECT_MOBILErc ||
+             type == OBJECT_MOBILErr ||
+             type == OBJECT_MOBILErs ||
+             type == OBJECT_MOBILEsa ||
+             type == OBJECT_MOBILEtg ||
+             type == OBJECT_MOBILEft ||
+             type == OBJECT_MOBILEtt ||
+             type == OBJECT_MOBILEwt ||
+             type == OBJECT_MOBILEit ||
+             type == OBJECT_MOBILErp ||
+             type == OBJECT_MOBILEst ||
+             type == OBJECT_MOBILEdr ||
+             type == OBJECT_DERRICK  ||
+             type == OBJECT_STATION  ||
+             type == OBJECT_FACTORY  ||
+             type == OBJECT_REPAIR   ||
+             type == OBJECT_DESTROYER||
+             type == OBJECT_CONVERT  ||
+             type == OBJECT_TOWER    ||
+             type == OBJECT_RESEARCH ||
+             type == OBJECT_RADAR    ||
+             type == OBJECT_INFO     ||
+             type == OBJECT_ENERGY   ||
+             type == OBJECT_LABO     ||
+             type == OBJECT_NUCLEAR  ||
+             type == OBJECT_PARA     ||
+             type == OBJECT_HUMAN    )  return true;
+             
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoCommentedByAssistant(ObjectType type)
+{
+    if (type == OBJECT_HUMAN    ||
+        type == OBJECT_TECH     ||
+        type == OBJECT_MOBILEwa ||
+        type == OBJECT_MOBILEta ||
+        type == OBJECT_MOBILEfa ||
+        type == OBJECT_MOBILEia ||
+        type == OBJECT_MOBILEwb ||
+        type == OBJECT_MOBILEtb ||
+        type == OBJECT_MOBILEfb ||
+        type == OBJECT_MOBILEib ||
+        type == OBJECT_MOBILEwc ||
+        type == OBJECT_MOBILEtc ||
+        type == OBJECT_MOBILEfc ||
+        type == OBJECT_MOBILEic ||
+        type == OBJECT_MOBILEwi ||
+        type == OBJECT_MOBILEti ||
+        type == OBJECT_MOBILEfi ||
+        type == OBJECT_MOBILEii ||
+        type == OBJECT_MOBILEws ||
+        type == OBJECT_MOBILEts ||
+        type == OBJECT_MOBILEfs ||
+        type == OBJECT_MOBILEis ||
+        type == OBJECT_MOBILErt ||
+        type == OBJECT_MOBILErc ||
+        type == OBJECT_MOBILErr ||
+        type == OBJECT_MOBILErs ||
+        type == OBJECT_MOBILEsa ||
+        type == OBJECT_MOBILEwt ||
+        type == OBJECT_MOBILEtt ||
+        type == OBJECT_MOBILEft ||
+        type == OBJECT_MOBILEit ||
+        type == OBJECT_MOBILErp ||
+        type == OBJECT_MOBILEst ||
+        type == OBJECT_MOBILEtg ||
+        type == OBJECT_MOBILEdr ) return true;
+
+    return false;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoChargedAtPowerStation(ObjectType type)
+{
+    if ( type != OBJECT_HUMAN    &&
+         type != OBJECT_MOBILEfa &&
+         type != OBJECT_MOBILEta &&
+         type != OBJECT_MOBILEwa &&
+         type != OBJECT_MOBILEia &&
+         type != OBJECT_MOBILEfb &&
+         type != OBJECT_MOBILEtb &&
+         type != OBJECT_MOBILEwb &&
+         type != OBJECT_MOBILEib &&
+         type != OBJECT_MOBILEfc &&
+         type != OBJECT_MOBILEtc &&
+         type != OBJECT_MOBILEwc &&
+         type != OBJECT_MOBILEic &&
+         type != OBJECT_MOBILEfi &&
+         type != OBJECT_MOBILEti &&
+         type != OBJECT_MOBILEwi &&
+         type != OBJECT_MOBILEii &&
+         type != OBJECT_MOBILEfs &&
+         type != OBJECT_MOBILEts &&
+         type != OBJECT_MOBILEws &&
+         type != OBJECT_MOBILEis &&
+         type != OBJECT_MOBILErt &&
+         type != OBJECT_MOBILErc &&
+         type != OBJECT_MOBILErr &&
+         type != OBJECT_MOBILErs &&
+         type != OBJECT_MOBILEsa &&
+         type != OBJECT_MOBILEft &&
+         type != OBJECT_MOBILEtt &&
+         type != OBJECT_MOBILEwt &&
+         type != OBJECT_MOBILEit &&
+         type != OBJECT_MOBILErp &&
+         type != OBJECT_MOBILEst &&
+         type != OBJECT_MOBILEtg &&
+         type != OBJECT_MOBILEdr) return false;
+
+     return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoBlockingPowerPlant(ObjectType type)
+{
+    if ( type != OBJECT_HUMAN    &&
+         type != OBJECT_MOBILEfa &&
+         type != OBJECT_MOBILEta &&
+         type != OBJECT_MOBILEwa &&
+         type != OBJECT_MOBILEia &&
+         type != OBJECT_MOBILEfb &&
+         type != OBJECT_MOBILEtb &&
+         type != OBJECT_MOBILEwb &&
+         type != OBJECT_MOBILEib &&
+         type != OBJECT_MOBILEfc &&
+         type != OBJECT_MOBILEtc &&
+         type != OBJECT_MOBILEwc &&
+         type != OBJECT_MOBILEic &&
+         type != OBJECT_MOBILEfi &&
+         type != OBJECT_MOBILEti &&
+         type != OBJECT_MOBILEwi &&
+         type != OBJECT_MOBILEii &&
+         type != OBJECT_MOBILEfs &&
+         type != OBJECT_MOBILEts &&
+         type != OBJECT_MOBILEws &&
+         type != OBJECT_MOBILEis &&
+         type != OBJECT_MOBILErt &&
+         type != OBJECT_MOBILErc &&
+         type != OBJECT_MOBILErr &&
+         type != OBJECT_MOBILErs &&
+         type != OBJECT_MOBILEsa &&
+         type != OBJECT_MOBILEtg &&
+         type != OBJECT_MOBILEft &&
+         type != OBJECT_MOBILEtt &&
+         type != OBJECT_MOBILEwt &&
+         type != OBJECT_MOBILEit &&
+         type != OBJECT_MOBILErp &&
+         type != OBJECT_MOBILEst &&
+         type != OBJECT_MOBILEdr &&
+         type != OBJECT_MOTHER   &&
+         type != OBJECT_ANT      &&
+         type != OBJECT_SPIDER   &&
+         type != OBJECT_BEE      &&
+         type != OBJECT_WORM) return false;
+
+     return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoBlockingNuclearPlant(ObjectType type)
+{
+    if ( type != OBJECT_HUMAN    &&
+         type != OBJECT_MOBILEfa &&
+         type != OBJECT_MOBILEta &&
+         type != OBJECT_MOBILEwa &&
+         type != OBJECT_MOBILEia &&
+         type != OBJECT_MOBILEfb &&
+         type != OBJECT_MOBILEtb &&
+         type != OBJECT_MOBILEwb &&
+         type != OBJECT_MOBILEib &&
+         type != OBJECT_MOBILEfc &&
+         type != OBJECT_MOBILEtc &&
+         type != OBJECT_MOBILEwc &&
+         type != OBJECT_MOBILEic &&
+         type != OBJECT_MOBILEfi &&
+         type != OBJECT_MOBILEti &&
+         type != OBJECT_MOBILEwi &&
+         type != OBJECT_MOBILEii &&
+         type != OBJECT_MOBILEfs &&
+         type != OBJECT_MOBILEts &&
+         type != OBJECT_MOBILEws &&
+         type != OBJECT_MOBILEis &&
+         type != OBJECT_MOBILErt &&
+         type != OBJECT_MOBILErc &&
+         type != OBJECT_MOBILErr &&
+         type != OBJECT_MOBILErs &&
+         type != OBJECT_MOBILEsa &&
+         type != OBJECT_MOBILEtg &&
+         type != OBJECT_MOBILEft &&
+         type != OBJECT_MOBILEtt &&
+         type != OBJECT_MOBILEwt &&
+         type != OBJECT_MOBILEit &&
+         type != OBJECT_MOBILErp &&
+         type != OBJECT_MOBILEst &&
+         type != OBJECT_MOBILEdr &&
+         type != OBJECT_MOTHER   &&
+         type != OBJECT_ANT      &&
+         type != OBJECT_SPIDER   &&
+         type != OBJECT_BEE      &&
+         type != OBJECT_WORM) return false;
+
+     return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAutoBlockingFactory(ObjectType type)
+{
+    if ( type != OBJECT_HUMAN    &&
+         type != OBJECT_MOBILEfa &&
+         type != OBJECT_MOBILEta &&
+         type != OBJECT_MOBILEwa &&
+         type != OBJECT_MOBILEia &&
+         type != OBJECT_MOBILEfb &&
+         type != OBJECT_MOBILEtb &&
+         type != OBJECT_MOBILEwb &&
+         type != OBJECT_MOBILEib &&
+         type != OBJECT_MOBILEfc &&
+         type != OBJECT_MOBILEtc &&
+         type != OBJECT_MOBILEwc &&
+         type != OBJECT_MOBILEic &&
+         type != OBJECT_MOBILEfi &&
+         type != OBJECT_MOBILEti &&
+         type != OBJECT_MOBILEwi &&
+         type != OBJECT_MOBILEii &&
+         type != OBJECT_MOBILEfs &&
+         type != OBJECT_MOBILEts &&
+         type != OBJECT_MOBILEws &&
+         type != OBJECT_MOBILEis &&
+         type != OBJECT_MOBILErt &&
+         type != OBJECT_MOBILErc &&
+         type != OBJECT_MOBILErr &&
+         type != OBJECT_MOBILErs &&
+         type != OBJECT_MOBILEsa &&
+         type != OBJECT_MOBILEtg &&
+         type != OBJECT_MOBILEft &&
+         type != OBJECT_MOBILEtt &&
+         type != OBJECT_MOBILEwt &&
+         type != OBJECT_MOBILEit &&
+         type != OBJECT_MOBILErp &&
+         type != OBJECT_MOBILEst &&
+         type != OBJECT_MOBILEdr &&
+         type != OBJECT_MOTHER   &&
+         type != OBJECT_ANT      &&
+         type != OBJECT_SPIDER   &&
+         type != OBJECT_BEE      &&
+         type != OBJECT_WORM ) return false;
+
+     return true;
+}
+
+ObjectType CObjectDetailsHardcodeCollection::GetProductionInput(ObjectType type)
+{
+    if ( type == OBJECT_CONVERT ) return OBJECT_STONE;
+    if ( type == OBJECT_ENERGY ) return OBJECT_METAL;
+    if ( type == OBJECT_NUCLEAR ) return OBJECT_URANIUM;
+    return OBJECT_NULL;
+}
+
+ObjectType CObjectDetailsHardcodeCollection::GetProductionOutput(ObjectType type)
+{
+    if ( type == OBJECT_CONVERT ) return OBJECT_METAL;
+    if ( type == OBJECT_ENERGY ) return OBJECT_POWER;
+    if ( type == OBJECT_NUCLEAR ) return OBJECT_ATOMIC;
+    if ( type == OBJECT_NEST ) return OBJECT_BULLET;
+    return OBJECT_NULL;
+}
 
 
 
@@ -5221,9 +6803,9 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceProgramUIBlink(ObjectType
     return false;
 }
 
-std::vector<CObjectUserInterfaceWidget> CObjectDetailsHardcodeCollection::GetUserInterfaceWidgetList(ObjectType type)
+std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInterfaceWidgetList(ObjectType type)
 {
-    std::vector<CObjectUserInterfaceWidget> result;
+    std::vector<CObjectControlsWidget> result;
     ObjectUIWidgetParams params = {-1};
     
     if ( (type == OBJECT_HUMAN ||
@@ -5332,6 +6914,92 @@ std::vector<CObjectUserInterfaceWidget> CObjectDetailsHardcodeCollection::GetUse
     {
         result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 42, EVENT_OBJECT_SPIDEREXPLO,  true, true,  false, false});
     }
+    
+    if (type == OBJECT_CONVERT ||
+        type == OBJECT_DERRICK ||
+        type == OBJECT_DESTROYER ||
+        type == OBJECT_FACTORY ||
+        type == OBJECT_LABO ||
+        type == OBJECT_NEST ||
+        type == OBJECT_NUCLEAR ||
+        type == OBJECT_PORTICO ||
+        type == OBJECT_PARA ||
+        type == OBJECT_ENERGY ||
+        type == OBJECT_STATION ||
+        type == OBJECT_RADAR ||
+        type == OBJECT_REPAIR ||
+        type == OBJECT_RESEARCH ||
+        type == OBJECT_TOWER)
+    {
+        result.push_back({Math::Point(2.1f,  0.0f), Math::Point(0.6f, 0.6f), WIDGET_ICON_BUTTON, 12, EVENT_OBJECT_DELETE,  false, false,  false, false});
+    }
+
+    if (type == OBJECT_BASE )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+43, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_FACTORY )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+32, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_RESEARCH )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+35, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_CONVERT )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+34, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_STATION )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+36, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_RADAR )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+40, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_REPAIR )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+41, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_TOWER )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+37, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_ENERGY )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+39, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_DERRICK )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+33, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_NUCLEAR )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+42, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_LABO )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+38, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_INFO )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+44, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_PARA )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+46, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_SAFE )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+47, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+    if (type == OBJECT_HUSTON )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+48, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
+
+
 
     return result;
 }
@@ -5360,21 +7028,6 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceShielderUIRobot(ObjectTyp
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceShooterUIRobot(ObjectType type)
-{
-    if ( (type == OBJECT_MOBILEfc ||
-          type == OBJECT_MOBILEtc ||
-          type == OBJECT_MOBILEwc ||
-          type == OBJECT_MOBILEic ||
-          type == OBJECT_MOBILEfi ||
-          type == OBJECT_MOBILEti ||
-          type == OBJECT_MOBILEwi ||
-          type == OBJECT_MOBILEii ||
-          type == OBJECT_MOBILErc ) )  return true;
-
-    return false;
-}
-
 bool CObjectDetailsHardcodeCollection::HasUserInterfaceScribblerUIRobot(ObjectType type)
 {
     if ( (type == OBJECT_MOBILEdr ) )  return true;
@@ -5388,4 +7041,50 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceDisableFlyWhileGrabbing(O
           type == OBJECT_TECH  ) )   return true;
 
     return false;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Assistant global details
+//////////////////////////////////////////////////////////////////////////////
+
+ObjectType CObjectDetailsHardcodeCollection::GetAssistantType()
+{
+    return OBJECT_TOTO;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantReactingOnDisplayedInfo()
+{
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantReactingOnDisplayedText()
+{
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantIgnoredOnSaveLoad()
+{
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantMovesWithCamera()
+{
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantClickable()
+{
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantUndamagable()
+{
+    return true;
+}
+
+bool CObjectDetailsHardcodeCollection::IsAssistantUnpausable()
+{
+    return true;
 }

@@ -23,6 +23,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "physics/physics.h"
@@ -135,7 +136,6 @@ Error CTaskPen::Start(bool bDown, TraceColor color)
 {
     Math::Vector    pos;
     Math::Matrix*   mat;
-    ObjectType  type;
     int         i;
 
     if (color == TraceColor::Default)
@@ -150,8 +150,8 @@ Error CTaskPen::Start(bool bDown, TraceColor color)
 
     m_bError = true;  // operation impossible
 
-    type = m_object->GetType();
-    if ( type != OBJECT_MOBILEdr )  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    if (!allowedScripting.penAsRobot)  return ERR_WRONG_BOT;
 
     m_bError = false;  // ok
 

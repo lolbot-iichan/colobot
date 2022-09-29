@@ -334,13 +334,28 @@ Math::Vector CLevelParserParam::AsPoint(Math::Vector def)
     return AsPoint();
 }
 
+Math::Point CLevelParserParam::AsPoint(Math::Point def)
+{
+    if (m_empty)
+        return def;
+
+    ParseArray();
+    if (m_array.size() == 2)
+    {
+        return Math::Point(m_array[0]->AsFloat(), m_array[1]->AsFloat());
+    }
+    else
+    {
+        throw CLevelParserExceptionBadParam(this, "point");
+    }
+}
 
 ObjectType CLevelParserParam::ToObjectType(std::string value)
 {
     if (value == "All"               ) return OBJECT_NULL; // For use in NewScript
     if (value == "Any"               ) return OBJECT_NULL; // For use in type= in ending conditions
 
-    ObjectType type = GetObjectDetails().ParseNameOrAliasInLevelFiles(value);
+    ObjectType type = ParseObjectTypeFromName(value);
     if ( type != OBJECT_NULL ) return type;
 
     return static_cast<ObjectType>(Cast<int>(value, "object"));
@@ -348,7 +363,7 @@ ObjectType CLevelParserParam::ToObjectType(std::string value)
 
 const std::string CLevelParserParam::FromObjectType(ObjectType value)
 {
-    std::string name = GetObjectDetails().GetNameInLevelFiles(value);
+    std::string name = GetObjectNamingDetails(value).level.name;
     if ( name.size() ) return name;
 
     return boost::lexical_cast<std::string>(static_cast<int>(value));

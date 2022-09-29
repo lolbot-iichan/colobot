@@ -30,6 +30,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "sound/sound.h"
@@ -84,6 +85,8 @@ void CMotionToto::DeleteObject(bool bAll)
 void CMotionToto::Create(Math::Vector pos, float angle, ObjectType type,
                          float power, Gfx::COldModelManager* modelManager)
 {
+    CMotion::Create(pos, angle, type, power, modelManager);
+
     int             rank;
 
 
@@ -173,7 +176,7 @@ void CMotionToto::Create(Math::Vector pos, float angle, ObjectType type,
     m_object->SetPartPosition(9, Math::Vector(0.0f, 0.70f, 0.0f));
     m_object->SetPartRotationX(9, -30.0f*Math::PI/180.0f);
 
-    m_object->SetScale(0.5f);  // is little
+    m_object->SetScale(1.5f);  // is little
     m_object->SetFloorHeight(0.0f);
 
     pos = m_object->GetPosition();
@@ -326,44 +329,9 @@ bool CMotionToto::EventFrame(const Event &event)
         verti    = 10.0f-progress* 8.0f;  // shift at the top
 
         CObject* selected = m_main->GetSelect();
-        ObjectType type = selected != nullptr ? selected->GetType() : OBJECT_NULL;
 
-        if ( m_actionType == -1 &&
-             (type == OBJECT_HUMAN    ||
-              type == OBJECT_TECH     ||
-              type == OBJECT_MOBILEwa ||
-              type == OBJECT_MOBILEta ||
-              type == OBJECT_MOBILEfa ||
-              type == OBJECT_MOBILEia ||
-              type == OBJECT_MOBILEwb ||
-              type == OBJECT_MOBILEtb ||
-              type == OBJECT_MOBILEfb ||
-              type == OBJECT_MOBILEib ||
-              type == OBJECT_MOBILEwc ||
-              type == OBJECT_MOBILEtc ||
-              type == OBJECT_MOBILEfc ||
-              type == OBJECT_MOBILEic ||
-              type == OBJECT_MOBILEwi ||
-              type == OBJECT_MOBILEti ||
-              type == OBJECT_MOBILEfi ||
-              type == OBJECT_MOBILEii ||
-              type == OBJECT_MOBILEws ||
-              type == OBJECT_MOBILEts ||
-              type == OBJECT_MOBILEfs ||
-              type == OBJECT_MOBILEis ||
-              type == OBJECT_MOBILErt ||
-              type == OBJECT_MOBILErc ||
-              type == OBJECT_MOBILErr ||
-              type == OBJECT_MOBILErs ||
-              type == OBJECT_MOBILEsa ||
-              type == OBJECT_MOBILEwt ||
-              type == OBJECT_MOBILEtt ||
-              type == OBJECT_MOBILEft ||
-              type == OBJECT_MOBILEit ||
-              type == OBJECT_MOBILErp ||
-              type == OBJECT_MOBILEst ||
-              type == OBJECT_MOBILEtg ||
-              type == OBJECT_MOBILEdr ) )  // vehicle?
+        auto targeted = GetObjectAutomationDetails(selected).targeted;
+        if (m_actionType == -1 && targeted.commentedByAssistant)  // vehicle?
         {
             m_clownTime += event.rTime;
             if ( m_clownTime >= m_clownDelay )

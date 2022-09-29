@@ -60,6 +60,7 @@
 #include "ui/controls/interface.h"
 #include "ui/controls/label.h"
 #include "ui/controls/list.h"
+#include "ui/controls/logo.h"
 #include "ui/controls/slider.h"
 #include "ui/controls/target.h"
 #include "ui/controls/window.h"
@@ -750,7 +751,8 @@ void CObjectInterface::ColorFlag(int color)
 
 bool CObjectInterface::CreateInterface(bool bSelect)
 {
-    CObjectUserInterfaceDetails objectUIDetails;
+    CObjectOnboardCameraDetails onboardCameraDetails;
+    CObjectControlsDetails controlsDetails;
     CWindow*     pw;
     CButton*     pb;
     CSlider*     ps;
@@ -793,9 +795,10 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    objectUIDetails = GetObjectUserInterfaceDetails(m_object);
+    controlsDetails = GetObjectControlsDetails(m_object);
+    onboardCameraDetails = GetObjectCameraDetails(m_object).onboardCamera;
 
-    if ( objectUIDetails.hasProgramUI )
+    if ( controlsDetails.hasProgramUI )
     {
         if (m_main->GetMissionType() != MISSION_RETRO)
         {
@@ -855,7 +858,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         }
     }
 
-    for ( auto it : objectUIDetails.widgets )
+    for ( auto it : controlsDetails.widgets )
     {
         bool bSkip = false;
         for ( auto b : it.onBuildingsEnabled )
@@ -876,21 +879,17 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ddim.y = dim.y * it.size.y;
         
         if ( it.type == WIDGET_ICON_BUTTON )
-        {
-            pb = pw->CreateButton(pos, ddim, it.params.icon, it.event);
-            pb->SetImmediat(true);
-        }
+            pw->CreateButton(pos, ddim, it.params.icon, it.event)->SetImmediat(it.isImmediat);
         else if ( it.type == WIDGET_COLOR_BUTTON )
-        {
-            pc = pw->CreateColor(pos, ddim, -1, it.event);
-            pc->SetColor(it.params.color);
-        }
+            pw->CreateColor(pos, ddim, -1, it.event)->SetColor(it.params.color);
+        else if ( it.type == WIDGET_ICON_LOGO )
+            pw->CreateLogo(pos, ddim, it.params.icon, it.event);
 
         if ( it.isDefault )
             DefaultEnter(pw, it.event);
     }
 
-    if ( objectUIDetails.hasBuilderUIHuman && !m_main->GetPlusExplorer() )
+    if ( controlsDetails.hasBuilderUIHuman && !m_main->GetPlusExplorer() )
     {
         pos.x  =   1.0f/640.0f;
         pos.y  =   4.0f/480.0f;
@@ -920,7 +919,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         }
     }
 
-    if ( objectUIDetails.hasShielderUIRobot && !m_object->GetTrainer() )
+    if ( controlsDetails.hasShielderUIRobot && !m_object->GetTrainer() )
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
@@ -945,7 +944,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ps->SetArrowStep(1.0f);
     }
 
-    if ( objectUIDetails.hasScribblerUIRobot && m_object->GetManual() )
+    if ( controlsDetails.hasScribblerUIRobot && m_object->GetManual() )
     {
         pos.x = ox+sx*6.9f;
         pos.y = oy+sy*0.0f;
@@ -1101,7 +1100,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pw->CreateGauge(pos, ddim, 3, EVENT_OBJECT_GSHIELD);
     }
 
-    if ( objectUIDetails.hasShooterUIRobot )
+    if ( onboardCameraDetails.hasCrosshair )
     {
         ddim.x = 64.0f/640.0f;
         ddim.y = 64.0f/480.0f;
@@ -1117,7 +1116,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pt->ClearState(STATE_GLINT);
     }
 
-    if ( !GetObjectCameraDetails(m_object).disableCornersOnOnboardCamera )
+    if ( !onboardCameraDetails.disableCorners )
     {
         ddim.x = 64.0f / 640.0f;
         ddim.y = 64.0f / 480.0f;
@@ -1144,7 +1143,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pw->CreateGroup(pos, ddim, 16, EVENT_OBJECT_CORNERdr);
     }
 
-    if ( objectUIDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
+    if ( controlsDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
@@ -1391,7 +1390,7 @@ void CObjectInterface::UpdateInterface(float rTime)
 
 void CObjectInterface::UpdateInterface()
 {
-    CObjectUserInterfaceDetails objectUIDetails;
+    CObjectControlsDetails controlsDetails;
     CWindow*    pw;
     CButton*    pb;
     CSlider*    ps;
@@ -1475,8 +1474,8 @@ void CObjectInterface::UpdateInterface()
     CheckInterface(pw, EVENT_OBJECT_MBACK,        m_manipStyle==EVENT_OBJECT_MBACK);
     CheckInterface(pw, EVENT_OBJECT_MFRONT,       m_manipStyle==EVENT_OBJECT_MFRONT);
 
-    objectUIDetails = GetObjectUserInterfaceDetails(m_object);
-    if ( objectUIDetails.hasShielderUIRobot )
+    controlsDetails = GetObjectControlsDetails(m_object);
+    if ( controlsDetails.hasShielderUIRobot )
     {
         if ( (!m_taskExecutor->IsBackgroundTask() || !m_taskExecutor->GetBackgroundTask()->IsBusy()) && !m_programmable->IsProgram() )
         {
@@ -1500,7 +1499,7 @@ void CObjectInterface::UpdateInterface()
         }
     }
 
-    if ( objectUIDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
+    if ( controlsDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
     {
         if(!bEnable) m_buildInterface = false;
         CheckInterface(pw, EVENT_OBJECT_BUILD, m_buildInterface);
@@ -1539,7 +1538,7 @@ void CObjectInterface::UpdateInterface()
     }
 
     bFly = bEnable;
-    if ( bFly && objectUIDetails.disableFlyWhileGrabbing )
+    if ( bFly && controlsDetails.disableFlyWhileGrabbing )
     {
         if (dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::CARRYING) != nullptr)
             bFly = false;
@@ -1557,7 +1556,7 @@ void CObjectInterface::UpdateInterface()
         DeadInterface(pw, EVENT_OBJECT_GASDOWN, m_main->IsResearchDone(RESEARCH_FLY, m_object->GetTeam()));
     }
 
-    if ( objectUIDetails.hasProgramUIBlink )
+    if ( controlsDetails.hasProgramUIBlink )
     {
         bRun = false;
         if (m_selScript >= 0 && m_selScript < m_programStorage->GetProgramCount())

@@ -226,8 +226,8 @@ CObject* CAutoPowerStation::SearchVehicle()
 
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( !GetObjectDetails().IsAutoChargedAtPowerStation(type) )  continue;
+        auto targeted = GetObjectAutomationDetails(obj).targeted;
+        if (!targeted.chargedByPowerStation) continue;
 
         Math::Vector oPos = obj->GetPosition();
         float dist = Math::Distance(oPos, sPos);
@@ -279,12 +279,6 @@ bool CAutoPowerStation::CreateInterface(bool bSelect)
     ddim.x = 14.0f/640.0f;
     ddim.y = 66.0f/480.0f;
     pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 104, EVENT_OBJECT_TYPE);
 
     return true;
 }

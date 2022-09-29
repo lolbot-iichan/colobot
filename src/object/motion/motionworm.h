@@ -38,7 +38,6 @@ public:
     float   GetParam(int rank) override;
 
 protected:
-    void    CreatePhysics();
     bool    EventFrame(const Event &event);
 
 protected:

@@ -502,12 +502,6 @@ bool CAutoLabo::CreateInterface(bool bSelect)
         pw->CreateButton(pos, dim, 64+46, EVENT_OBJECT_RiGUN);
     }
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 111, EVENT_OBJECT_TYPE);
-
     UpdateInterface();
 
     return true;

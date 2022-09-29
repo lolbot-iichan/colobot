@@ -30,6 +30,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -106,6 +107,8 @@ Error CMotionHuman::SetAction(int action, float time)
 void CMotionHuman::Create(Math::Vector pos, float angle, ObjectType type,
                           float power, Gfx::COldModelManager* modelManager)
 {
+    CMotion::Create(pos, angle, type, power, modelManager);
+
     char        filename[100];
     int         rank, option, face, glasses;
 
@@ -338,7 +341,6 @@ void CMotionHuman::Create(Math::Vector pos, float angle, ObjectType type,
 
 void CMotionHuman::CreatePhysics(ObjectType type)
 {
-    Character*  character;
     int         i;
 
     int member_march[] =
@@ -504,62 +506,6 @@ void CMotionHuman::CreatePhysics(ObjectType type)
         115,-65,60, 0,0,-10,    0,0,0,      // s15: forearm/legs/-
         0,20,0,     -10,5,5,    0,0,0,      // s15: hands/feet/-
     };
-
-    character = m_object->GetCharacter();
-    character->wheelFront = 4.0f;
-    character->wheelBack  = 4.0f;
-    character->wheelLeft  = 4.0f;
-    character->wheelRight = 4.0f;
-    character->height     = 3.5f;
-
-    if ( type == OBJECT_HUMAN )
-    {
-        m_physics->SetLinMotionX(MO_ADVSPEED, 50.0f);
-        m_physics->SetLinMotionX(MO_RECSPEED, 35.0f);
-        m_physics->SetLinMotionX(MO_ADVACCEL, 20.0f);
-        m_physics->SetLinMotionX(MO_RECACCEL, 20.0f);
-        m_physics->SetLinMotionX(MO_STOACCEL, 20.0f);
-        m_physics->SetLinMotionX(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionZ(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionX(MO_TERFORCE, 70.0f);
-        m_physics->SetLinMotionZ(MO_TERFORCE, 40.0f);
-        m_physics->SetLinMotionZ(MO_MOTACCEL, 40.0f);
-        m_physics->SetLinMotionY(MO_ADVSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_RECSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_ADVACCEL, 20.0f);
-        m_physics->SetLinMotionY(MO_RECACCEL, 50.0f);
-        m_physics->SetLinMotionY(MO_STOACCEL, 50.0f);
-
-        m_physics->SetCirMotionY(MO_ADVSPEED,  0.8f*Math::PI);
-        m_physics->SetCirMotionY(MO_RECSPEED,  0.8f*Math::PI);
-        m_physics->SetCirMotionY(MO_ADVACCEL,  6.0f);
-        m_physics->SetCirMotionY(MO_RECACCEL,  6.0f);
-        m_physics->SetCirMotionY(MO_STOACCEL,  4.0f);
-    }
-    else
-    {
-        m_physics->SetLinMotionX(MO_ADVSPEED, 40.0f);
-        m_physics->SetLinMotionX(MO_RECSPEED, 15.0f);
-        m_physics->SetLinMotionX(MO_ADVACCEL,  8.0f);
-        m_physics->SetLinMotionX(MO_RECACCEL,  8.0f);
-        m_physics->SetLinMotionX(MO_STOACCEL,  8.0f);
-        m_physics->SetLinMotionX(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionZ(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionX(MO_TERFORCE, 50.0f);
-        m_physics->SetLinMotionZ(MO_TERFORCE, 50.0f);
-        m_physics->SetLinMotionZ(MO_MOTACCEL, 40.0f);
-        m_physics->SetLinMotionY(MO_ADVSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_RECSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_ADVACCEL, 20.0f);
-        m_physics->SetLinMotionY(MO_RECACCEL, 50.0f);
-        m_physics->SetLinMotionY(MO_STOACCEL, 50.0f);
-
-        m_physics->SetCirMotionY(MO_ADVSPEED,  0.6f*Math::PI);
-        m_physics->SetCirMotionY(MO_RECSPEED,  0.6f*Math::PI);
-        m_physics->SetCirMotionY(MO_ADVACCEL,  4.0f);
-        m_physics->SetCirMotionY(MO_RECACCEL,  4.0f);
-        m_physics->SetCirMotionY(MO_STOACCEL,  3.0f);
-    }
 
     for ( i=0 ; i<3*3*3*3 ; i++ )
     {

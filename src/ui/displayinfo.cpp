@@ -907,8 +907,9 @@ void CDisplayInfo::ViewDisplayInfo()
 
 CObject* CDisplayInfo::SearchToto()
 {
-    if (GetObjectDetails().IsAssistantReactingOnDisplayedInfo())
-        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, GetObjectDetails().GetAssistantType());
+    auto assistant = GetObjectAssistantDetails();
+    if (assistant.reactOnSatcom)
+        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, assistant.type);
     return nullptr;
 }
 

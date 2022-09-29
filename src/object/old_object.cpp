@@ -94,8 +94,6 @@ COldObject::COldObject(int id)
     // A bit of a hack since we don't have subclasses yet, set externally in SetProgrammable()
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)] = false;
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)] = false;
-    // Another hack, see SetMovable()
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)] = false;
     // Another hack
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)] = false;
 
@@ -147,12 +145,6 @@ COldObject::COldObject(int id)
     m_magnifyDamage = 1.0f;
     m_hasPowerSlot = false;
     m_hasCargoSlot = false;
-
-    m_character = Character();
-    m_character.wheelFront = 1.0f;
-    m_character.wheelBack  = 1.0f;
-    m_character.wheelLeft  = 1.0f;
-    m_character.wheelRight = 1.0f;
 
     m_cameraType = Gfx::CAM_TYPE_BACK;
     m_bCameraLock = false;
@@ -214,7 +206,8 @@ void COldObject::DeleteObject(bool bAll)
             SetSelect(false);
         }
 
-        if ( GetObjectDetails().IsDestructionRemoveBuildingLevel(m_type) ) // building?
+        auto destructionDetails = GetObjectCommonInterfaceDetails(m_type).destroyable;
+        if ( destructionDetails.removeBuildingLevel ) // building?
         {
             m_terrain->DeleteBuildingLevel(GetPosition());  // flattens the field
         }
@@ -462,35 +455,37 @@ void COldObject::DestroyObject(DestructionType type, CObject* killer)
         SetDamaging(false);
     }
 
+    auto destructionDetails = GetObjectCommonInterfaceDetails(m_type).destroyable;
+
     Gfx::PyroType pyroType = Gfx::PT_NULL;
     if ( type == DestructionType::Explosion )   // explosion?
     {
-        pyroType = GetObjectDetails().GetDestructionByExplosion(m_type);
+        pyroType = destructionDetails.explosion.effect;
     }
     else if ( type == DestructionType::ExplosionWater )
     {
-        pyroType = GetObjectDetails().GetDestructionByWater(m_type);
+        pyroType = destructionDetails.water.effect;
     }
     else if ( type == DestructionType::Burn )  // burning?
     {
-        pyroType = GetObjectDetails().GetDestructionByBurning(m_type);
+        pyroType = destructionDetails.burning.effect;
 
-        if (GetObjectDetails().IsDestructionKilledByBurning(m_type))
+        if (destructionDetails.burning.isKilledByBurning)
             SetDying(DeathType::Burning);
 
         SetVirusMode(false);
     }
     else if ( type == DestructionType::Drowned )
     {
-        pyroType = GetObjectDetails().GetDestructionByDrowned(m_type);
+        pyroType = destructionDetails.drowned.effect;
     }
     else if ( type == DestructionType::Win )
     {
-        pyroType = GetObjectDetails().GetDestructionByWin(m_type);
+        pyroType = destructionDetails.win.effect;
     }
     else if ( type == DestructionType::Squash )
     {
-        pyroType = GetObjectDetails().GetDestructionBySquash(m_type);
+        pyroType = destructionDetails.squash.effect;
         DeleteAllCrashSpheres();
     }
 
@@ -633,336 +628,25 @@ void COldObject::SetType(ObjectType type)
 
     SetSelectable(IsSelectableByDefault(m_type));
 
-    // TODO: Temporary hack
-    if ( m_type == OBJECT_MOBILEfa || // WingedGrabber
-         m_type == OBJECT_MOBILEfb || // WingedBuilder
-         m_type == OBJECT_MOBILEfs || // WingedSniffer
-         m_type == OBJECT_MOBILEfc || // WingedShooter
-         m_type == OBJECT_MOBILEfi || // WingedOrgaShooter
-         m_type == OBJECT_MOBILEft || // WingedTrainer
-         m_type == OBJECT_HUMAN    || // Me
-         m_type == OBJECT_TECH     || // Tech
-         m_type == OBJECT_CONTROLLER)
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = true;
-    }
-    else if ( m_type == OBJECT_BEE )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = false;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = false;
-    }
+    auto commonDetails = GetObjectCommonInterfaceDetails(m_type);
 
-    // TODO: Another temporary hack
-    if (m_type == OBJECT_MOBILEfa ||
-        m_type == OBJECT_MOBILEta ||
-        m_type == OBJECT_MOBILEwa ||
-        m_type == OBJECT_MOBILEia ||
-        m_type == OBJECT_MOBILEfb ||
-        m_type == OBJECT_MOBILEtb ||
-        m_type == OBJECT_MOBILEwb ||
-        m_type == OBJECT_MOBILEib ||
-        m_type == OBJECT_MOBILEfc ||
-        m_type == OBJECT_MOBILEtc ||
-        m_type == OBJECT_MOBILEwc ||
-        m_type == OBJECT_MOBILEic ||
-        m_type == OBJECT_MOBILEfi ||
-        m_type == OBJECT_MOBILEti ||
-        m_type == OBJECT_MOBILEwi ||
-        m_type == OBJECT_MOBILEii ||
-        m_type == OBJECT_MOBILEfs ||
-        m_type == OBJECT_MOBILEts ||
-        m_type == OBJECT_MOBILEws ||
-        m_type == OBJECT_MOBILEis ||
-        m_type == OBJECT_MOBILErt ||
-        m_type == OBJECT_MOBILErc ||
-        m_type == OBJECT_MOBILErr ||
-        m_type == OBJECT_MOBILErs ||
-        m_type == OBJECT_MOBILEsa ||
-        m_type == OBJECT_MOBILEtg ||
-        m_type == OBJECT_MOBILEft ||
-        m_type == OBJECT_MOBILEtt ||
-        m_type == OBJECT_MOBILEwt ||
-        m_type == OBJECT_MOBILEit ||
-        m_type == OBJECT_MOBILErp ||
-        m_type == OBJECT_MOBILEst ||
-        m_type == OBJECT_TOWER    ||
-        m_type == OBJECT_RESEARCH ||
-        m_type == OBJECT_ENERGY   || // TODO not actually a power cell slot
-        m_type == OBJECT_LABO     || // TODO not actually a power cell slot
-        m_type == OBJECT_NUCLEAR  ) // TODO not actually a power cell slot
-    {
-        m_hasPowerSlot = true;
-    }
-    else
-    {
-        m_hasPowerSlot = false;
-    }
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)] = commonDetails.transportable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)] = commonDetails.movable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = commonDetails.flying.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = commonDetails.jet.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)] = commonDetails.controllable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)] = commonDetails.power.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = commonDetails.damageable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = commonDetails.destroyable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = commonDetails.fragile.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = commonDetails.shielded.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ShieldedAutoRegen)] = commonDetails.autoregen.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)] = commonDetails.sloted.enabled;
 
-    if ( m_type == OBJECT_HUMAN ||
-         m_type == OBJECT_TECH ||
-         m_type == OBJECT_MOBILEfa || // Grabbers
-         m_type == OBJECT_MOBILEta ||
-         m_type == OBJECT_MOBILEwa ||
-         m_type == OBJECT_MOBILEia ||
-         m_type == OBJECT_MOBILEsa) // subber
-    {
-        m_hasCargoSlot = true;
-    }
-    else
-    {
-        m_hasCargoSlot = false;
-    }
+    m_hasCargoSlot = commonDetails.sloted.cargo.enabled;
+    m_hasPowerSlot = commonDetails.sloted.power.enabled || commonDetails.sloted.other.enabled;
 
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)] = (m_hasPowerSlot || m_hasCargoSlot);
-
-    // TODO: Hacking some more
-    if ( m_type == OBJECT_MOBILEtg ||
-         m_type == OBJECT_STONE    ||
-         m_type == OBJECT_METAL    ||
-         m_type == OBJECT_URANIUM  ||
-         m_type == OBJECT_POWER    ||
-         m_type == OBJECT_ATOMIC   ||
-         m_type == OBJECT_TNT      ||
-         m_type == OBJECT_BULLET   ||
-         m_type == OBJECT_EGG      ||
-         m_type == OBJECT_BOMB     ||
-         m_type == OBJECT_ANT      ||
-         m_type == OBJECT_WORM     ||
-         m_type == OBJECT_SPIDER   ||
-         m_type == OBJECT_BEE      ||
-         m_type == OBJECT_TEEN28    )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else if (m_type == OBJECT_HUMAN ||
-         m_type == OBJECT_MOBILEfa ||
-         m_type == OBJECT_MOBILEta ||
-         m_type == OBJECT_MOBILEwa ||
-         m_type == OBJECT_MOBILEia ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib ||
-         m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfi ||
-         m_type == OBJECT_MOBILEti ||
-         m_type == OBJECT_MOBILEwi ||
-         m_type == OBJECT_MOBILEii ||
-         m_type == OBJECT_MOBILEfs ||
-         m_type == OBJECT_MOBILEts ||
-         m_type == OBJECT_MOBILEws ||
-         m_type == OBJECT_MOBILEis ||
-         m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs ||
-         m_type == OBJECT_MOBILEsa ||
-         m_type == OBJECT_MOBILEft ||
-         m_type == OBJECT_MOBILEtt ||
-         m_type == OBJECT_MOBILEwt ||
-         m_type == OBJECT_MOBILEit ||
-         m_type == OBJECT_MOBILErp ||
-         m_type == OBJECT_MOBILEst ||
-         m_type == OBJECT_FACTORY  ||
-         m_type == OBJECT_REPAIR   ||
-         m_type == OBJECT_DESTROYER||
-         m_type == OBJECT_DERRICK  ||
-         m_type == OBJECT_STATION  ||
-         m_type == OBJECT_CONVERT  ||
-         m_type == OBJECT_TOWER    ||
-         m_type == OBJECT_RESEARCH ||
-         m_type == OBJECT_RADAR    ||
-         m_type == OBJECT_INFO     ||
-         m_type == OBJECT_ENERGY   ||
-         m_type == OBJECT_LABO     ||
-         m_type == OBJECT_NUCLEAR  ||
-         m_type == OBJECT_PARA     ||
-         m_type == OBJECT_MOTHER    )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = true;
-    }
-    else if (m_type == OBJECT_HUSTON ||
-             m_type == OBJECT_BASE    )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else if (m_type == OBJECT_RUINmobilew1 ||
-             m_type == OBJECT_RUINmobilew2 ||
-             m_type == OBJECT_RUINmobilet1 ||
-             m_type == OBJECT_RUINmobilet2 ||
-             m_type == OBJECT_RUINmobiler1 ||
-             m_type == OBJECT_RUINmobiler2 ||
-             m_type == OBJECT_RUINfactory  ||
-             m_type == OBJECT_RUINdoor     ||
-             m_type == OBJECT_RUINsupport  ||
-             m_type == OBJECT_RUINradar    ||
-             m_type == OBJECT_RUINconvert   )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else if (m_type == OBJECT_PLANT0  ||
-             m_type == OBJECT_PLANT1  ||
-             m_type == OBJECT_PLANT2  ||
-             m_type == OBJECT_PLANT3  ||
-             m_type == OBJECT_PLANT4  ||
-             m_type == OBJECT_PLANT15 ||
-             m_type == OBJECT_PLANT16 ||
-             m_type == OBJECT_PLANT17 ||
-             m_type == OBJECT_PLANT18 )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-
-    // TODO: #TooMuchHacking
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ShieldedAutoRegen)] = (m_type == OBJECT_HUMAN);
-
-    // TODO: Hacking in progress...
-    if ( m_type == OBJECT_STONE   ||
-         m_type == OBJECT_URANIUM ||
-         m_type == OBJECT_BULLET  ||
-         m_type == OBJECT_METAL   ||
-         m_type == OBJECT_POWER   ||
-         m_type == OBJECT_ATOMIC  ||
-         m_type == OBJECT_BBOX    ||
-         m_type == OBJECT_KEYa    ||
-         m_type == OBJECT_KEYb    ||
-         m_type == OBJECT_KEYc    ||
-         m_type == OBJECT_KEYd    ||
-         m_type == OBJECT_TNT     )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)] = true;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)] = false;
-    }
-
-    // TODO: You have been hacked!
-    if (m_type == OBJECT_HUMAN    ||
-        m_type == OBJECT_TOTO     ||
-        m_type == OBJECT_MOBILEfa ||
-        m_type == OBJECT_MOBILEta ||
-        m_type == OBJECT_MOBILEwa ||
-        m_type == OBJECT_MOBILEia ||
-        m_type == OBJECT_MOBILEfb ||
-        m_type == OBJECT_MOBILEtb ||
-        m_type == OBJECT_MOBILEwb ||
-        m_type == OBJECT_MOBILEib ||
-        m_type == OBJECT_MOBILEfc ||
-        m_type == OBJECT_MOBILEtc ||
-        m_type == OBJECT_MOBILEwc ||
-        m_type == OBJECT_MOBILEic ||
-        m_type == OBJECT_MOBILEfi ||
-        m_type == OBJECT_MOBILEti ||
-        m_type == OBJECT_MOBILEwi ||
-        m_type == OBJECT_MOBILEii ||
-        m_type == OBJECT_MOBILEfs ||
-        m_type == OBJECT_MOBILEts ||
-        m_type == OBJECT_MOBILEws ||
-        m_type == OBJECT_MOBILEis ||
-        m_type == OBJECT_MOBILErt ||
-        m_type == OBJECT_MOBILErc ||
-        m_type == OBJECT_MOBILErr ||
-        m_type == OBJECT_MOBILErs ||
-        m_type == OBJECT_MOBILEsa ||
-        m_type == OBJECT_MOBILEft ||
-        m_type == OBJECT_MOBILEtt ||
-        m_type == OBJECT_MOBILEwt ||
-        m_type == OBJECT_MOBILEit ||
-        m_type == OBJECT_MOBILErp ||
-        m_type == OBJECT_MOBILEst ||
-        m_type == OBJECT_MOBILEtg ||
-        m_type == OBJECT_MOBILEdr ||
-        m_type == OBJECT_APOLLO2  ||
-        m_type == OBJECT_BASE     ||
-        m_type == OBJECT_DERRICK  ||
-        m_type == OBJECT_FACTORY  ||
-        m_type == OBJECT_REPAIR   ||
-        m_type == OBJECT_DESTROYER||
-        m_type == OBJECT_STATION  ||
-        m_type == OBJECT_CONVERT  ||
-        m_type == OBJECT_TOWER    ||
-        m_type == OBJECT_RESEARCH ||
-        m_type == OBJECT_RADAR    ||
-        m_type == OBJECT_INFO     ||
-        m_type == OBJECT_ENERGY   ||
-        m_type == OBJECT_LABO     ||
-        m_type == OBJECT_NUCLEAR  ||
-        m_type == OBJECT_PARA     ||
-        m_type == OBJECT_SAFE     ||
-        m_type == OBJECT_HUSTON   ||
-        m_type == OBJECT_TARGET1  ||
-        m_type == OBJECT_ANT      ||
-        m_type == OBJECT_WORM     ||
-        m_type == OBJECT_SPIDER   ||
-        m_type == OBJECT_BEE      ||
-        m_type == OBJECT_MOTHER   ||
-        m_type == OBJECT_CONTROLLER)
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)] = true;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)] = false;
-    }
-
-    // TODO: Another one? :/
-    if ( m_type == OBJECT_POWER   || // PowerCell
-         m_type == OBJECT_ATOMIC  || // NuclearCell
-         m_type == OBJECT_STATION || // PowerStation
-         m_type == OBJECT_ENERGY   ) // PowerPlant
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)] = true;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)] = false;
-    }
-
-
-    if ( m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEwi ||
-         m_type == OBJECT_MOBILEti ||
-         m_type == OBJECT_MOBILEfi ||
-         m_type == OBJECT_MOBILEii ||
-         m_type == OBJECT_MOBILErc )  // cannon vehicle?
-    {
-        m_cameraType = Gfx::CAM_TYPE_ONBOARD;
-    }
+    m_cameraType = GetObjectCameraDetails(this).defaultCamera;
 }
 
 const char* COldObject::GetName()
@@ -1634,6 +1318,10 @@ Math::Vector COldObject::GetSlotPosition(int slotNum)
             grabPartNum = 4;
             grabRelPos = Math::Vector(1.7f, -0.5f, 1.1f);
             break;
+        case OBJECT_BEE:
+            grabPartNum = 3;
+            grabRelPos = Math::Vector(4.7f, 0.0f, 0.0f);
+            break;
         case OBJECT_MOBILEsa: // subber
             grabPartNum = 2;
             grabRelPos = Math::Vector(1.1f, -1.0f, 1.0f);
@@ -2291,7 +1979,9 @@ bool COldObject::EventFrame(const Event &event)
 
     if (Implements(ObjectInterfaceType::ShieldedAutoRegen))
     {
-        SetShield(GetShield() + event.rTime*(1.0f/GetShieldFullRegenTime()));
+        float autoregenTime = GetShieldFullRegenTime();
+        if ( autoregenTime )
+            SetShield(GetShield() + event.rTime*(1.0f/autoregenTime));
     }
 
     if (m_damaging && m_time - m_damageTime > 2.0f)
@@ -2941,11 +2631,7 @@ float COldObject::GetGunGoalH()
 
 float COldObject::GetShowLimitRadius()
 {
-    if ( m_type == OBJECT_BASE     ) return 200.0f; // SpaceShip
-    if ( m_type == OBJECT_MOBILErt ) return 400.0f; // Thumper
-    if ( m_type == OBJECT_TOWER    ) return Gfx::LTNG_PROTECTION_RADIUS; // DefenseTower
-    if ( m_type == OBJECT_PARA     ) return Gfx::LTNG_PROTECTION_RADIUS; // PowerCaptor
-    return 0.0f;
+    return GetObjectCommonInterfaceDetails(m_type).ranged.radius;
 }
 
 
@@ -3215,7 +2901,6 @@ void COldObject::SetMovable(std::unique_ptr<CMotion> motion, std::unique_ptr<CPh
 {
     m_motion = std::move(motion);
     m_physics = std::move(physics);
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)] = true;
 }
 
 // Returns the controller associated to the object.
@@ -3327,7 +3012,12 @@ bool COldObject::IsRepairable()
 
 float COldObject::GetShieldFullRegenTime()
 {
-    if (m_type == OBJECT_HUMAN) return 120.0f;
+    auto autoregenDetails = GetObjectCommonInterfaceDetails(m_type).autoregen;
+    if ( autoregenDetails.enabled)
+    {
+        return autoregenDetails.time;
+    }
+
     assert(false);
     return 0.0f;
 }
@@ -3401,15 +3091,8 @@ float COldObject::GetLightningHitProbability()
 
 bool COldObject::IsSelectableByDefault(ObjectType type)
 {
-    if ( type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     )
-    {
-        return false;
-    }
-    return true;
+    auto controlDetails = GetObjectCommonInterfaceDetails(type).controllable;
+    return controlDetails.selectable;
 }
 
 void COldObject::SetBulletWall(bool bulletWall)

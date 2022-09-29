@@ -137,6 +137,7 @@ const Gfx::Color COLOR_REF_WATER = Gfx::Color( 25.0f/256.0f, 255.0f/256.0f, 240.
 CRobotMain::CRobotMain()
 {
     m_app        = CApplication::GetInstancePointer();
+    m_objectDetails = MakeUnique<CObjectDetails>();
 
     m_eventQueue = m_app->GetEventQueue();
     m_sound      = m_app->GetSound();
@@ -1068,7 +1069,9 @@ bool CRobotMain::ProcessEvent(Event &event)
 
                 obj = DetectObject(event.mousePos);
                 if (!m_shortCut) obj = nullptr;
-                if (obj != nullptr && obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantClickable())
+
+                auto assistant = GetObjectAssistantDetails();
+                if (obj != nullptr && obj->GetType() == assistant.type && assistant.clickable)
                 {
                     if (m_displayInfo != nullptr)  // current info?
                     {
@@ -2296,6 +2299,8 @@ bool CRobotMain::EventFrame(const Event &event)
     }
 
     CObject* toto = nullptr;
+    auto assistant = GetObjectAssistantDetails();
+
     if (!m_pause->IsPauseType(PAUSE_OBJECT_UPDATES))
     {
         // Advances all the robots, but not toto.
@@ -2307,7 +2312,7 @@ bool CRobotMain::EventFrame(const Event &event)
             if (IsObjectBeingTransported(obj))
                 continue;
 
-            if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantMovesWithCamera())
+            if (obj->GetType() == assistant.type && assistant.moveWithCamera)
                 toto = obj;
             else if (obj->Implements(ObjectInterfaceType::Interactive))
                 dynamic_cast<CInteractiveObject&>(*obj).EventProcess(event);
@@ -4229,7 +4234,7 @@ void CRobotMain::ShowDropZone(CObject* metal, CObject* transporter)
             }
         }
 
-        if ( GetObjectDetails().IsBlockingBuilding(type) )  // building?
+        if ( GetObjectAutomationDetails(obj).blocking.blocksBuilding )  // building?
         {
             for (const auto& crashSphere : obj->GetAllCrashSpheres())
             {
@@ -4599,11 +4604,12 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
         levelParser.AddLine(std::move(line));
     }
 
+    auto assistant = GetObjectAssistantDetails();
 
     int objRank = 0;
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantIgnoredOnSaveLoad()) continue;
+        if (obj->GetType() == assistant.type && assistant.ignoreOnSaveLoad) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4654,7 +4660,7 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
 
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantIgnoredOnSaveLoad()) continue;
+        if (obj->GetType() == assistant.type && assistant.ignoreOnSaveLoad) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4884,9 +4890,11 @@ CObject* CRobotMain::IOReadScene(std::string filename, std::string filecbot)
                 CBot::ReadWord(istr, flag); // TODO
                 bError = (flag != 0);
 
+                auto assistant = GetObjectAssistantDetails();
+                
                 if (!bError) for (CObject* obj : m_objMan->GetAllObjects())
                 {
-                    if (obj->GetType() == GetObjectDetails().GetAssistantType() && GetObjectDetails().IsAssistantIgnoredOnSaveLoad()) continue;
+                    if (obj->GetType() == assistant.type && assistant.ignoreOnSaveLoad) continue;
                     if (IsObjectBeingTransported(obj)) continue;
                     if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 

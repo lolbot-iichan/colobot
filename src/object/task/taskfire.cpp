@@ -24,6 +24,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "object/interface/slotted_object.h"
@@ -279,15 +280,9 @@ Error CTaskFire::Start(float delay)
     m_bError = true;  // operation impossible
 
     type = m_object->GetType();
-    if ( type != OBJECT_MOBILEfc &&
-         type != OBJECT_MOBILEtc &&
-         type != OBJECT_MOBILEwc &&
-         type != OBJECT_MOBILEic &&
-         type != OBJECT_MOBILEfi &&
-         type != OBJECT_MOBILEti &&
-         type != OBJECT_MOBILEwi &&
-         type != OBJECT_MOBILEii &&
-         type != OBJECT_MOBILErc )  return ERR_WRONG_BOT;
+
+    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    if (!allowedScripting.shootAsRobot)  return ERR_WRONG_BOT;
 
 //? if ( !m_physics->GetLand() )  return ERR_FIRE_FLY;
 

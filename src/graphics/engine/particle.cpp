@@ -3503,35 +3503,35 @@ CObject* CParticle::SearchObjectGun(Math::Vector old, Math::Vector pos,
 
         ObjectType oType = obj->GetType();
 
-        if (oType == GetObjectDetails().GetAssistantType()) // Toto?
-        {
-            if (GetObjectDetails().IsAssistantUndamagable())  continue;
-        }
+        auto assistant = GetObjectAssistantDetails();
+        if (oType == assistant.type && assistant.undamageable)  continue; // Toto?
 
+        auto damageDetails = GetObjectCommonInterfaceDetails(oType).damageable;
         if (type == PARTIGUN1)  // fireball shooting?
         {
-            if (GetObjectDetails().IsImmuneToFireballs(oType))  continue;
+            if (damageDetails.isImmuneToFireballs)  continue;
         }
         else if (type == PARTIGUN2)  // shooting insect?
         {
-            if (GetObjectDetails().IsImmuneToInsects(oType))  continue;
+            if (damageDetails.isImmuneToInsects)  continue;
         }
         else if (type == PARTIGUN3)  // suiciding spider?
         {
-            if (GetObjectDetails().IsImmuneToSpiders(oType))  continue;
+            if (damageDetails.isImmuneToSpiders)  continue;
         }
         else if (type == PARTIGUN4)  // orgaball shooting?
         {
-            if (GetObjectDetails().IsImmuneToOrgaballs(oType))  continue;
+            if (damageDetails.isImmuneToOrgaballs)  continue;
         }
         else if (type == PARTITRACK11)  // phazer shooting?
         {
-            if (GetObjectDetails().IsImmuneToPhazers(oType))  continue;
+            if (damageDetails.isImmuneToPhazers)  continue;
         }
         else
         {
             continue;
         }
+
         if (!obj->Implements(ObjectInterfaceType::Damageable) && !obj->IsBulletWall())  continue;
         if (obj->Implements(ObjectInterfaceType::Jostleable))  continue;
 
@@ -3617,12 +3617,11 @@ CObject* CParticle::SearchObjectRay(Math::Vector pos, Math::Vector goal,
 
         ObjectType oType = obj->GetType();
 
-        if (oType == GetObjectDetails().GetAssistantType()) // Toto?
-        {
-            if (GetObjectDetails().IsAssistantUndamagable())  continue;
-        }
+        auto assistant = GetObjectAssistantDetails();
+        if (oType == assistant.type && assistant.undamageable)  continue; // Toto?
 
-        if ( type  == PARTIRAY1 && GetObjectDetails().IsImmuneToTowerRays(oType) ) continue;
+        auto damageDetails = GetObjectCommonInterfaceDetails(oType).damageable;
+        if ( type  == PARTIRAY1 && damageDetails.isImmuneToTowerRay ) continue;
 
         Math::Vector oPos = obj->GetPosition();
 

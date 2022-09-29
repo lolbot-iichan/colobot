@@ -28,6 +28,7 @@
 
 #include "math/geometry.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "physics/physics.h"
@@ -88,6 +89,8 @@ void CMotionWorm::DeleteObject(bool bAll)
 void CMotionWorm::Create(Math::Vector pos, float angle, ObjectType type,
                          float power, Gfx::COldModelManager* modelManager)
 {
+    CMotion::Create(pos, angle, type, power, modelManager);
+
     int         rank, i;
     float       px;
 
@@ -138,7 +141,6 @@ void CMotionWorm::Create(Math::Vector pos, float angle, ObjectType type,
 
     m_object->CreateShadowCircle(0.0f, 1.0f, Gfx::ENG_SHADOW_WORM);
 
-    CreatePhysics();
     m_object->SetFloorHeight(0.0f);
 
     pos = m_object->GetPosition();
@@ -146,38 +148,6 @@ void CMotionWorm::Create(Math::Vector pos, float angle, ObjectType type,
 
     m_engine->LoadAllTextures();
 }
-
-// Creates the physics of the object.
-
-void CMotionWorm::CreatePhysics()
-{
-    Character*  character;
-
-    character = m_object->GetCharacter();
-    character->wheelFront = 10.0f;
-    character->wheelBack  = 10.0f;
-    character->wheelLeft  =  2.0f;
-    character->wheelRight =  2.0f;
-    character->height     = -0.2f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,   3.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,   3.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  10.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  10.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  40.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  40.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   0.2f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   0.2f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  10.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  10.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  20.0f);
-}
-
 
 
 // Specifies a special parameter.
@@ -254,7 +224,7 @@ bool CMotionWorm::EventFrame(const Event &event)
     under = 0;  // no piece under the ground
     for ( i=0 ; i<WORM_PART+2 ; i++ )
     {
-        phase = Math::Mod(m_armTimeMarch-START_TIME-i*0.3f, TIME_UPDOWN+m_timeDown+TIME_UPDOWN+m_timeUp);
+        phase = Math::Mod(m_armTimeMarch-i*0.3f, TIME_UPDOWN+m_timeDown+TIME_UPDOWN+m_timeUp);
         if ( phase < TIME_UPDOWN )  // descends?
         {
             h = -(phase/TIME_UPDOWN)*DOWN_ALTITUDE;
