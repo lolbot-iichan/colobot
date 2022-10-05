@@ -300,6 +300,7 @@ public:
                           std::vector<ObjectType> type = std::vector<ObjectType>(),
                           float maxDist = 1000.0f,
                           bool cbotTypes = false);
+    CObject* SearchToto();
     //@}
 
 private:

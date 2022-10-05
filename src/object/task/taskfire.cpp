@@ -24,8 +24,9 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
+
+#include "object/details/programmable_details.h"
 
 #include "object/interface/slotted_object.h"
 
@@ -281,8 +282,8 @@ Error CTaskFire::Start(float delay)
 
     type = m_object->GetType();
 
-    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
-    if (!allowedScripting.shootAsRobot)  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectProgrammableDetails(m_object).allowed;
+    if (!allowedScripting.shootTimeParam)  return ERR_WRONG_BOT;
 
 //? if ( !m_physics->GetLand() )  return ERR_FIRE_FLY;
 

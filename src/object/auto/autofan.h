@@ -19,15 +19,23 @@
 
 #pragma once
 
-#include "object/old_object.h"
 
-/**
- * \class CBaseVehicle
- * \brief Base class for all moving objects
- */
-class CBaseVehicle : public COldObject
+#include "object/auto/auto.h"
+
+
+class CAutoFan : public CAuto
 {
 public:
-    CBaseVehicle(int id, ObjectType type);
-    virtual ~CBaseVehicle();
+    CAutoFan(COldObject* object);
+    ~CAutoFan() override;
+
+    void        Init() override;
+    bool        EventProcess(const Event &event) override;
+
+protected:
+    float       m_speed = 0.0f;
+    float       m_progress = 0.0f;
+    float       m_lastParticle = 0.0f;
+    int         m_soundChannel = 0;
+    bool        m_silent = false;
 };

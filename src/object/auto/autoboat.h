@@ -19,42 +19,23 @@
 
 #pragma once
 
-#include "object/subclass/base_vehicle.h"
 
-struct ObjectCreateParams;
+#include "object/auto/auto.h"
 
-namespace Gfx
-{
-class COldModelManager;
-class CEngine;
-}
 
-/**
- * \class CBaseAlien
- * \brief Base class for all aliens
- */
-class CBaseAlien : public CBaseVehicle
+class CAutoBoat : public CAuto
 {
 public:
-    CBaseAlien(int id, ObjectType type);
-    virtual ~CBaseAlien();
+    CAutoBoat(COldObject* object);
+    ~CAutoBoat() override;
 
-public:
-    static std::unique_ptr<CBaseAlien> Create(
-        const ObjectCreateParams& params,
-        Gfx::COldModelManager* modelManager,
-        Gfx::CEngine* engine);
-
-public:
-    //! Management of "temporarirly stationary" mode (alien on the back)
-    //@{
-    void SetFixed(bool fixed);
-    bool GetFixed();
-    //@}
-
-    void Write(CLevelParserLine* line) override;
-    void Read(CLevelParserLine* line) override;
+    void        Init() override;
+    bool        EventProcess(const Event &event) override;
 
 protected:
-    bool m_fixed;
+    float       m_speed = 0.0f;
+    float       m_progress = 0.0f;
+    float       m_lastParticle = 0.0f;
+    int         m_soundChannel = 0;
+    bool        m_silent = false;
 };

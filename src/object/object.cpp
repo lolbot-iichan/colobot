@@ -43,6 +43,7 @@ CObject::CObject(int id, ObjectType type)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_rotation(0.0f, 0.0f, 0.0f)
     , m_scale(1.0f, 1.0f, 1.0f)
+    , m_scaleFactor(1.0f)
     , m_animateOnReset(false)
     , m_collisions(true)
     , m_team(0)
@@ -203,13 +204,20 @@ float CObject::GetRotationZ()
 
 Math::Vector CObject::GetScale() const
 {
-    return m_scale;
+    return m_scale / m_scaleFactor;
 }
 
 void CObject::SetScale(const Math::Vector& scale)
 {
     // TODO: provide default implementation...
     throw std::logic_error("CObject::SetScale() - not implemented!");
+}
+
+void CObject::SetScaleFactor(float factor)
+{
+    Math::Vector scale = GetScale();
+    m_scaleFactor = factor;
+    SetScale(scale);
 }
 
 void CObject::SetScale(float scale)
@@ -334,7 +342,7 @@ std::string CObject::GetTooltipText()
 {
     std::string name;
 
-    if (GetObjectNamingDetails(m_type).display.usePlayerName)
+    if (m_type == GetObjectGlobalDetails().defaults.player)
         name = GetGlobalGamerName();
     else
         GetResource(RES_OBJECT, m_type, name);

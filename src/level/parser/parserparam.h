@@ -24,11 +24,14 @@
 
 #pragma once
 
+#include "common/event.h"
+
 #include "graphics/core/color.h"
 
 #include "graphics/engine/camera.h"
 #include "graphics/engine/planet_type.h"
 #include "graphics/engine/pyro_type.h"
+#include "graphics/engine/terrain.h"
 #include "graphics/engine/water.h"
 
 #include "level/scoreboard.h"
@@ -39,6 +42,10 @@
 #include "object/mission_type.h"
 #include "object/object_type.h"
 #include "object/tool_type.h"
+
+#include "object/details/task_executor_details.h"
+
+#include "ui/widget.h"
 
 #include <string>
 #include <vector>
@@ -63,6 +70,8 @@ public:
     CLevelParserParam(Math::Point value);
     CLevelParserParam(Math::Vector value);
     CLevelParserParam(ObjectType value);
+    CLevelParserParam(DriveType value);
+    CLevelParserParam(ToolType value);
     CLevelParserParam(Gfx::CameraType value);
     CLevelParserParam(CLevelParserParamVec&& array);
     //@}
@@ -116,6 +125,13 @@ public:
     Gfx::PyroType AsPyroType(Gfx::PyroType def);
     Gfx::CameraType AsCameraType(Gfx::CameraType def);
     MissionType AsMissionType(MissionType def);
+    EventType AsEventType(EventType def);
+    Ui::WidgetType AsWidgetType(Ui::WidgetType def);
+    Gfx::EngineObjectType AsEngineObjectType(Gfx::EngineObjectType def);
+    Gfx::EngineShadowType AsEngineShadowType(Gfx::EngineShadowType def);
+    SoundType AsSoundType(SoundType def);
+    TaskExecutionType AsTaskExecutionType(TaskExecutionType def);
+    Gfx::TerrainRes AsTerrainRes(Gfx::TerrainRes def);
     //@}
 
     //! Set line this param is part of
@@ -128,6 +144,8 @@ public:
     bool IsDefined();
 
     static const std::string FromObjectType(ObjectType value);
+    static const std::string FromDriveType(DriveType value);
+    static const std::string FromToolType(ToolType value);
 
 private:
     void ParseArray();

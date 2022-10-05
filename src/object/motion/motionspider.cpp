@@ -25,10 +25,9 @@
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/particle.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -342,7 +341,8 @@ bool CMotionSpider::EventFrame(const Event &event)
     assert(m_object->Implements(ObjectInterfaceType::Destroyable));
     if (dynamic_cast<CDestroyableObject*>(m_object)->GetDying() == DeathType::Burning )  // burning?
     {
-        if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
+        if ( dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
         {
             m_actionType = MSS_BURN;
         }
@@ -626,7 +626,8 @@ bool CMotionSpider::EventFrame(const Event &event)
         if ( m_progress >= 1.0f )
         {
             SetAction(-1);
-            dynamic_cast<CBaseAlien&>(*m_object).SetFixed(false);  // moving again
+            assert(m_object->Implements(ObjectInterfaceType::Thumpable));
+            dynamic_cast<CThumpableObject*>(m_object)->SetFixed(false);  // moving again
         }
     }
     else

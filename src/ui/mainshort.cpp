@@ -28,8 +28,9 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
+
+#include "object/details/controllable_details.h"
 
 #include "object/interface/controllable_object.h"
 #include "object/interface/programmable_object.h"
@@ -180,7 +181,7 @@ bool CMainShort::CreateShortcuts()
 
 int CMainShort::GetShortcutIcon(CObject* pObj)
 {
-    auto shortcutDetails = GetObjectIconDetails(pObj).shortcut;
+    auto shortcutDetails = GetObjectControllableDetails(pObj).shortcut;
 
     if (m_bBuilding && !shortcutDetails.isBuilding)
         return -1;

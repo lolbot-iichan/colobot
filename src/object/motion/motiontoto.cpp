@@ -30,8 +30,9 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
 
 #include "sound/sound.h"
 
@@ -176,7 +177,7 @@ void CMotionToto::Create(Math::Vector pos, float angle, ObjectType type,
     m_object->SetPartPosition(9, Math::Vector(0.0f, 0.70f, 0.0f));
     m_object->SetPartRotationX(9, -30.0f*Math::PI/180.0f);
 
-    m_object->SetScale(1.5f);  // is little
+    m_object->SetScale(0.5f);  // is little
     m_object->SetFloorHeight(0.0f);
 
     pos = m_object->GetPosition();

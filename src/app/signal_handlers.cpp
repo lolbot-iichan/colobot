@@ -31,6 +31,9 @@
 #include <csignal>
 #include <sstream>
 #include <iostream>
+#include <boost/stacktrace.hpp>
+
+const char* backtraceFileName = "./backtraceFile.dump";
 
 CSystemUtils* CSignalHandlers::m_systemUtils = nullptr;
 
@@ -42,6 +45,7 @@ void CSignalHandlers::Init(CSystemUtils* systemUtils)
     signal(SIGFPE,  SignalHandler);
     signal(SIGILL,  SignalHandler);
     std::set_terminate(UnhandledExceptionHandler);
+    boost::stacktrace::safe_dump_to(backtraceFileName);
 }
 
 void CSignalHandlers::SignalHandler(int sig)

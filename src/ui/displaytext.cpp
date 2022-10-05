@@ -30,8 +30,10 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
+
+#include "object/details/assistant_details.h"
+#include "object/details/controllable_details.h"
 
 #include "object/interface/movable_object.h"
 
@@ -125,7 +127,7 @@ void CDisplayText::DisplayError(Error err, CObject* pObj, float time)
 
     Math::Vector pos = pObj->GetPosition();
 
-    auto cameraDetails = GetObjectCameraDetails(pObj).visitCamera;
+    auto cameraDetails = GetObjectControllableDetails(pObj).camera.visit;
     float h = cameraDetails.height;
     float d = cameraDetails.distance;
 
@@ -167,7 +169,7 @@ void CDisplayText::DisplayText(const char *text, CObject* pObj,
 
     Math::Vector pos = pObj->GetPosition();
 
-    auto cameraDetails = GetObjectCameraDetails(pObj).visitCamera;
+    auto cameraDetails = GetObjectControllableDetails(pObj).camera.visit;
     float h = cameraDetails.height;
     float d = cameraDetails.distance;
 
@@ -513,10 +515,10 @@ bool CDisplayText::IsVisit(EventType event)
 
 CObject* CDisplayText::SearchToto()
 {
-    auto assistant = GetObjectAssistantDetails();
-    if (assistant.reactOnMessages)
-        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, assistant.type);
-    return nullptr;
+    CObject* obj = CObjectManager::GetInstancePointer()->SearchToto();
+
+    auto assistant = GetObjectAssistantDetails(obj);
+    return assistant.reactOnMessages ? obj : nullptr;
 }
 
 } // namespace Ui

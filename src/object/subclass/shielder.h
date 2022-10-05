@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "object/subclass/base_robot.h"
+#include "object/subclass/base_movable.h"
 
 struct ObjectCreateParams;
 
@@ -29,7 +29,7 @@ class COldModelManager;
 class CEngine;
 }
 
-class CShielder : public CBaseRobot
+class CShielder : public CBaseMovable
 {
 public:
     CShielder(int id);

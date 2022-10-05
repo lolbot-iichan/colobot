@@ -18,8 +18,8 @@
  */
 
 /**
- * \file object/object_properties.h
- * \brief CObjectDetails - set of methods with various info about all the objects in one place
+ * \file object/details/hardcode.h
+ * \brief CHardcodeCollection - set of methods with various hardcoded info about all the objects in one place
  */
 
 #pragma once
@@ -38,46 +38,21 @@
 #include "math/vector.h"
 
 #include "object/crash_sphere.h"
-#include "object/object_details.h"
 #include "object/object_type.h"
 
+#include "object/details/automation_details.h"
+#include "object/details/detectable_details.h"
+#include "object/details/destroyable_details.h"
+#include "object/details/controllable_details.h"
+#include "object/details/creation_details.h"
+#include "object/details/global_details.h"
+#include "object/details/movable_details.h"
+#include "object/details/task_executor_details.h"
+#include "object/details/trace_drawing_details.h"
 
 
-class CObjectDetailsHardcodeCollection
+class CHardcodeCollection
 {
-
-struct CObjectDetail
-{
-    std::string displayedName;
-};
-
-
-CObjectButton m_builderMenuObjects[14];
-CObjectButton m_debugMenuObjects[14];
-
-std::map<ObjectType, CObjectDetail> m_objects;
-
-
-
-
-public:
-CObjectDetailsHardcodeCollection();
-
-
-// [lists] debug menu item (nullptr on error)
-CObjectButton GetBuilderMenuItem(int index);
-// [lists] debug menu item (nullptr on error)
-CObjectButton GetDebugMenuItem(int index);
-
-// [script/autoparams] object that is automaticaly used in function call (returns OBJECT_NULL or registered object)
-ObjectType GetFunctionDestroyPerformerObject();
-ObjectType GetFunctionFactoryPerformerObject();
-ObjectType GetFunctionResearchPerformerObject(ResearchType type);
-ObjectType GetFunctionTakeOffPerformerObject();
-ObjectType GetFunctionReceivePerformerObject();
-
-
-
 public:
 
 //////////////////////////////////////////////////////////////////////////////
@@ -121,6 +96,9 @@ bool IsFunctionImplementedShootAsRobot(ObjectType type);
 
 // [script/radar]  (default is false)
 bool IsRadarExplicitOnly(ObjectType type);
+
+ObjectType GetBaseType(ObjectType type);
+
 // [script/radar] objects that could be find with radar functions by alias (default is vector with given id)
 std::vector<ObjectType> GetObjectsFindableByType(ObjectType type);
 
@@ -141,15 +119,14 @@ bool IsProduceManual(ObjectType type);
 
 // [create/model] base C++ class for object is switched by this (default is BASE_CLASS_NONE)
 BaseClass GetCreationBaseClass(ObjectType type);
+AutoClass GetCreationAutoClass(ObjectType type);
 
 // [create/model] list of nodes of object model
 std::vector<CObjectCreationModelNode> GetCreationModel(ObjectType type);
 // [create/model] list of crash spheres of object model
 std::vector<CrashSphere> GetCreationCrashSpheres(ObjectType type);
-// [create/model] list of camera collision spheres of object model
-std::vector<Math::Sphere> GetCreationCameraCollisionSpheres(ObjectType type);
-// [create/model] list of jostling spheres of object model
-std::vector<Math::Sphere> GetCreationJostlingSpheres(ObjectType type);
+// [create/model] camera collision sphere of object model
+Math::Sphere GetCreationCameraCollisionSphere(ObjectType type);
 // [create/model] list of building levels platforms of object model
 std::vector<CObjectCreationBuildingLevel> GetCreationBuildingLevels(ObjectType type);
 // [create/model] details on object shadow circle
@@ -174,7 +151,22 @@ bool IsCreationFixedPosition(ObjectType type);
 // Common interface details
 //////////////////////////////////////////////////////////////////////////////
 
+DriveType GetDriveType(ObjectType type);
+ToolType GetToolType(ObjectType type);
+
+bool IsProgrammable(ObjectType type);
+bool IsTaskExecutor(ObjectType type);
+CObjectFlagTaskExecutorDetails GetFlagTaskExecutionDetails(ObjectType type);
+CObjectSniffTaskExecutorDetails GetSniffTaskExecutionDetails(ObjectType type);
+std::vector<CObjectFlagTaskExecutorObject>  GetFlagTaskExecutionObjects(ObjectType type);
+std::vector<CObjectSniffTaskExecutorObject> GetSniffTaskExecutionObjects(ObjectType type);
+
 bool IsTransportable(ObjectType type);
+bool IsDropZoneShownOnPut(ObjectType type);
+
+bool IsJosteable(ObjectType type);
+Math::Sphere GetJostlingSphere(ObjectType type);
+float GetJosteFactor(ObjectType type);
 
 bool IsMovable(ObjectType type);
 Motion GetLinMotion(ObjectType type);
@@ -225,9 +217,12 @@ Gfx::PyroType GetDestructionByDrowned(ObjectType type);
 Gfx::PyroType GetDestructionByWin(ObjectType type);
 Gfx::PyroType GetDestructionBySquash(ObjectType type);
 bool IsDestructionKilledByBurning(ObjectType type);
+std::vector<CPyroBurnPartDetails> GetBurnParts(ObjectType type);
+ObjectType GetTypeAfterBurn(ObjectType);
 
 // [fragile] implements interface (default is false)
 bool IsFragile(ObjectType type);
+bool IsFragileBurnable(ObjectType type);
 
 // [shielded] implements interface (default is false)
 bool IsShielded(ObjectType type);
@@ -239,8 +234,12 @@ bool IsSloted(ObjectType type);
 bool HasCargoSlot(ObjectType type);
 bool HasPowerSlot(ObjectType type);
 bool HasOtherSlot(ObjectType type);
+int GetCargoSlotPartNumber(ObjectType type);
+Math::Vector GetCargoSlotPosition(ObjectType type);
 Math::Vector GetPowerSlotPosition(ObjectType type);
 Math::Vector GetOtherSlotPosition(ObjectType type);
+
+bool IsThumpable(ObjectType type);
 
 //////////////////////////////////////////////////////////////////////////////
 // Camera details
@@ -377,8 +376,7 @@ bool IsAutoBlockingNuclearPlant(ObjectType type);
 // [auto] required to walk back from factory to operate (default is false)
 bool IsAutoBlockingFactory(ObjectType type);
 
-ObjectType GetProductionInput(ObjectType type);
-ObjectType GetProductionOutput(ObjectType type);
+std::vector<CObjectProductionAutomationDetails> GetProduction(ObjectType type);
 
 
 
@@ -422,7 +420,7 @@ bool HasUserInterfaceProgramUI(ObjectType type);
 bool HasUserInterfaceProgramUIBlink(ObjectType type);
 
 // [ui/iface] raw widget list
-std::vector<CObjectControlsWidget> GetUserInterfaceWidgetList(ObjectType type);
+std::vector<Ui::CWidget> GetUserInterfaceWidgetList(ObjectType type);
 
 // [ui/iface] has human builder interface (default is false)
 bool HasUserInterfaceBuilderUIHuman(ObjectType type);
@@ -439,23 +437,17 @@ bool HasUserInterfaceDisableFlyWhileGrabbing(ObjectType type);
 
 
 //////////////////////////////////////////////////////////////////////////////
-// Assistant global details
+// Global details
 //////////////////////////////////////////////////////////////////////////////
 
 // [assistant] always moves after camera movement (returns OBJECT_NULL or registered object)
+ObjectType GetPlayerType();
+ObjectType GetBaseType();
 ObjectType GetAssistantType();
-// [assistant] react on SatCom pages, etc (default is false)
-bool IsAssistantReactingOnDisplayedInfo();
-// [assistant] react on errors, warnings, etc (default is false)
-bool IsAssistantReactingOnDisplayedText();
-// [assistant] always moves after camera movement (default is false)
-bool IsAssistantMovesWithCamera();
-// [assistant] open SATCOM_HUSTON on click (default is false)
-bool IsAssistantIgnoredOnSaveLoad();
-// [assistant] open SATCOM_HUSTON on click (default is false)
-bool IsAssistantClickable();
-// [assistant] ignores collisions, rays, bullets, water, etc (default is false)
-bool IsAssistantUndamagable();
-// [assistant] ignores pause (default is false)
-bool IsAssistantUnpausable();
+ObjectType GetFunctionDestroyPerformerObject();
+ObjectType GetFunctionFactoryPerformerObject();
+ObjectType GetFunctionTakeOffPerformerObject();
+ObjectType GetFunctionReceivePerformerObject();
+std::vector<CObjectButton> GetBuilderMenuButtons();
+std::vector<CObjectButton> GetDebugMenuButtons();
 };

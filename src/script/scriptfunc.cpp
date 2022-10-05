@@ -48,12 +48,16 @@
 #include "object/auto/autobase.h"
 #include "object/auto/autofactory.h"
 
+#include "object/details/global_details.h"
+#include "object/details/scripting_details.h"
+#include "object/details/trace_drawing_details.h"
+
 #include "object/interface/destroyable_object.h"
 #include "object/interface/programmable_object.h"
 #include "object/interface/task_executor_object.h"
+#include "object/interface/thumpable_object.h"
 #include "object/interface/trace_drawing_object.h"
 
-#include "object/subclass/base_alien.h"
 #include "object/subclass/exchange_post.h"
 #include "object/subclass/shielder.h"
 
@@ -388,7 +392,7 @@ bool CScriptFunctions::rIsBusy(CBotVar* var, CBotVar* result, int& exception, vo
 
 bool CScriptFunctions::rDestroy(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    ObjectType  fType = GetObjectDetails().GetFunctionDestroyPerformerObject();
+    ObjectType  fType = GetObjectGlobalDetails().defaults.destroyPerformer;
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
 
@@ -461,7 +465,7 @@ CBotTypResult CScriptFunctions::cFactory(CBotVar* &var, void* user)
 
 bool CScriptFunctions::rFactory(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    ObjectType  fType = GetObjectDetails().GetFunctionFactoryPerformerObject();
+    ObjectType  fType = GetObjectGlobalDetails().defaults.factoryPerformer;
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
 
@@ -615,7 +619,7 @@ bool CScriptFunctions::rResearch(CBotVar* var, CBotVar* result, int& exception, 
     result->SetValInt(err); // indicates the error or ok
     if ( err != ERR_OK )
     {
-        if( script->m_errMode == ERM_STOP )
+        if ( script->m_errMode == ERM_STOP )
         {
             exception = err;
             return false;
@@ -630,7 +634,7 @@ bool CScriptFunctions::rResearch(CBotVar* var, CBotVar* result, int& exception, 
 
 bool CScriptFunctions::rTakeOff(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    ObjectType  fType = GetObjectDetails().GetFunctionTakeOffPerformerObject();
+    ObjectType  fType = GetObjectGlobalDetails().defaults.takeoffPerformer;
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
 
@@ -803,7 +807,8 @@ inline void fillSearchList(std::vector<ObjectType>& type_v, bool bArray, int typ
         while ( array != nullptr )
         {
             ObjectType t = static_cast<ObjectType>(array->GetValInt());
-            for (auto it: GetObjectScriptingDetails(t).radar.findableWithThisType)
+            type_v.push_back(t);
+            for (auto it: GetObjectScriptingDetails(t).findableByRadar)
             {
                 type_v.push_back(it);
             }
@@ -815,7 +820,8 @@ inline void fillSearchList(std::vector<ObjectType>& type_v, bool bArray, int typ
         if (type != OBJECT_NULL)
         {
             ObjectType t = static_cast<ObjectType>(type);
-            for (auto it: GetObjectScriptingDetails(t).radar.findableWithThisType)
+            type_v.push_back(t);
+            for (auto it: GetObjectScriptingDetails(t).findableByRadar)
             {
                 type_v.push_back(it);
             }
@@ -1315,15 +1321,12 @@ bool CScriptFunctions::rBuild(CBotVar* var, CBotVar* result, int& exception, voi
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
     ObjectType  category;
     Error       err;
 
     exception = 0;
 
-    oType = pThis->GetType();
-
-    if ( !GetObjectScriptingDetails(oType).allowed.build )
+    if ( !GetObjectProgrammableDetails(pThis).allowed.build )
     {
         err = ERR_WRONG_BOT; // Wrong object
     }
@@ -1363,7 +1366,6 @@ bool CScriptFunctions::rFlag(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
     int         color;
     Error       err;
 
@@ -1371,8 +1373,7 @@ bool CScriptFunctions::rFlag(CBotVar* var, CBotVar* result, int& exception, void
 
     if ( !script->m_taskExecutor->IsForegroundTask() )
     {
-        oType = pThis->GetType();
-        if ( !GetObjectScriptingDetails(oType).allowed.flag )
+        if ( !GetObjectProgrammableDetails(pThis).allowed.flag )
         {
             err = ERR_WRONG_BOT; // Wrong object
         }
@@ -1411,15 +1412,13 @@ bool CScriptFunctions::rDeflag(CBotVar* var, CBotVar* result, int& exception, vo
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
     Error       err;
 
     exception = 0;
 
     if ( !script->m_taskExecutor->IsForegroundTask() )
     {
-        oType = pThis->GetType();
-        if ( !GetObjectScriptingDetails(oType).allowed.flag )
+        if ( !GetObjectProgrammableDetails(pThis).allowed.flag )
         {
             err = ERR_WRONG_BOT; // Wrong object
         }
@@ -2054,7 +2053,6 @@ bool CScriptFunctions::rGrab(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
     TaskManipArm type;
     Error       err = ERR_WRONG_BOT;
 
@@ -2065,12 +2063,11 @@ bool CScriptFunctions::rGrab(CBotVar* var, CBotVar* result, int& exception, void
         if ( var == nullptr )  type = TMA_FFRONT;
         else             type = static_cast<TaskManipArm>(var->GetValInt());
 
-        oType = pThis->GetType();
-        if ( GetObjectScriptingDetails(oType).allowed.grabAsHuman )
+        if ( GetObjectProgrammableDetails(pThis).allowed.grabNoParam )
         {
             err = script->m_taskExecutor->StartTaskTake();
         }
-        if ( GetObjectScriptingDetails(oType).allowed.grabAsRobot )
+        if ( GetObjectProgrammableDetails(pThis).allowed.grabEnumParam )
         {
             err = script->m_taskExecutor->StartTaskManip(TMO_GRAB, type);
         }
@@ -2096,7 +2093,6 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
     TaskManipArm type;
     Error       err = ERR_WRONG_BOT;
 
@@ -2107,12 +2103,11 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
         if ( var == nullptr )  type = TMA_FFRONT;
         else             type = static_cast<TaskManipArm>(var->GetValInt());
 
-        oType = pThis->GetType();
-        if ( GetObjectScriptingDetails(oType).allowed.grabAsHuman )
+        if ( GetObjectProgrammableDetails(pThis).allowed.grabNoParam )
         {
             err = script->m_taskExecutor->StartTaskTake();
         }
-        if ( GetObjectScriptingDetails(oType).allowed.grabAsRobot )
+        if ( GetObjectProgrammableDetails(pThis).allowed.grabEnumParam )
         {
             err = script->m_taskExecutor->StartTaskManip(TMO_DROP, type);
         }
@@ -2288,7 +2283,7 @@ bool CScriptFunctions::rSend(CBotVar* var, CBotVar* result, int& exception, void
 
 CExchangePost* CScriptFunctions::FindExchangePost(CObject* object, float power)
 {
-    ObjectType  fType = GetObjectDetails().GetFunctionReceivePerformerObject();
+    ObjectType  fType = GetObjectGlobalDetails().defaults.receivePerformer;
     CObject* exchangePost = CObjectManager::GetInstancePointer()->FindNearest(object, fType, power/g_unit);
     return dynamic_cast<CExchangePost*>(exchangePost);
 }
@@ -2465,7 +2460,7 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
     Error       err;
 
     // only shielder can use shield()
-    if ( !GetObjectScriptingDetails(pThis->GetType()).allowed.shield )
+    if ( !GetObjectProgrammableDetails(pThis).allowed.shield )
     {
         result->SetValInt(ERR_WRONG_BOT);  // return error
         if (script->m_errMode == ERM_STOP)
@@ -2524,8 +2519,15 @@ CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
 {
     CObject*    pThis = static_cast<CScript*>(user)->m_object;
 
-    auto allowedScripting = GetObjectScriptingDetails(pThis).allowed;
-    if ( allowedScripting.shootAsAnt )
+    auto allowedScripting = GetObjectProgrammableDetails(pThis).allowed;
+
+    if ( allowedScripting.shootNoParam )
+    {
+        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        return CBotTypResult(CBotTypFloat);
+    }
+    
+    if ( allowedScripting.shootPointParam )
     {
         if ( var == nullptr ) return CBotTypResult(CBotErrLowParam);
         CBotTypResult ret = cPoint(var, user);
@@ -2534,13 +2536,7 @@ CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
         return CBotTypResult(CBotTypFloat);
     }
 
-    if ( allowedScripting.shootAsSpider )
-    {
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-        return CBotTypResult(CBotTypFloat);
-    }
-    
-    if ( allowedScripting.shootAsRobot )
+    if ( allowedScripting.shootTimeParam )
     {
         if ( var != nullptr )
         {
@@ -2568,8 +2564,14 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
 
     if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
     {
-        auto allowedScripting = GetObjectScriptingDetails(pThis).allowed;
-        if ( allowedScripting.shootAsAnt )
+        auto allowedScripting = GetObjectProgrammableDetails(pThis).allowed;
+
+        if ( allowedScripting.shootNoParam )
+        {
+            err = script->m_taskExecutor->StartTaskSpiderExplo();
+        }
+
+        if ( allowedScripting.shootPointParam )
         {
             if ( !GetPoint(var, exception, impact) )  return true;
             float waterLevel = Gfx::CEngine::GetInstancePointer()->GetWater()->GetLevel();
@@ -2577,12 +2579,7 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
             err = script->m_taskExecutor->StartTaskFireAnt(impact);
         }
 
-        if ( allowedScripting.shootAsSpider )
-        {
-            err = script->m_taskExecutor->StartTaskSpiderExplo();
-        }
-
-        if ( allowedScripting.shootAsRobot )
+        if ( allowedScripting.shootTimeParam )
         {
             if ( var == nullptr )  delay = 0.0f;
             else             delay = var->GetValFloat();
@@ -2690,7 +2687,9 @@ bool CScriptFunctions::rMotor(CBotVar* var, CBotVar* result, int& exception, voi
     if ( turn < -1.0f )  turn = -1.0f;
     if ( turn >  1.0f )  turn =  1.0f;
 
-    if ( dynamic_cast<CBaseAlien*>(pThis) != nullptr && dynamic_cast<CBaseAlien&>(*pThis).GetFixed() )  // ant on the back?
+    // ant on the back?
+    if (pThis->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(pThis)->GetFixed() )
     {
         speed = 0.0f;
         turn  = 0.0f;
@@ -2919,7 +2918,7 @@ bool CScriptFunctions::rPenDown(CBotVar* var, CBotVar* result, int& exception, v
     }
     traceDrawing->SetTraceDown(true);
 
-    if ( GetObjectCommonInterfaceDetails(pThis->GetType()).drawing.penAnimated )
+    if ( GetObjectTraceDrawingDetails(pThis).penAnimated )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -2968,7 +2967,7 @@ bool CScriptFunctions::rPenUp(CBotVar* var, CBotVar* result, int& exception, voi
     CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
     traceDrawing->SetTraceDown(false);
 
-    if ( GetObjectCommonInterfaceDetails(pThis->GetType()).drawing.penAnimated )
+    if ( GetObjectTraceDrawingDetails(pThis).penAnimated )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
@@ -3022,7 +3021,7 @@ bool CScriptFunctions::rPenColor(CBotVar* var, CBotVar* result, int& exception, 
     if ( color > static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max);
     traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
 
-    if ( GetObjectCommonInterfaceDetails(pThis->GetType()).drawing.penAnimated )
+    if ( GetObjectTraceDrawingDetails(pThis).penAnimated )
     {
         if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {

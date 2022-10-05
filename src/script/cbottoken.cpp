@@ -23,7 +23,8 @@
 #include "app/app.h"
 
 #include "object/object_type.h"
-#include "object/object_details.h"
+
+#include "object/details/scripting_details.h"
 
 #include <string.h>
 
@@ -32,7 +33,7 @@
 
 std::string GetObjectName(ObjectType type)
 {
-    return GetObjectNamingDetails(type).script.name;
+    return GetObjectScriptingDetails(type).name;
 }
 
 // Seeking the name of a secondary object.
@@ -40,7 +41,7 @@ std::string GetObjectName(ObjectType type)
 
 std::string GetObjectAlias(ObjectType type)
 {
-    return GetObjectNamingDetails(type).script.alias;
+    return GetObjectScriptingDetails(type).alias;
 }
 
 
@@ -48,7 +49,7 @@ std::string GetObjectAlias(ObjectType type)
 
 std::string GetHelpFilename(ObjectType type)
 {
-    std::string helpfile = GetObjectNamingDetails(type).script.helpTopicPath;
+    std::string helpfile = GetObjectScriptingDetails(type).helpTopicPath;
     if (helpfile.empty())
         return "";
 

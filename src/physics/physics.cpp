@@ -44,15 +44,17 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/destroyable_details.h"
+#include "object/details/movable_details.h"
+
 #include "object/interface/jostleable_object.h"
 #include "object/interface/slotted_object.h"
+#include "object/interface/thumpable_object.h"
 #include "object/interface/transportable_object.h"
 
 #include "object/motion/motion.h"
 #include "object/motion/motionhuman.h"
 #include "object/motion/motionvehicle.h"
-
-#include "object/subclass/base_alien.h"
 
 #include "object/task/task.h"
 
@@ -1514,8 +1516,8 @@ bool CPhysics::EventFrame(const Event &event)
         m_linMotion.terrainSpeed.y = -h*2.5f;  // is not above
     }
 
-    // (*)  High enough to pass over the tower defense (OBJECT_TOWER),
-    //      but not too much to pass under the cover of the ship (OBJECT_BASE)!
+    // (*)  High enough to pass over the tower defense,
+    //      but not too much to pass under the cover of the ship!
 
     UpdateMotionStruct(event.rTime, m_linMotion);
     UpdateMotionStruct(event.rTime, m_cirMotion);
@@ -1618,8 +1620,9 @@ void CPhysics::SoundMotor(float rTime)
     else if ( type == OBJECT_ANT )
     {
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
         if ( dynamic_cast<CDestroyableObject&>(*m_object).GetDying() == DeathType::Burning ||
-             dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+             dynamic_cast<CThumpableObject&>(*m_object).GetFixed() )
         {
             if ( m_lastSoundInsect <= 0.0f )
             {
@@ -1682,8 +1685,9 @@ void CPhysics::SoundMotor(float rTime)
     else if ( type == OBJECT_SPIDER )
     {
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
         if ( dynamic_cast<CDestroyableObject&>(*m_object).GetDying() == DeathType::Burning ||
-             dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+             dynamic_cast<CThumpableObject&>(*m_object).GetFixed() )
         {
             if ( m_lastSoundInsect <= 0.0f )
             {
@@ -1790,21 +1794,17 @@ void CPhysics::WaterFrame(float aTime, float rTime)
 
     type = m_object->GetType();
 
-    auto assistant = GetObjectAssistantDetails();
-    if (type == assistant.type && assistant.undamageable)  return; // Toto?
-
     if ( type == OBJECT_NULL )  return;
 
     if ( !m_object->GetDetectable() )  return;
 
-    if (type == OBJECT_HUMAN && m_object->GetOption() != 0 )  // human without a helmet?)
+    if ( m_object->Implements(ObjectInterfaceType::Destroyable) )
     {
-        assert(m_object->Implements(ObjectInterfaceType::Destroyable));
-        dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::Drowned);
-    }
-    else if ( m_water->GetLava() || GetObjectCommonInterfaceDetails(type).destroyable.water.explodeInWater )
-    {
-        if (m_object->Implements(ObjectInterfaceType::Destroyable))
+        if (type == OBJECT_HUMAN && m_object->GetOption() != 0 )  // human without a helmet?)
+        {
+            dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::Drowned);
+        }
+        else if ( m_water->GetLava() || GetObjectDestroyableDetails(m_object).water.enabled )
         {
             dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::ExplosionWater);
         }
@@ -2276,7 +2276,7 @@ void CPhysics::FloorAdapt(float aTime, float rTime,
     h -= character->height;
     m_floorHeight = h;
 
-    WaterParticle(aTime, pos, type, m_floorLevel,
+    WaterParticle(aTime, pos, m_floorLevel,
                    fabs(m_linMotion.realSpeed.x),
                    fabs(m_cirMotion.realSpeed.y*15.0f));
 
@@ -2499,9 +2499,6 @@ int CPhysics::ObjectAdapt(const Math::Vector &pos, const Math::Vector &angle)
         if ( pObj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*pObj).GetDying() == DeathType::Exploding )  continue;  // is exploding?
 
         oType = pObj->GetType();
-
-        auto assistant = GetObjectAssistantDetails();
-        if (oType == assistant.type && assistant.undamageable)  continue; // Toto?
 
         if ( !m_object->CanCollideWith(pObj) )  continue;
 
@@ -2763,8 +2760,7 @@ bool CPhysics::ExploOther(ObjectType iType,
         }
     }
 
-    auto destroyDetails = GetObjectCommonInterfaceDetails(oType).destroyable;
-    if ( destroyDetails.squash.squashedByHeavy && GetDriveFromObject(iType)==DriveType::Heavy)
+    if ( GetObjectDestroyableDetails(pObj).squash.enabled && GetDriveFromObject(iType)==DriveType::Heavy)
     {
         assert(pObj->Implements(ObjectInterfaceType::Destroyable));
         dynamic_cast<CDestroyableObject*>(pObj)->DestroyObject(DestructionType::Squash);
@@ -2954,7 +2950,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
     if ( m_object->GetToy() )  return;
 
     type = m_object->GetType();
-    auto exhaustDetails = GetObjectPhysicsDetails(m_object).exhaust;
+    auto exhaustDetails = GetObjectMovableDetails(m_object).exhaust;
 
     if ( exhaustDetails.bubblesOnEnteringWater )
     {
@@ -3428,7 +3424,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
 
 // Generates some particles after falling into the water.
 
-void CPhysics::WaterParticle(float aTime, Math::Vector pos, ObjectType type,
+void CPhysics::WaterParticle(float aTime, Math::Vector pos,
                               float floor, float advance, float turn)
 {
     Math::Vector    ppos, speed;
@@ -3439,7 +3435,7 @@ void CPhysics::WaterParticle(float aTime, Math::Vector pos, ObjectType type,
     level = m_water->GetLevel();
     if ( floor >= level )  return;
 
-    auto waterDetails = GetObjectPhysicsDetails(type).water;
+    auto waterDetails = GetObjectMovableDetails(m_object).water;
     min = waterDetails.splashLevelMin;
     max = waterDetails.splashLevelMax;
     diam = waterDetails.splashDiameter;

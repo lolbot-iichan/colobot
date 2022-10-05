@@ -48,7 +48,7 @@ enum ObjectType
     OBJECT_LABO             = 14,   //!< AutoLab
     OBJECT_NUCLEAR          = 15,   //!< NuclearPlant
     OBJECT_START            = 16,   //!< StartArea
-    OBJECT_END              = 17,   //!< EndArea
+    OBJECT_END              = 17,   //!< GoalArea
     OBJECT_INFO             = 18,   //!< ExchangePost
     OBJECT_PARA             = 19,   //!< PowerCaptor
     OBJECT_TARGET1          = 20,   //!< Target1 (gate)

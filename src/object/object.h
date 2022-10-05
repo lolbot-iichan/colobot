@@ -121,10 +121,15 @@ public:
     float GetRotationZ();
     //!@}
 
+protected:
     //! Returns object's scale
     virtual Math::Vector GetScale() const;
     //! Sets objects's scale
     virtual void SetScale(const Math::Vector& scale);
+
+public:
+    //! Sets objects's scale factor (usually SetScale is used with scale from 0.0f to 1.0f)
+    void SetScaleFactor(float factor);
     //! Sets objects's scale (uniform value)
     void SetScale(float scale);
 
@@ -136,7 +141,6 @@ public:
     float GetScaleX();
     float GetScaleY();
     float GetScaleZ();
-    bool IsFullScale();
     //!@}
 
     //! Sets crash spheres for object
@@ -225,6 +229,7 @@ protected:
     Math::Vector m_position;
     Math::Vector m_rotation;
     Math::Vector m_scale;
+    float m_scaleFactor;
     std::vector<CrashSphere> m_crashSpheres; //!< crash spheres
     Math::Sphere m_cameraCollisionSphere;
     bool m_animateOnReset;

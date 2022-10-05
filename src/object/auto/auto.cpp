@@ -30,8 +30,9 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
+
+#include "object/details/controllable_details.h"
 
 #include "sound/sound.h"
 
@@ -220,32 +221,28 @@ bool CAuto::CreateInterface(bool bSelect)
     ddim.y =  26.0f/480.0f;
     pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GPROGRESS);
 
-    auto controlsDetails = GetObjectControlsDetails(m_object);
+    auto controlsDetails = GetObjectControllableDetails(m_object).controls;
     for ( auto it : controlsDetails.widgets )
     {
-        bool bSkip = false;
-        for ( auto b : it.onBuildingsEnabled )
-            if ( !m_main->IsBuildingEnabled(b) )
-                bSkip = true;
-
-        for ( auto r : it.onResearchsDone )
-            if ( !m_main->IsResearchDone(r, m_object->GetTeam()) )
-                bSkip = true;
-
-        if ( bSkip ) continue;
-        if ( it.disabledByTrainer && m_object->GetTrainer() ) continue;
-        if ( it.disabledByPlusExplorer && m_main->GetPlusExplorer() ) continue;
+        if ( it.disabledByTrainer &&
+            m_object->GetTrainer() ) continue;
+        if ( it.disabledByPlusExplorer &&
+            m_main->GetPlusExplorer() ) continue;
+        if ( it.onBuildingEnabled && 
+            !m_main->IsBuildingEnabled(static_cast<BuildType>(it.onBuildingEnabled)) ) continue;
+        if ( it.onResearchDone && 
+            !m_main->IsResearchDone(static_cast<ResearchType>(it.onResearchDone), m_object->GetTeam()) ) continue;
 
         pos.x  = ox + sx * it.position.x;
         pos.y  = oy + sy * it.position.y;
         ddim.x = dim.x * it.size.x;
         ddim.y = dim.y * it.size.y;
         
-        if ( it.type == WIDGET_ICON_BUTTON )
+        if ( it.widgetType == Ui::WIDGET_ICON_BUTTON )
             pw->CreateButton(pos, ddim, it.params.icon, it.event)->SetImmediat(it.isImmediat);
-        else if ( it.type == WIDGET_COLOR_BUTTON )
+        else if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
             pw->CreateColor(pos, ddim, -1, it.event)->SetColor(it.params.color);
-        else if ( it.type == WIDGET_ICON_LOGO )
+        else if ( it.widgetType == Ui::WIDGET_ICON_LOGO )
             pw->CreateLogo(pos, ddim, it.params.icon, it.event);
 
 //TODO

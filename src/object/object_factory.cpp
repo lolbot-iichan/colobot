@@ -36,18 +36,22 @@
 #include "object/object_details.h"
 #include "object/old_object.h"
 
+#include "object/auto/autoboat.h"
 #include "object/auto/autoegg.h"
+#include "object/auto/autofan.h"
 #include "object/auto/autoflag.h"
 #include "object/auto/autojostle.h"
-#include "object/auto/autokid.h"
 #include "object/auto/automush.h"
 #include "object/auto/autoroot.h"
+#include "object/auto/autotrunk.h"
+
+#include "object/details/creation_details.h"
+#include "object/details/josteable_details.h"
+#include "object/details/movable_details.h"
 
 #include "object/motion/motion.h"
 
-#include "object/subclass/base_alien.h"
-#include "object/subclass/base_building.h"
-#include "object/subclass/base_robot.h"
+#include "object/subclass/base_movable.h"
 #include "object/subclass/exchange_post.h"
 #include "object/subclass/shielder.h"
 #include "object/subclass/static_object.h"
@@ -95,11 +99,8 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
         case BASE_CLASS_INFO:
             return CExchangePost::Create(params, m_oldModelManager, m_engine);
 
-        case BASE_CLASS_ALIEN:
-            return CBaseAlien::Create(params, m_oldModelManager, m_engine);
-
-        case BASE_CLASS_ROBOT:
-            return CBaseRobot::Create(params, m_oldModelManager, m_engine);
+        case BASE_CLASS_MOVABLE:
+            return CBaseMovable::Create(params, m_oldModelManager, m_engine);
 
         case BASE_CLASS_SHIELDER:
             return CShielder::Create(params, m_oldModelManager, m_engine);
@@ -137,10 +138,13 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
         m_engine->SetObjectType(rank, it.gfxType);
         obj->SetObjectRank(it.chunkId, rank);
 
-        if ( it.copyModel ) 
-            m_oldModelManager->AddModelCopy(it.modFile, false, rank, obj->GetTeam());
-        else
-            m_oldModelManager->AddModelReference(it.modFile, false, rank, obj->GetTeam());
+        if ( it.modFile.size() )
+        {
+            if ( it.copyModel ) 
+                m_oldModelManager->AddModelCopy(it.modFile, false, rank, obj->GetTeam());
+            else
+                m_oldModelManager->AddModelReference(it.modFile, false, rank, obj->GetTeam());
+        }
 
         if ( it.parentId != -1)
         {
@@ -149,36 +153,22 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
             obj->SetPartRotation(it.chunkId, it.rotation);
         }
     }
-    if ( model.size() == 0 )
-    {
-        int rank = m_engine->CreateObject();
-        m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
-        obj->SetObjectRank(0, rank);
-//    }
-//TODO
-//    {
-        obj->SetProgrammable();
-    }
 
     obj->SetPosition(pos);
     obj->SetRotationY(obj->GetRotationY() + angle);
-    obj->SetScale(creationDetails.scale);
+    obj->SetScaleFactor(creationDetails.zoom);
+
+    auto shadowCircle = creationDetails.shadowCircle;
+    if ( shadowCircle.intensity )
+    {
+        float intensity = shadowCircle.factored ? shadowCircle.intensity * fShadow : shadowCircle.intensity;
+        obj->CreateShadowCircle(shadowCircle.radius, intensity, shadowCircle.shadowType);
+    }
+
+    obj->SetCameraCollisionSphere(creationDetails.cameraCollisionSphere);
 
     for ( auto it : creationDetails.crashSpheres )
         obj->AddCrashSphere(it);
-
-    for ( auto it : creationDetails.cameraCollisionSpheres )
-        obj->SetCameraCollisionSphere(it);
-
-    for ( auto it : creationDetails.jostlingSpheres )
-        obj->SetJostlingSphere(it);
-
-    auto shadowCircle = creationDetails.shadowCircle;
-    if ( shadowCircle.intensity > 0.0f )
-    {
-        float intensity = shadowCircle.factored ? shadowCircle.intensity*fShadow : shadowCircle.intensity;
-        obj->CreateShadowCircle(shadowCircle.radius, intensity, shadowCircle.type);
-    }
 
     if ( creationDetails.isForceLoadTextures )
         m_engine->LoadAllTextures();
@@ -200,20 +190,20 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
         m_terrain->AddBuildingLevel(pos, it.min, it.max, it.height, it.factor);
 
     
-    if ( !creationDetails.isFixedPosition )
+    if ( !creationDetails.isFixedPosition && model.size() > 0 )
     {
-        if ( model.size() > 0 )
-        {
-            obj->SetPosition(obj->GetPosition() + model[0].position);
-            obj->SetRotation(obj->GetRotation() + model[0].rotation);
-        }
+        obj->SetPosition(obj->GetPosition() + model[0].position);
+        obj->SetRotation(obj->GetRotation() + model[0].rotation);
     }
 
     AddObjectAuto(obj.get());
     AddObjectHacks(obj.get());
 
-    auto commonDetails = GetObjectCommonInterfaceDetails(params.type);
-    if ( commonDetails.movable.enabled )
+    auto josteable = GetObjectJosteableDetails(obj.get());
+    if ( josteable.enabled )
+        obj->SetJostlingSphere(josteable.sphere);
+
+    if ( GetObjectMovableDetails(obj.get()).enabled )
     {
         std::unique_ptr<CPhysics> physics = MakeUnique<CPhysics>(obj.get());
         std::unique_ptr<CMotion> motion = MakeUnique<CMotion>(obj.get());
@@ -232,34 +222,28 @@ void CObjectFactory::AddObjectAuto(COldObject* obj)
 {
     std::unique_ptr<CAuto> objAuto;
 
-    auto type = obj->GetType();
+    auto creation = GetObjectCreationDetails(obj);
 
-    if ( type == OBJECT_EGG )
-    {
+    if ( creation.autoClass == AUTO_CLASS_EGG      )
         objAuto = MakeUnique<CAutoEgg>(obj);
-    }
-    if ( type == OBJECT_ROOT5 )
-    {
+
+    if ( creation.autoClass == AUTO_CLASS_ROOT     )
         objAuto = MakeUnique<CAutoRoot>(obj);
-    }
-    if ( type == OBJECT_MUSHROOM2 )
-    {
+
+    if ( creation.autoClass == AUTO_CLASS_MUSHROOM )
         objAuto = MakeUnique<CAutoMush>(obj);
-    }
-    if ( type == OBJECT_FLAGb ||
-         type == OBJECT_FLAGr ||
-         type == OBJECT_FLAGg ||
-         type == OBJECT_FLAGy ||
-         type == OBJECT_FLAGv )
-    {
+
+    if ( creation.autoClass == AUTO_CLASS_FLAG     )
         objAuto = MakeUnique<CAutoFlag>(obj);
-    }
-    if ( type == OBJECT_TEEN36 ||  // trunk?
-         type == OBJECT_TEEN37 ||  // boat?
-         type == OBJECT_TEEN38 )   // fan?
-    {
-        objAuto = MakeUnique<CAutoKid>(obj);
-    }
+
+    if ( creation.autoClass == AUTO_CLASS_TRUNK    )
+        objAuto = MakeUnique<CAutoTrunk>(obj);
+
+    if ( creation.autoClass == AUTO_CLASS_BOAT     )
+        objAuto = MakeUnique<CAutoBoat>(obj);
+
+    if ( creation.autoClass == AUTO_CLASS_FAN      )
+        objAuto = MakeUnique<CAutoFan>(obj);
 
     if (objAuto != nullptr)
     {

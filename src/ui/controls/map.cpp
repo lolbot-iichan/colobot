@@ -31,7 +31,7 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
+#include "object/details/detectable_details.h"
 
 #include "object/interface/controllable_object.h"
 #include "object/interface/transportable_object.h"
@@ -833,7 +833,7 @@ void CMap::DrawObjectIcon(Math::Point pos, Math::Point dim, MapColor color,
     {
         if ( icon == -1 )  return;
 
-        switch ( icon << 6 )
+        switch ( icon >> 6 )
         {
             case 0:
                 m_engine->SetTexture("textures/interface/button1.png"); break;
@@ -1126,7 +1126,7 @@ void CMap::UpdateObject(CObject* pObj)
     type = pObj->GetType();
     if ( !pObj->GetDetectable() )  return;
 
-    mapDetails = GetObjectIconDetails(pObj).map;
+    mapDetails = GetObjectDetectableDetails(pObj).map;
     if ( !mapDetails.isForced )
     {
         if (pObj->Implements(ObjectInterfaceType::Controllable) && !dynamic_cast<CControllableObject&>(*pObj).GetSelectable()) return;
@@ -1145,7 +1145,7 @@ void CMap::UpdateObject(CObject* pObj)
         dir += m_angle;
     }
 
-    color = mapDetails.color;
+    color = static_cast<MapColor>(mapDetails.color);
     icon = mapDetails.icon;
 
     if ( color == MAPCOLOR_NULL )  return;

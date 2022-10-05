@@ -49,10 +49,27 @@
 #include "object/auto/autobase.h"
 #include "object/auto/autojostle.h"
 
+#include "object/details/controllable_details.h"
+#include "object/details/damageable_details.h"
+#include "object/details/destroyable_details.h"
+#include "object/details/flying_details.h"
+#include "object/details/fragile_details.h"
+#include "object/details/jet_flying_details.h"
+#include "object/details/josteable_details.h"
+#include "object/details/movable_details.h"
+#include "object/details/power_container_details.h"
+#include "object/details/programmable_details.h"
+#include "object/details/shielded_details.h"
+#include "object/details/shielded_auto_regen_details.h"
+#include "object/details/slotted_details.h"
+#include "object/details/ranged_details.h"
+#include "object/details/thumpable_details.h"
+#include "object/details/trace_drawing_details.h"
+#include "object/details/transportable_details.h"
+
 #include "object/motion/motion.h"
 #include "object/motion/motionvehicle.h"
 
-#include "object/subclass/base_alien.h"
 #include "object/subclass/exchange_post.h"
 
 #include "physics/physics.h"
@@ -89,14 +106,9 @@ COldObject::COldObject(int id)
       CRangedObject(m_implementedInterfaces),
       CTraceDrawingObject(m_implementedInterfaces),
       CShieldedAutoRegenObject(m_implementedInterfaces),
+      CThumpableObject(m_implementedInterfaces),
       m_partiSel()
 {
-    // A bit of a hack since we don't have subclasses yet, set externally in SetProgrammable()
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)] = false;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)] = false;
-    // Another hack
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)] = false;
-
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)] = true;
 
     m_sound       = CApplication::GetInstancePointer()->GetSound();
@@ -170,6 +182,8 @@ COldObject::COldObject(int id)
     m_traceDown = false;
     m_traceColor = TraceColor::Black;
     m_traceWidth = 0.5f;
+    
+    m_fixed = false;
 
     DeleteAllCrashSpheres();
 }
@@ -206,8 +220,7 @@ void COldObject::DeleteObject(bool bAll)
             SetSelect(false);
         }
 
-        auto destructionDetails = GetObjectCommonInterfaceDetails(m_type).destroyable;
-        if ( destructionDetails.removeBuildingLevel ) // building?
+        if ( GetObjectDestroyableDetails(this).removeBuildingLevel ) // building?
         {
             m_terrain->DeleteBuildingLevel(GetPosition());  // flattens the field
         }
@@ -330,17 +343,16 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
     if ( IsDying() )  return false;
     if ( Implements(ObjectInterfaceType::Jostleable) ) return false;
 
-    if ( m_type == OBJECT_ANT    ||
-         m_type == OBJECT_WORM   ||
-         m_type == OBJECT_SPIDER ||
-         m_type == OBJECT_BEE     )
+    if ( Implements(ObjectInterfaceType::Fragile) )
     {
-        // Fragile, but can have fire effect
-        // TODO: IsBurnable()
-        force = -1.0f;
-    }
-    else if ( Implements(ObjectInterfaceType::Fragile) )
-    {
+        auto fragile = GetObjectFragileDetails(this);
+        if ( fragile.burnable )
+        {
+            // Fragile, but can have fire effect
+            // TODO: IsBurnable()
+            force = -1.0f;
+        }
+
         if ((m_type == OBJECT_BOMB         ||
              m_type == OBJECT_RUINmobilew1 ||
              m_type == OBJECT_RUINmobilew2 ||
@@ -455,37 +467,37 @@ void COldObject::DestroyObject(DestructionType type, CObject* killer)
         SetDamaging(false);
     }
 
-    auto destructionDetails = GetObjectCommonInterfaceDetails(m_type).destroyable;
+    auto destroyable = GetObjectDestroyableDetails(this);
 
     Gfx::PyroType pyroType = Gfx::PT_NULL;
     if ( type == DestructionType::Explosion )   // explosion?
     {
-        pyroType = destructionDetails.explosion.effect;
+        pyroType = destroyable.explosion.effect;
     }
     else if ( type == DestructionType::ExplosionWater )
     {
-        pyroType = destructionDetails.water.effect;
+        pyroType = destroyable.water.effect;
     }
     else if ( type == DestructionType::Burn )  // burning?
     {
-        pyroType = destructionDetails.burning.effect;
+        pyroType = destroyable.burning.effect;
 
-        if (destructionDetails.burning.isKilledByBurning)
+        if (destroyable.burning.isKilledByBurning)
             SetDying(DeathType::Burning);
 
         SetVirusMode(false);
     }
     else if ( type == DestructionType::Drowned )
     {
-        pyroType = destructionDetails.drowned.effect;
+        pyroType = destroyable.drowned.effect;
     }
     else if ( type == DestructionType::Win )
     {
-        pyroType = destructionDetails.win.effect;
+        pyroType = destroyable.win.effect;
     }
     else if ( type == DestructionType::Squash )
     {
-        pyroType = destructionDetails.squash.effect;
+        pyroType = destroyable.squash.effect;
         DeleteAllCrashSpheres();
     }
 
@@ -626,27 +638,57 @@ void COldObject::SetType(ObjectType type)
     m_type = type;
     m_name = GetObjectName(m_type);
 
-    SetSelectable(IsSelectableByDefault(m_type));
+    SetSelectable(IsSelectableByDefault());
 
-    auto commonDetails = GetObjectCommonInterfaceDetails(m_type);
+    auto transportable       = GetObjectTransportableDetails(this);
+    auto programmable        = GetObjectProgrammableDetails(this);
+    auto task_executor       = GetObjectTaskExecutorDetails(this);
+    auto jostleable          = GetObjectJosteableDetails(this);
+    auto movable             = GetObjectMovableDetails(this);
+    auto flying              = GetObjectFlyingDetails(this);
+    auto jet_flying          = GetObjectJetFlyingDetails(this);
+    auto controllable        = GetObjectControllableDetails(this);
+    auto power_container     = GetObjectPowerContainerDetails(this);
+    auto ranged              = GetObjectRangedDetails(this);
+    auto trace_drawing       = GetObjectTraceDrawingDetails(this);
+    auto damageable          = GetObjectDamageableDetails(this);
+    auto destroyable         = GetObjectDestroyableDetails(this);
+    auto fragile             = GetObjectFragileDetails(this);
+    auto shielded            = GetObjectShieldedDetails(this);
+    auto shielded_auto_regen = GetObjectShieldedAutoRegenDetails(this);
+    auto slotted             = GetObjectSlottedDetails(this);
+    auto thumpable           = GetObjectThumpableDetails(this);
 
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)] = commonDetails.transportable.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)] = commonDetails.movable.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = commonDetails.flying.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = commonDetails.jet.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)] = commonDetails.controllable.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)] = commonDetails.power.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = commonDetails.damageable.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = commonDetails.destroyable.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = commonDetails.fragile.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = commonDetails.shielded.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ShieldedAutoRegen)] = commonDetails.autoregen.enabled;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)] = commonDetails.sloted.enabled;
+    bool interactiveEnabled    = true;
+    bool oldEnabled            = true;
+    bool programStorageEnabled = programmable.enabled;
 
-    m_hasCargoSlot = commonDetails.sloted.cargo.enabled;
-    m_hasPowerSlot = commonDetails.sloted.power.enabled || commonDetails.sloted.other.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Interactive)]       = interactiveEnabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)]     = transportable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)]    = programStorageEnabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)]      = programmable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::TaskExecutor)]      = task_executor.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)]        = jostleable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)]           = movable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)]            = flying.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)]         = jet_flying.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)]      = controllable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)]    = power_container.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Ranged)]            = ranged.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::TraceDrawing)]      = trace_drawing.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)]        = damageable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)]       = destroyable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)]           = fragile.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)]          = shielded.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ShieldedAutoRegen)] = shielded_auto_regen.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)]               = oldEnabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)]           = slotted.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Thumpable)]         = thumpable.enabled;
 
-    m_cameraType = GetObjectCameraDetails(this).defaultCamera;
+    m_hasCargoSlot = slotted.cargo.enabled;
+    m_hasPowerSlot = slotted.power.enabled || slotted.other.enabled;
+
+    m_cameraType = controllable.camera.defaultCamera;
 }
 
 const char* COldObject::GetName()
@@ -752,6 +794,9 @@ void COldObject::Write(CLevelParserLine* line)
         line->AddParam("bVirusActive", MakeUnique<CLevelParserParam>(GetActiveVirus()));
     }
 
+    if (GetFixed())
+        line->AddParam("fixed", MakeUnique<CLevelParserParam>(GetFixed()));
+        
     if ( m_physics != nullptr )
     {
         m_physics->Write(line);
@@ -786,7 +831,7 @@ void COldObject::Read(CLevelParserLine* line)
     SetAnimateOnReset(line->GetParam("reset")->AsBool(false));
     if (Implements(ObjectInterfaceType::Controllable))
     {
-        SetSelectable(line->GetParam("selectable")->AsBool(IsSelectableByDefault(m_type)));
+        SetSelectable(line->GetParam("selectable")->AsBool(IsSelectableByDefault()));
     }
     if (Implements(ObjectInterfaceType::JetFlying))
     {
@@ -883,6 +928,8 @@ void COldObject::Read(CLevelParserLine* line)
         SetActiveVirus(line->GetParam("bVirusActive")->AsBool(false));
     }
 
+    SetFixed(line->GetParam("fixed")->AsBool(false));
+
     if ( m_physics != nullptr )
     {
         m_physics->Read(line);
@@ -952,7 +999,6 @@ void COldObject::TransformCameraCollisionSphere(Math::Sphere& collisionSphere)
 void COldObject::SetJostlingSphere(const Math::Sphere& jostlingSphere)
 {
     m_jostlingSphere = jostlingSphere;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)] = true;
 }
 
 // Specifies the sphere of jostling, in the world.
@@ -1308,35 +1354,12 @@ Math::Vector COldObject::GetSlotPosition(int slotNum)
     else
     {
         assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        int grabPartNum;
-        Math::Vector grabRelPos;
+
         // See CTaskManip::TransporterTakeObject call to SetTransporterPart and SetPosition
-        switch (m_type)
-        {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            grabPartNum = 4;
-            grabRelPos = Math::Vector(1.7f, -0.5f, 1.1f);
-            break;
-        case OBJECT_BEE:
-            grabPartNum = 3;
-            grabRelPos = Math::Vector(4.7f, 0.0f, 0.0f);
-            break;
-        case OBJECT_MOBILEsa: // subber
-            grabPartNum = 2;
-            grabRelPos = Math::Vector(1.1f, -1.0f, 1.0f);
-            break;
-        case OBJECT_MOBILEfa: // Grabbers
-        case OBJECT_MOBILEta:
-        case OBJECT_MOBILEwa:
-        case OBJECT_MOBILEia:
-            grabPartNum = 3;
-            grabRelPos = Math::Vector(4.7f, 0.0f, 0.0f);
-            break;
-        default: // unreachable, only the above objects have cargo slots
-            assert(!m_hasCargoSlot);
-            return m_powerPosition;
-        }
+
+        auto slotted = GetObjectSlottedDetails(this);
+        int grabPartNum = slotted.cargo.partNum;
+        Math::Vector grabRelPos = slotted.cargo.position;
 
         return Math::Transform(GetWorldMatrix(0)->Inverse(), Math::Transform(*GetWorldMatrix(grabPartNum), grabRelPos));
     }
@@ -1824,10 +1847,11 @@ bool COldObject::EventProcess(const Event &event)
                       m_type == OBJECT_SPIDER ||
                       m_type == OBJECT_WORM   ) )
                 {
-                    // TODO: Move to CBaseAlien?
-                    CBaseAlien* alien = dynamic_cast<CBaseAlien*>(this);
-                    assert(alien != nullptr);
-                    if (!alien->GetFixed())
+                    if (Implements(ObjectInterfaceType::Thumpable) && GetFixed() )
+                    {
+                        // just burn
+                    }
+                    else
                     {
                         axeY = 2.0f;  // zigzag disorganized fast
                         if ( m_type == OBJECT_WORM )  axeY = 5.0f;
@@ -2631,7 +2655,7 @@ float COldObject::GetGunGoalH()
 
 float COldObject::GetShowLimitRadius()
 {
-    return GetObjectCommonInterfaceDetails(m_type).ranged.radius;
+    return GetObjectRangedDetails(this).radius;
 }
 
 
@@ -2889,14 +2913,6 @@ CMotion* COldObject::GetMotion()
     return m_motion.get();
 }
 
-// TODO: Temporary hack until we'll have subclasses for objects
-void COldObject::SetProgrammable()
-{
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)] = true;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)] = true;
-}
-
-// TODO: Another hack
 void COldObject::SetMovable(std::unique_ptr<CMotion> motion, std::unique_ptr<CPhysics> physics)
 {
     m_motion = std::move(motion);
@@ -2938,12 +2954,12 @@ void COldObject::SetRotation(const Math::Vector& rotation)
 
 Math::Vector COldObject::GetScale() const
 {
-    return GetPartScale(0);
+    return GetPartScale(0) / m_scaleFactor;
 }
 
 void COldObject::SetScale(const Math::Vector& scale)
 {
-    SetPartScale(0, scale);
+    SetPartScale(0, scale * m_scaleFactor);
 }
 
 void COldObject::UpdateInterface()
@@ -2962,13 +2978,16 @@ void COldObject::StopProgram()
     CProgrammableObjectImpl::StopProgram();
 
     //TODO: I don't want CProgrammableObjectImpl to depend on motion and physics, refactor this somehow
-    m_physics->SetMotorSpeedX(0.0f);
-    m_physics->SetMotorSpeedY(0.0f);
-    m_physics->SetMotorSpeedZ(0.0f);
-
-    if (m_type != OBJECT_HUMAN) // Be sure not to stop the death animation!
+    if (Implements(ObjectInterfaceType::Movable))
     {
-        m_motion->SetAction(-1);
+        m_physics->SetMotorSpeedX(0.0f);
+        m_physics->SetMotorSpeedY(0.0f);
+        m_physics->SetMotorSpeedZ(0.0f);
+
+        if (m_type != OBJECT_HUMAN) // Be sure not to stop the death animation!
+        {
+            m_motion->SetAction(-1);
+        }
     }
 }
 
@@ -3012,14 +3031,9 @@ bool COldObject::IsRepairable()
 
 float COldObject::GetShieldFullRegenTime()
 {
-    auto autoregenDetails = GetObjectCommonInterfaceDetails(m_type).autoregen;
-    if ( autoregenDetails.enabled)
-    {
-        return autoregenDetails.time;
-    }
-
-    assert(false);
-    return 0.0f;
+    auto shielded_auto_regen = GetObjectShieldedAutoRegenDetails(this);
+    assert(shielded_auto_regen.enabled);
+    return shielded_auto_regen.time;
 }
 
 float COldObject::GetLightningHitProbability()
@@ -3089,10 +3103,10 @@ float COldObject::GetLightningHitProbability()
     return 0.0f;
 }
 
-bool COldObject::IsSelectableByDefault(ObjectType type)
+bool COldObject::IsSelectableByDefault()
 {
-    auto controlDetails = GetObjectCommonInterfaceDetails(type).controllable;
-    return controlDetails.selectable;
+    auto controllable = GetObjectControllableDetails(this);
+    return controllable.selectable;
 }
 
 void COldObject::SetBulletWall(bool bulletWall)
@@ -3113,4 +3127,14 @@ bool COldObject::IsBulletWallByDefault(ObjectType type)
         return true;
     }
     return false;
+}
+
+void COldObject::SetFixed(bool fixed)
+{
+    m_fixed = fixed;
+}
+
+bool COldObject::GetFixed()
+{
+    return m_fixed;
 }

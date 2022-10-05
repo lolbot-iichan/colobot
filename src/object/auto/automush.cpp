@@ -25,9 +25,10 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
 
 #include "sound/sound.h"
 

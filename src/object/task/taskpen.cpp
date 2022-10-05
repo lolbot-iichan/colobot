@@ -23,8 +23,9 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
+
+#include "object/details/programmable_details.h"
 
 #include "physics/physics.h"
 
@@ -150,8 +151,8 @@ Error CTaskPen::Start(bool bDown, TraceColor color)
 
     m_bError = true;  // operation impossible
 
-    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
-    if (!allowedScripting.penAsRobot)  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectProgrammableDetails(m_object).allowed;
+    if (!allowedScripting.pen)  return ERR_WRONG_BOT;
 
     m_bError = false;  // ok
 

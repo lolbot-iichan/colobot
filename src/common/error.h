@@ -123,13 +123,6 @@ enum Error
     INFO_ENERGY           = 10006,    //! <  battery available
     INFO_NUCLEAR          = 10007,    //! <  nuclear battery available
     INFO_FINDING          = 10008,    //! <  useful object found
-    INFO_MARKPOWER        = 10020,    //! <  location for station found
-    INFO_MARKURANIUM      = 10021,    //! <  location for derrick found
-    INFO_MARKSTONE        = 10022,    //! <  location for derrick found
-    INFO_MARKKEYa         = 10023,    //! <  location for derrick found
-    INFO_MARKKEYb         = 10024,    //! <  location for derrick found
-    INFO_MARKKEYc         = 10025,    //! <  location for derrick found
-    INFO_MARKKEYd         = 10026,    //! <  location for derrick found
     INFO_RESEARCHTANK     = 10030,    //! <  research ended
     INFO_RESEARCHFLY      = 10031,    //! <  research ended
     INFO_RESEARCHTHUMP    = 10032,    //! <  research ended

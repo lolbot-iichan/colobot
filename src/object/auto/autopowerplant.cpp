@@ -31,9 +31,10 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
 
 #include "object/interface/slotted_object.h"
 #include "object/interface/transportable_object.h"
@@ -113,10 +114,6 @@ void CAutoPowerPlant::Init()
     m_progress = 0.0f;
     m_speed    = 1.0f/2.0f;
 
-    auto production = GetObjectAutomationDetails(m_object).production;
-    m_input  = production.input;
-    m_output = production.output;
-
     CAuto::Init();
 }
 
@@ -181,7 +178,13 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
             cargo = SearchMetal();  // transform metal?
             if ( cargo != nullptr )
             {
-                if ( cargo->GetType() == m_input )
+                bool found = false;
+                for ( auto it: GetObjectAutomationDetails(m_object).production )
+                {
+                    if ( cargo->GetType() == it.input ) found = true;
+                }
+
+                if ( found )
                 {
                     if ( big > POWERPLANT_POWER )  bGO = true;
                 }
@@ -193,10 +196,13 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
 
             if ( bGO )
             {
-                if ( cargo->GetType() == m_input )
+                for ( auto it : GetObjectAutomationDetails(m_object).production )
                 {
+                    if ( cargo->GetType() != it.input ) continue;
+
                     cargo->SetLock(true);  // usable metal
-                    CreatePower();  // creates the battery
+                    CreatePower(it.output);  // creates the battery
+                    break;
                 }
 
                 SetBusy(true);
@@ -264,14 +270,17 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
             cargo = SearchMetal();
             if ( cargo != nullptr )
             {
-                if ( cargo->GetType() == m_input )
+                bool found = false;
+                for ( auto it: GetObjectAutomationDetails(m_object).production )
                 {
+                    if ( cargo->GetType() == it.input ) found = true;
+                }
+
+                if ( found )
                     big -= event.rTime/POWERPLANT_DELAY*POWERPLANT_POWER;
-                }
                 else
-                {
                     big += event.rTime/POWERPLANT_DELAY*0.25f;
-                }
+
                 cargo->SetScale(1.0f-m_progress);
             }
 
@@ -396,8 +405,10 @@ CObject* CAutoPowerPlant::SearchMetal()
     CObject* obj = m_object->GetSlotContainedObject(0);
     if ( obj == nullptr )  return nullptr;
 
-    ObjectType type = obj->GetType();
-    if ( type == m_input )  return obj;
+    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    {
+        if ( obj->GetType() == it.input ) return obj;
+    }
 
     return nullptr;
 }
@@ -425,12 +436,12 @@ bool CAutoPowerPlant::SearchVehicle()
 
 // Create a cell.
 
-void CAutoPowerPlant::CreatePower()
+void CAutoPowerPlant::CreatePower(ObjectType type)
 {
     Math::Vector pos = m_object->GetPosition();
     float angle = m_object->GetRotationY();
     float powerLevel = 1.0f;
-    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, m_output, powerLevel);
+    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type, powerLevel);
     power->SetLock(true);  // battery not yet usable
 
     pos = power->GetPosition();
@@ -448,14 +459,16 @@ CObject* CAutoPowerPlant::SearchPower()
     {
         if ( !obj->GetLock() )  continue;
 
-        ObjectType  type = obj->GetType();
-        if ( type != m_output )  continue;
-
-        Math::Vector oPos = obj->GetPosition();
-        if ( oPos.x == cPos.x &&
-             oPos.z == cPos.z )
+        for ( auto it : GetObjectAutomationDetails(m_object).production )
         {
-            return obj;
+            if ( obj->GetType() != it.output ) continue;
+    
+            Math::Vector oPos = obj->GetPosition();
+            if ( oPos.x == cPos.x &&
+                 oPos.z == cPos.z )
+            {
+                return obj;
+            }
         }
     }
 
@@ -482,11 +495,13 @@ Error CAutoPowerPlant::GetError()
 
     CObject* obj = m_object->GetSlotContainedObject(0);
     if (obj == nullptr)  return ERR_ENERGY_EMPTY;
-    ObjectType type = obj->GetType();
-    if ( type == m_output )  return ERR_OK;
-    if ( type != m_input )  return ERR_ENERGY_BAD;
 
-    return ERR_OK;
+    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    {
+        if ( obj->GetType() == it.input )  return ERR_OK;
+        if ( obj->GetType() == it.output  )  return ERR_OK;
+    }
+    return ERR_ENERGY_BAD;
 }
 
 

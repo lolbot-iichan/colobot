@@ -17,9 +17,11 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
-#include "object/subclass/base_alien.h"
+#include "object/subclass/base_movable.h"
 
 #include "common/make_unique.h"
+
+#include "graphics/engine/oldmodelmanager.h"
 
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
@@ -28,87 +30,94 @@
 
 #include "object/motion/motionant.h"
 #include "object/motion/motionbee.h"
+#include "object/motion/motionhuman.h"
 #include "object/motion/motionqueen.h"
 #include "object/motion/motionspider.h"
+#include "object/motion/motiontoto.h"
+#include "object/motion/motionvehicle.h"
 #include "object/motion/motionworm.h"
 
 #include "physics/physics.h"
 
 
-CBaseAlien::CBaseAlien(int id, ObjectType type)
-    : CBaseVehicle(id, type),
-      m_fixed(false)
+CBaseMovable::CBaseMovable(int id, ObjectType type)
+    : COldObject(id)
+{
+    SetType(type);
+}
+
+CBaseMovable::~CBaseMovable()
 {}
 
-CBaseAlien::~CBaseAlien()
-{}
-
-std::unique_ptr<CBaseAlien> CBaseAlien::Create(
+std::unique_ptr<CBaseMovable> CBaseMovable::Create(
     const ObjectCreateParams& params,
     Gfx::COldModelManager* modelManager,
     Gfx::CEngine* engine)
 {
-    auto obj = MakeUnique<CBaseAlien>(params.id, params.type);
+    auto obj = MakeUnique<CBaseMovable>(params.id, params.type);
 
+    obj->SetType(params.type);
+    obj->SetOption(params.option);
     obj->SetTeam(params.team);
 
-    std::unique_ptr<CPhysics> physics = MakeUnique<CPhysics>(obj.get());
+    if ( params.type == OBJECT_TOTO )
+    {
+        auto motion = MakeUnique<CMotionToto>(obj.get());
+        motion->Create(params.pos, params.angle, params.type, 1.0f, modelManager);
+        obj->SetMovable(std::move(motion), nullptr);
+        return obj;
+    }
+
+    if ( params.type == OBJECT_HUMAN ||
+         params.type == OBJECT_TECH  )
+    {
+        obj->SetTrainer(false);
+    }
+    else
+    {
+        obj->SetTrainer(params.trainer || obj->GetPlusTrainer());
+    }
+
+    obj->SetToy(params.toy);
 
     std::unique_ptr<CMotion> motion;
-    if ( params.type == OBJECT_MOTHER )
+
+    if ( params.type == OBJECT_HUMAN || params.type == OBJECT_TECH  )
+    {
+        motion = MakeUnique<CMotionHuman>(obj.get());
+    }
+    else if ( params.type == OBJECT_MOTHER )
     {
         motion = MakeUnique<CMotionQueen>(obj.get());
     }
-    if ( params.type == OBJECT_ANT )
+    else if ( params.type == OBJECT_ANT )
     {
         motion = MakeUnique<CMotionAnt>(obj.get());
     }
-    if ( params.type == OBJECT_SPIDER )
+    else if ( params.type == OBJECT_SPIDER )
     {
         motion = MakeUnique<CMotionSpider>(obj.get());
     }
-    if ( params.type == OBJECT_BEE )
+    else if ( params.type == OBJECT_BEE )
     {
         motion = MakeUnique<CMotionBee>(obj.get());
     }
-    if ( params.type == OBJECT_WORM )
+    else if ( params.type == OBJECT_WORM )
     {
         motion = MakeUnique<CMotionWorm>(obj.get());
     }
-    assert(motion != nullptr);
+    else
+    {
+        motion = MakeUnique<CMotionVehicle>(obj.get());
+    }
 
-    physics->SetMotion(motion.get());
+    auto physics = MakeUnique<CPhysics>(obj.get());
     motion->SetPhysics(physics.get());
+    physics->SetMotion(motion.get());
 
-    motion->Create(params.pos, params.angle, params.type, 0.0f, modelManager);
+    motion->Create(params.pos, params.angle, params.type, params.power, modelManager);
 
-    obj->SetProgrammable();
     obj->SetMovable(std::move(motion), std::move(physics));
 
     return obj;
-}
-
-void CBaseAlien::SetFixed(bool fixed)
-{
-    m_fixed = fixed;
-}
-
-bool CBaseAlien::GetFixed()
-{
-    return m_fixed;
-}
-
-void CBaseAlien::Read(CLevelParserLine* line)
-{
-    COldObject::Read(line);
-
-    SetFixed(line->GetParam("fixed")->AsBool(false));
-}
-
-void CBaseAlien::Write(CLevelParserLine* line)
-{
-    COldObject::Write(line);
-
-    if (GetFixed())
-        line->AddParam("fixed", MakeUnique<CLevelParserParam>(GetFixed()));
 }

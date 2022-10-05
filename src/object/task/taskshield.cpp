@@ -29,9 +29,10 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/programmable_details.h"
 
 #include "object/interface/slotted_object.h"
 
@@ -298,7 +299,7 @@ Error CTaskShield::Start(TaskShieldMode mode, float delay)
         return ERR_OK;
     }
 
-    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    auto allowedScripting = GetObjectProgrammableDetails(m_object).allowed;
     if (!allowedScripting.shield)  return ERR_WRONG_BOT;
 
     m_bError = true;  // operation impossible

@@ -20,6 +20,8 @@
 
 #include "object/auto/autojostle.h"
 
+#include "object/details/josteable_details.h"
+
 #include "object/old_object.h"
 
 
@@ -60,8 +62,6 @@ void CAutoJostle::Init()
 
 void CAutoJostle::Start(int param, float force)
 {
-    ObjectType  type;
-
     if ( force < 0.0f )  force = 0.0f;
     if ( force > 1.0f )  force = 1.0f;
 
@@ -71,12 +71,7 @@ void CAutoJostle::Start(int param, float force)
     m_time = 0.0f;
     m_error = ERR_CONTINUE;
 
-    type = m_object->GetType();
-    if ( type >= OBJECT_PLANT5 &&
-         type <= OBJECT_PLANT7 )  // clover?
-    {
-        m_force *= 3.0f;
-    }
+    m_force *= GetObjectJosteableDetails(m_object).factor;
 }
 
 // Should never be called

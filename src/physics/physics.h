@@ -192,7 +192,7 @@ protected:
     void        PowerParticle(float factor, bool bBreak);
     void        CrashParticle(float crash);
     void        MotorParticle(float aTime, float rTime);
-    void        WaterParticle(float aTime, Math::Vector pos, ObjectType type, float floor, float advance, float turn);
+    void        WaterParticle(float aTime, Math::Vector pos, float floor, float advance, float turn);
     void        WheelParticle(TraceColor color, float width);
     void        SetFalling();
 

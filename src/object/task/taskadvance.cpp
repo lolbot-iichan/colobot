@@ -27,7 +27,7 @@
 #include "object/object.h"
 #include "object/old_object.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -57,15 +57,15 @@ bool CTaskAdvance::EventProcess(const Event &event)
     m_fixTime += event.rTime;
 
     // Momentarily stationary object (ant on the back)?
-    CBaseAlien* alien = dynamic_cast<CBaseAlien*>(m_object);
-    if ( alien != nullptr && alien->GetFixed() )
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_physics->SetMotorSpeedX(0.0f);  // stops the advance
         m_physics->SetMotorSpeedZ(0.0f);  // stops the rotation
         m_bError = true;
         return true;
     }
-
+    
     m_timeLimit -= event.rTime;
     return true;
 }
@@ -75,6 +75,9 @@ bool CTaskAdvance::EventProcess(const Event &event)
 
 Error CTaskAdvance::Start(float length)
 {
+    if (!m_object->Implements(ObjectInterfaceType::Movable))
+        return ERR_WRONG_BOT;
+
     m_direction = (length>=0.0f)?1.0f:-1.0f;
     m_totalLength = fabs(length);
     m_advanceLength = m_physics->GetLinLength(length);

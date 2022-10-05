@@ -59,6 +59,4 @@ protected:
     float           m_speed = 0.0f;
     float           m_lastParticle = 0.0f;
     Math::Vector    m_cargoPos;
-    ObjectType      m_output = OBJECT_NULL;
-    float           m_scale = 1.0;
 };

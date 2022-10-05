@@ -36,8 +36,9 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
+
+#include "object/details/damageable_details.h"
 
 #include "object/interface/damageable_object.h"
 
@@ -3501,31 +3502,26 @@ CObject* CParticle::SearchObjectGun(Math::Vector old, Math::Vector pos,
         if (!obj->GetDetectable()) continue;  // inactive?
         if (obj == father) continue;
 
-        ObjectType oType = obj->GetType();
-
-        auto assistant = GetObjectAssistantDetails();
-        if (oType == assistant.type && assistant.undamageable)  continue; // Toto?
-
-        auto damageDetails = GetObjectCommonInterfaceDetails(oType).damageable;
+        auto damageDetails = GetObjectDamageableDetails(obj);
         if (type == PARTIGUN1)  // fireball shooting?
         {
-            if (damageDetails.isImmuneToFireballs)  continue;
+            if (!damageDetails.fire.enabled)  continue;
         }
         else if (type == PARTIGUN2)  // shooting insect?
         {
-            if (damageDetails.isImmuneToInsects)  continue;
+            if (!damageDetails.organic.enabled)  continue;
         }
         else if (type == PARTIGUN3)  // suiciding spider?
         {
-            if (damageDetails.isImmuneToSpiders)  continue;
+            if (!damageDetails.spider.enabled)  continue;
         }
         else if (type == PARTIGUN4)  // orgaball shooting?
         {
-            if (damageDetails.isImmuneToOrgaballs)  continue;
+            if (!damageDetails.fallingObject.enabled)  continue;
         }
         else if (type == PARTITRACK11)  // phazer shooting?
         {
-            if (damageDetails.isImmuneToPhazers)  continue;
+            if (!damageDetails.phazer.enabled)  continue;
         }
         else
         {
@@ -3615,13 +3611,8 @@ CObject* CParticle::SearchObjectRay(Math::Vector pos, Math::Vector goal,
         if (!obj->GetDetectable()) continue;  // inactive?
         if (obj == father) continue;
 
-        ObjectType oType = obj->GetType();
-
-        auto assistant = GetObjectAssistantDetails();
-        if (oType == assistant.type && assistant.undamageable)  continue; // Toto?
-
-        auto damageDetails = GetObjectCommonInterfaceDetails(oType).damageable;
-        if ( type  == PARTIRAY1 && damageDetails.isImmuneToTowerRay ) continue;
+        auto damageDetails = GetObjectDamageableDetails(obj);
+        if ( type  == PARTIRAY1 && !damageDetails.tower.enabled ) continue;
 
         Math::Vector oPos = obj->GetPosition();
 

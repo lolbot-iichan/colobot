@@ -36,7 +36,7 @@
 #include "object/motion/motionant.h"
 #include "object/motion/motionspider.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -370,13 +370,12 @@ bool CTaskTerraform::Terraform()
         float radius = thumperDetails.safeRadius;
         Gfx::PyroType pyroType = thumperDetails.effect;
         float explosiveDamage = thumperDetails.explosionDamage;
-        bool turnOnBack = thumperDetails.turnOnBack;
 
         // turning insects on their back action
         {
             if ( dist > ACTION_RADIUS )  continue;
     
-            if ( turnOnBack )
+            if (pObj->Implements(ObjectInterfaceType::Thumpable))
             {
                 assert(pObj->Implements(ObjectInterfaceType::Movable));
                 motion = dynamic_cast<CMovableObject&>(*pObj).GetMotion();
@@ -389,8 +388,7 @@ bool CTaskTerraform::Terraform()
                 if (type == OBJECT_SPIDER) actionType = MSS_BACK1;
                 motion->SetAction(actionType, 0.8f+Math::Rand()*0.3f);
     
-                assert(dynamic_cast<CBaseAlien*>(pObj) != nullptr);
-                dynamic_cast<CBaseAlien*>(pObj)->SetFixed(true);  // not moving
+                dynamic_cast<CThumpableObject*>(pObj)->SetFixed(true);  // not moving
             }
         }
 

@@ -23,8 +23,9 @@
 
 #include "common/event.h"
 
-#include "object/object_details.h"
 #include "object/object_type.h"
+
+#include "object/details/detectable_details.h"
 
 class CObject;
 

@@ -30,8 +30,9 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
+
+#include "object/details/global_details.h"
 
 #include "sound/sound.h"
 
@@ -148,11 +149,15 @@ void CDebugMenu::CreateSpawnInterface()
     pos.y -= ddim.y;
     float startX = pos.x;
 
-    int n = 0;
-    for (int i = 0; i <= EVENT_DBG_SPAWN_14 - EVENT_DBG_SPAWN_01; i++)
+
+    size_t n = 0;
+
+    size_t len = EVENT_DBG_SPAWN_MAX - EVENT_DBG_SPAWN_01 + 1;
+    auto debugMenu = GetObjectGlobalDetails().debugMenu;
+    len = debugMenu.size() > len ? len : debugMenu.size();
+    for (size_t i = 0; i < len; i++)
     {
-        auto item = GetObjectDetails().GetDebugMenuItem(i);
-        if (item.icon == -1) continue;
+        if (debugMenu[i].icon == -1) continue;
 
         if (n % 4 == 0)
         {
@@ -161,22 +166,21 @@ void CDebugMenu::CreateSpawnInterface()
         }
 
         EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
-        pw->CreateButton(pos, dim, item.icon, ev);
+        pw->CreateButton(pos, dim, debugMenu[i].icon, ev);
         pos.x += dim.x;
         n++;
     }
 
     pos.x = startX;
-    for (int i = 0; i <= EVENT_DBG_SPAWN_14 - EVENT_DBG_SPAWN_01; i++)
+    for (size_t i = 0; i < len; i++)
     {
-        auto item = GetObjectDetails().GetDebugMenuItem(i);
-        if (item.icon != -1) continue;
-        if (item.type == OBJECT_NULL) continue;
+        if (debugMenu[i].icon != -1) continue;
+        if (debugMenu[i].type == OBJECT_NULL) continue;
 
         pos.y -= ddim.y;
         EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
         pb = pw->CreateButton(pos, ddim, -1, ev);
-        pb->SetName(item.text);
+        pb->SetName(debugMenu[i].text);
     }
 }
 
@@ -231,14 +235,16 @@ void CDebugMenu::UpdateInterface()
         pc->SetState(STATE_CHECK, m_engine->GetDebugLights());
     }
 
-    for (int idx = 0; idx <= EVENT_DBG_SPAWN_14 - EVENT_DBG_SPAWN_01; idx++)
+    size_t len = EVENT_DBG_SPAWN_MAX - EVENT_DBG_SPAWN_01 + 1;
+    auto debugMenu = GetObjectGlobalDetails().debugMenu;
+    len = debugMenu.size() > len ? len : debugMenu.size();
+    for (size_t i = 0; i <= len; i++)
     {
-        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + idx);
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
         pb = static_cast<CButton*>(pw->SearchControl(ev));
         if (pb != nullptr)
         {
-            auto item = GetObjectDetails().GetDebugMenuItem(idx);
-            pb->SetState(STATE_ENABLE, item.type != m_spawningType);
+            pb->SetState(STATE_ENABLE, debugMenu[i].type != m_spawningType);
         }
     }
 }
@@ -327,9 +333,12 @@ bool CDebugMenu::EventProcess(const Event &event)
         case EVENT_DBG_SPAWN_12:
         case EVENT_DBG_SPAWN_13:
         case EVENT_DBG_SPAWN_14:
+        case EVENT_DBG_SPAWN_15:
+        case EVENT_DBG_SPAWN_16:
             {
-                int idx = event.type - EVENT_DBG_SPAWN_01;
-                auto item = GetObjectDetails().GetDebugMenuItem(idx);
+                size_t idx = event.type - EVENT_DBG_SPAWN_01;
+                assert(idx < GetObjectGlobalDetails().debugMenu.size());
+                auto item = GetObjectGlobalDetails().debugMenu[idx];
                 m_spawningType = item.type;
                 UpdateInterface();
             }

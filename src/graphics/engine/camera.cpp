@@ -35,8 +35,9 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
+
+#include "object/details/controllable_details.h"
 
 #include "object/interface/controllable_object.h"
 #include "object/interface/movable_object.h"
@@ -314,7 +315,7 @@ void CCamera::SetType(CameraType type)
         m_addDirectionH = 0.0f;
         m_addDirectionV = -Math::PI*0.05f;
 
-        auto cameraDetails = GetObjectCameraDetails(m_cameraObj).backCamera;
+        auto cameraDetails = GetObjectControllableDetails(m_cameraObj).camera.back;
         m_backDist = cameraDetails.distance;
         m_backMin = cameraDetails.distanceMin;
     }
@@ -788,7 +789,7 @@ void CCamera::IsCollision(Math::Vector &eye, Math::Vector lookat)
 
 void CCamera::IsCollisionBack()
 {
-    auto cameraDetails = GetObjectCameraDetails(m_cameraObj).backCamera;
+    auto cameraDetails = GetObjectControllableDetails(m_cameraObj).camera.back;
     bool noTransparency = cameraDetails.disableOtherObjectsTransparency;
 
     Math::Vector min;
@@ -811,7 +812,7 @@ void CCamera::IsCollisionBack()
         if (obj == m_cameraObj) continue;
         if ( noTransparency ) continue;
 
-        auto otherObjectCameraDetails = GetObjectCameraDetails(obj).backCamera;
+        auto otherObjectCameraDetails = GetObjectControllableDetails(obj).camera.back;
         if ( otherObjectCameraDetails.disableObjectTransparency ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
@@ -854,7 +855,7 @@ void CCamera::IsCollisionFix(Math::Vector &eye, Math::Vector lookat)
     {
         if (obj == m_cameraObj) continue;
 
-        auto cameraDetails = GetObjectCameraDetails(obj).fixCamera;
+        auto cameraDetails = GetObjectControllableDetails(obj).camera.fixed;
         if ( cameraDetails.disableCollisions ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
@@ -1106,7 +1107,7 @@ bool CCamera::EventFrameBack(const Event &event)
 
     if (m_cameraObj != nullptr)
     {
-        auto cameraDetails = GetObjectCameraDetails(m_cameraObj).backCamera;
+        auto cameraDetails = GetObjectControllableDetails(m_cameraObj).camera.back;
 
         Math::Vector lookatPt = m_cameraObj->GetPosition();
         lookatPt.y += cameraDetails.height;

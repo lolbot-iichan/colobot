@@ -28,6 +28,8 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/task_executor_details.h"
+
 #include "object/motion/motionhuman.h"
 
 #include "physics/physics.h"
@@ -59,11 +61,7 @@ bool CTaskFlag::EventProcess(const Event &event)
 
     m_time += event.rTime;
 
-    ObjectType type = m_object->GetType();
-    if ( type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis )
+    if ( GetObjectTaskExecutorDetails(m_object).flag.execution == ExecutionAsSniffer )
     {
         float angle =  110.0f*Math::PI/180.0f;
         float diff  =  -10.0f*Math::PI/180.0f;
@@ -93,16 +91,28 @@ Error CTaskFlag::Start(TaskFlagOrder order, int rank)
     m_time = 0.0f;
 
     m_bError = true;  // operation impossible
-    if ( !m_physics->GetLand() )
+
+    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
+    if ( flag.execution != ExecutionNoMotion &&
+         flag.execution != ExecutionAsHuman  &&
+         flag.execution != ExecutionAsSniffer )
     {
-        pos = m_object->GetPosition();
-        if ( pos.y < m_water->GetLevel() )  return ERR_FLAG_WATER;
-        return ERR_FLAG_FLY;
+        return ERR_WRONG_BOT;
     }
 
-    speed = m_physics->GetMotorSpeed();
-    if ( speed.x != 0.0f ||
-         speed.z != 0.0f )  return ERR_FLAG_MOTOR;
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+    {
+        if ( !m_physics->GetLand() )
+        {
+            pos = m_object->GetPosition();
+            if ( pos.y < m_water->GetLevel() )  return ERR_FLAG_WATER;
+            return ERR_FLAG_FLY;
+        }
+    
+        speed = m_physics->GetMotorSpeed();
+        if ( speed.x != 0.0f ||
+             speed.z != 0.0f )  return ERR_FLAG_MOTOR;
+    }
 
     if (IsObjectCarryingCargo(m_object))  return ERR_FLAG_BUSY;
 
@@ -120,32 +130,22 @@ Error CTaskFlag::Start(TaskFlagOrder order, int rank)
 
     m_bError = false;
 
-    switch ( m_object->GetType() )  // sets/removes flag
+    if ( flag.execution == ExecutionAsHuman )
     {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            m_motion->SetAction(MHS_FLAG);
-            break;
-
-        case OBJECT_MOBILEws:
-        case OBJECT_MOBILEts:
-        case OBJECT_MOBILEfs:
-        case OBJECT_MOBILEis:
-        {
-            int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.0f, 0.3f, 1.0f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_STOP);
-            break;
-        }
-
-        default:
-            break;
+        m_motion->SetAction(MHS_FLAG);
     }
+    if ( flag.execution == ExecutionAsSniffer )
+    {
+        int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.0f, 0.3f, 1.0f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_STOP);
+    }
+
     m_camera->StartCentering(m_object, Math::PI*0.3f, 99.9f, 0.0f, 0.5f);
 
     return ERR_OK;
@@ -168,23 +168,16 @@ Error CTaskFlag::IsEnded()
 
 bool CTaskFlag::Abort()
 {
-    switch ( m_object->GetType() )
+    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
+    if ( flag.execution == ExecutionAsHuman )
     {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            m_motion->SetAction(-1);
-            break;
-
-        case OBJECT_MOBILEws:
-        case OBJECT_MOBILEts:
-        case OBJECT_MOBILEfs:
-        case OBJECT_MOBILEis:
-            m_object->SetPartRotationZ(1, 110.0f*Math::PI/180.0f);
-            break;
-
-        default:
-            break;
+        m_motion->SetAction(-1);
     }
+    if ( flag.execution == ExecutionAsSniffer )
+    {
+        m_object->SetPartRotationZ(1, 110.0f*Math::PI/180.0f);
+    }
+
     m_camera->StopCentering(m_object, 2.0f);
     return true;
 }
@@ -198,7 +191,8 @@ CObject* CTaskFlag::SearchNearest(Math::Vector pos, ObjectType type)
     std::vector<ObjectType> types;
     if(type == OBJECT_NULL)
     {
-        types = {OBJECT_FLAGb, OBJECT_FLAGr, OBJECT_FLAGg, OBJECT_FLAGy, OBJECT_FLAGv};
+        for ( auto it : GetObjectTaskExecutorDetails(m_object).flag.objects )
+            types.push_back(it.output);
     }
     else
     {
@@ -214,21 +208,7 @@ int CTaskFlag::CountObject(ObjectType type)
     int count = 0;
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType  oType = obj->GetType();
-        if ( type == OBJECT_NULL )
-        {
-            if ( oType != OBJECT_FLAGb &&
-                 oType != OBJECT_FLAGr &&
-                 oType != OBJECT_FLAGg &&
-                 oType != OBJECT_FLAGy &&
-                 oType != OBJECT_FLAGv )  continue;
-        }
-        else
-        {
-            if ( oType != type )  continue;
-        }
-
-        count ++;
+        if ( obj->GetType() == type ) count ++;
     }
     return count;
 }
@@ -237,28 +217,10 @@ int CTaskFlag::CountObject(ObjectType type)
 
 Error CTaskFlag::CreateFlag(int rank)
 {
-    ObjectType table[5] =
-    {
-        OBJECT_FLAGb,
-        OBJECT_FLAGr,
-        OBJECT_FLAGg,
-        OBJECT_FLAGy,
-        OBJECT_FLAGv,
-    };
+    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
 
-    Math::Matrix* mat = m_object->GetWorldMatrix(0);
-    Math::Vector pos;
-    switch ( m_object->GetType() )
-    {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            pos = Transform(*mat, Math::Vector(4.0f, 0.0f, 0.0f));
-            break;
-
-        default:
-            pos = Transform(*mat, Math::Vector(6.0f, 0.0f, 0.0f));
-            break;
-    }
+    Math::Matrix* mat = m_object->GetWorldMatrix(flag.partNum);
+    Math::Vector  pos = Transform(*mat, flag.pos);
 
     CObject* pObj = SearchNearest(pos, OBJECT_NULL);
     if ( pObj != nullptr )
@@ -270,8 +232,13 @@ Error CTaskFlag::CreateFlag(int rank)
         }
     }
 
-    ObjectType type = table[rank];
-    if ( CountObject(type) >= 5 )
+    if ( static_cast<size_t>(rank) >= flag.objects.size() )
+    {
+        return ERR_FLAG_DELETE;
+    }
+
+    ObjectType type = flag.objects[rank].output;
+    if ( CountObject(type) >= flag.objects[rank].maxCount )
     {
         return ERR_FLAG_CREATE;
     }

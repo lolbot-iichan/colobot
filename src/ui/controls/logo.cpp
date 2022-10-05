@@ -134,7 +134,7 @@ void CLogo::Draw()
     uv2.y -= dp;
     DrawIcon(pos, dim, uv1, uv2);
 
-    switch ( m_icon << 6 )
+    switch ( m_icon >> 6 )
     {
         case 0:
             m_engine->SetTexture("textures/interface/button1.png"); break;

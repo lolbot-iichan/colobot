@@ -30,9 +30,10 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/slotted_details.h"
 
 #include "object/interface/programmable_object.h"
 #include "object/interface/slotted_object.h"
@@ -42,8 +43,6 @@
 
 #include <stdio.h>
 #include <string.h>
-
-
 
 
 
@@ -1093,11 +1092,11 @@ void CMotionVehicle::Create(Math::Vector pos, float angle, ObjectType type,
 
 void CMotionVehicle::CreatePhysics(ObjectType type)
 {
-    auto sloted = GetObjectCommonInterfaceDetails(m_object).sloted;
+    auto slotted = GetObjectSlottedDetails(m_object);
 
-    if (sloted.power.enabled)
+    if (slotted.power.enabled)
     {
-        m_object->SetPowerPosition(sloted.power.position);
+        m_object->SetPowerPosition(slotted.power.position);
     }
 }
 

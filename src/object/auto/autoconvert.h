@@ -55,7 +55,7 @@ public:
 protected:
     CObject*    SearchStone();
     bool        SearchVehicle();
-    void        CreateMetal();
+    void        CreateMetal(ObjectType type);
 
 protected:
     AutoConvertPhase    m_phase = ACP_STOP;
@@ -65,6 +65,4 @@ protected:
     float               m_lastParticle = 0.0f;
     bool                m_bSoundClose = false;
     int                 m_soundChannel = 0;
-    ObjectType          m_input = OBJECT_NULL;
-    ObjectType          m_output = OBJECT_NULL;
 };

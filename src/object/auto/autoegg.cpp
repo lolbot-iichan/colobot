@@ -68,8 +68,6 @@ void CAutoEgg::DeleteObject(bool all)
         CObject* alien = SearchAlien();
         if ( alien != nullptr )
         {
-            // Probably the intended action
-            // Original code: ( alien->GetScale() == 1.0f )
             if ( alien->GetScaleY() == 1.0f )
             {
                 alien->SetLock(false);

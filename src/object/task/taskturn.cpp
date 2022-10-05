@@ -26,7 +26,7 @@
 
 #include "object/old_object.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -52,8 +52,8 @@ bool CTaskTurn::EventProcess(const Event &event)
     if ( event.type != EVENT_FRAME )  return true;
 
     // Momentarily stationary object (ant on the back)?
-    CBaseAlien* alien = dynamic_cast<CBaseAlien*>(m_object);
-    if ( alien != nullptr && alien->GetFixed() )
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_physics->SetMotorSpeedX(0.0f);  // stops the advance
         m_physics->SetMotorSpeedZ(0.0f);  // stops the rotation
@@ -70,6 +70,9 @@ bool CTaskTurn::EventProcess(const Event &event)
 
 Error CTaskTurn::Start(float angle)
 {
+    if (!m_object->Implements(ObjectInterfaceType::Movable))
+        return ERR_WRONG_BOT;
+
     m_startAngle = m_object->GetRotationY();
     m_finalAngle = m_startAngle+angle;
 

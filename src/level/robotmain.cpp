@@ -70,6 +70,10 @@
 
 #include "object/auto/auto.h"
 
+#include "object/details/assistant_details.h"
+#include "object/details/automation_details.h"
+#include "object/details/controllable_details.h"
+
 #include "object/interface/slotted_object.h"
 
 #include "object/motion/motion.h"
@@ -117,6 +121,7 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <libintl.h>
 
 // Global variables.
 
@@ -1070,8 +1075,8 @@ bool CRobotMain::ProcessEvent(Event &event)
                 obj = DetectObject(event.mousePos);
                 if (!m_shortCut) obj = nullptr;
 
-                auto assistant = GetObjectAssistantDetails();
-                if (obj != nullptr && obj->GetType() == assistant.type && assistant.clickable)
+                auto assistant = GetObjectAssistantDetails(obj);
+                if (assistant.enabled && assistant.clickable)
                 {
                     if (m_displayInfo != nullptr)  // current info?
                     {
@@ -1853,7 +1858,7 @@ void CRobotMain::SelectOneObject(CObject* obj, bool displayError)
     dynamic_cast<CControllableObject&>(*obj).SetSelect(true, displayError);
     m_camera->SetControllingObject(obj);
 
-    auto cameraDetails = GetObjectCameraDetails(obj);
+    auto cameraDetails = GetObjectControllableDetails(obj).camera;
     if ( cameraDetails.isCameraTypePersistent )
     {
         m_camera->SetType(dynamic_cast<CControllableObject&>(*obj).GetCameraType());
@@ -2195,7 +2200,7 @@ void CRobotMain::ChangeCamera()
 
     if (controllableObj->GetCameraLock()) return;
 
-    auto cameraDetails = GetObjectCameraDetails(obj);
+    auto cameraDetails = GetObjectControllableDetails(obj).camera;
     if ( !cameraDetails.isCameraTypeChangable )  return;
 
     Gfx::CameraType type = controllableObj->GetCameraType();
@@ -2299,7 +2304,6 @@ bool CRobotMain::EventFrame(const Event &event)
     }
 
     CObject* toto = nullptr;
-    auto assistant = GetObjectAssistantDetails();
 
     if (!m_pause->IsPauseType(PAUSE_OBJECT_UPDATES))
     {
@@ -2312,7 +2316,8 @@ bool CRobotMain::EventFrame(const Event &event)
             if (IsObjectBeingTransported(obj))
                 continue;
 
-            if (obj->GetType() == assistant.type && assistant.moveWithCamera)
+            auto assistant = GetObjectAssistantDetails(obj);
+            if (assistant.enabled && assistant.moveWithCamera)
                 toto = obj;
             else if (obj->Implements(ObjectInterfaceType::Interactive))
                 dynamic_cast<CInteractiveObject&>(*obj).EventProcess(event);
@@ -4496,7 +4501,7 @@ void CRobotMain::IOWriteObject(CLevelParserLine* line, CObject* obj, const std::
     line->AddParam("id", MakeUnique<CLevelParserParam>(obj->GetID()));
     line->AddParam("pos", MakeUnique<CLevelParserParam>(obj->GetPosition()/g_unit));
     line->AddParam("angle", MakeUnique<CLevelParserParam>(obj->GetRotation() * Math::RAD_TO_DEG));
-    line->AddParam("zoom", MakeUnique<CLevelParserParam>(obj->GetScale()));
+    line->AddParam("zoom", MakeUnique<CLevelParserParam>(Math::Vector(obj->GetScaleX(),obj->GetScaleY(),obj->GetScaleZ())));
 
     if (obj->Implements(ObjectInterfaceType::Old))
     {
@@ -4604,12 +4609,11 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
         levelParser.AddLine(std::move(line));
     }
 
-    auto assistant = GetObjectAssistantDetails();
-
     int objRank = 0;
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == assistant.type && assistant.ignoreOnSaveLoad) continue;
+        auto assistant = GetObjectAssistantDetails(obj);
+        if (assistant.enabled && assistant.ignoreOnSaveLoad) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4660,7 +4664,8 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
 
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == assistant.type && assistant.ignoreOnSaveLoad) continue;
+        auto assistant = GetObjectAssistantDetails(obj);
+        if (assistant.enabled && assistant.ignoreOnSaveLoad) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4890,11 +4895,10 @@ CObject* CRobotMain::IOReadScene(std::string filename, std::string filecbot)
                 CBot::ReadWord(istr, flag); // TODO
                 bError = (flag != 0);
 
-                auto assistant = GetObjectAssistantDetails();
-                
                 if (!bError) for (CObject* obj : m_objMan->GetAllObjects())
                 {
-                    if (obj->GetType() == assistant.type && assistant.ignoreOnSaveLoad) continue;
+                    auto assistant = GetObjectAssistantDetails(obj);
+                    if (assistant.enabled && assistant.ignoreOnSaveLoad) continue;
                     if (IsObjectBeingTransported(obj)) continue;
                     if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -5614,6 +5618,13 @@ void CRobotMain::DisplayError(Error err, CObject* pObj, float time)
 void CRobotMain::DisplayError(Error err, Math::Vector goal, float height, float dist, float time)
 {
     m_displayText->DisplayError(err, goal, height, dist, time);
+}
+
+void CRobotMain::DisplayText(std::string text, Math::Vector goal, float height, float dist, float time, Ui::TextType type)
+{
+    // TODO: move i18n to restext.cpp
+    if (text.size() != 0)
+        m_displayText->DisplayText(gettext(text.c_str()), goal, height, dist, time, type);
 }
 
 void CRobotMain::UpdateCustomLevelList()

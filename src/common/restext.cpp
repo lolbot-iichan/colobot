@@ -32,6 +32,8 @@
 #include "object/object_type.h"
 #include "object/object_details.h"
 
+#include "object/details/global_details.h"
+
 #include <SDL_keyboard.h>
 #include <boost/regex.hpp>
 
@@ -588,13 +590,6 @@ void InitializeRestext()
     stringsErr[INFO_ENERGY]         = TR("Power cell available");
     stringsErr[INFO_NUCLEAR]        = TR("Nuclear power cell available");
     stringsErr[INFO_FINDING]        = TR("You found a usable object");
-    stringsErr[INFO_MARKPOWER]      = TR("Found a site for power station");
-    stringsErr[INFO_MARKURANIUM]    = TR("Found a site for a derrick");
-    stringsErr[INFO_MARKSTONE]      = TR("Found a site for a derrick");
-    stringsErr[INFO_MARKKEYa]       = TR("Found a site for a derrick");
-    stringsErr[INFO_MARKKEYb]       = TR("Found a site for a derrick");
-    stringsErr[INFO_MARKKEYc]       = TR("Found a site for a derrick");
-    stringsErr[INFO_MARKKEYd]       = TR("Found a site for a derrick");
     stringsErr[INFO_WIN]            = TR("<<< Well done; mission accomplished >>>");
     stringsErr[INFO_LOST]           = TR("<<< Sorry; mission failed >>>");
     stringsErr[INFO_LOSTq]          = TR("<<< Sorry; mission failed >>>");
@@ -786,17 +781,24 @@ bool GetResource(ResType type, unsigned int num, std::string& text)
     {
         assert(num < OBJECT_MAX);
         ObjectType oType = static_cast<ObjectType>(num);
-        text = GetObjectNamingDetails(oType).display.name;
+        auto textStr = GetObjectCreationDetails(oType).displayedName;
+        text = textStr.size() ? gettext(textStr.c_str()) : "";
     }
-    else if(type == RES_EVENT && num >= EVENT_OBJECT_BUILD_01 && num <= EVENT_OBJECT_BUILD_14 )
+    else if(type == RES_EVENT && num >= EVENT_OBJECT_BUILD_01 && num <= EVENT_OBJECT_BUILD_MAX )
     {
-        int index = num - EVENT_OBJECT_BUILD_01;
-        text = GetObjectDetails().GetBuilderMenuItem(index).text;
+        size_t index = num - EVENT_OBJECT_BUILD_01;
+        auto menu = GetObjectGlobalDetails().builderMenu;
+        assert(index < menu.size());
+        auto textStr = menu[index].text;
+        text = textStr.size() ? gettext(textStr.c_str()) : "";
     }
-    else if(type == RES_EVENT && num >= EVENT_DBG_SPAWN_01 && num <= EVENT_DBG_SPAWN_14 )
+    else if(type == RES_EVENT && num >= EVENT_DBG_SPAWN_01 && num <= EVENT_DBG_SPAWN_MAX )
     {
-        int index = num - EVENT_DBG_SPAWN_01;
-        text = GetObjectDetails().GetDebugMenuItem(index).text;
+        size_t index = num - EVENT_DBG_SPAWN_01;
+        auto menu = GetObjectGlobalDetails().debugMenu;
+        assert(index < menu.size());
+        auto textStr = menu[index].text;
+        text = textStr.size() ? gettext(textStr.c_str()) : "";
     }
     else if(type != RES_KEY)
     {

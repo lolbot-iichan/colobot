@@ -27,6 +27,8 @@
 
 #include "common/resources/resourcemanager.h"
 
+#include "graphics/engine/engine_types.h"
+
 #include "level/robotmain.h"
 #include "level/scoreboard.h"
 
@@ -95,6 +97,14 @@ CLevelParserParam::CLevelParserParam(Math::Vector value)
 
 CLevelParserParam::CLevelParserParam(ObjectType value)
   : m_value(FromObjectType(value))
+{}
+
+CLevelParserParam::CLevelParserParam(DriveType value)
+  : m_value(FromDriveType(value))
+{}
+
+CLevelParserParam::CLevelParserParam(ToolType value)
+  : m_value(FromToolType(value))
 {}
 
 CLevelParserParam::CLevelParserParam(Gfx::CameraType value)
@@ -355,7 +365,7 @@ ObjectType CLevelParserParam::ToObjectType(std::string value)
     if (value == "All"               ) return OBJECT_NULL; // For use in NewScript
     if (value == "Any"               ) return OBJECT_NULL; // For use in type= in ending conditions
 
-    ObjectType type = ParseObjectTypeFromName(value);
+    ObjectType type = CastToObjectType(value);
     if ( type != OBJECT_NULL ) return type;
 
     return static_cast<ObjectType>(Cast<int>(value, "object"));
@@ -363,7 +373,7 @@ ObjectType CLevelParserParam::ToObjectType(std::string value)
 
 const std::string CLevelParserParam::FromObjectType(ObjectType value)
 {
-    std::string name = GetObjectNamingDetails(value).level.name;
+    std::string name = GetObjectNamingDetails(value).name;
     if ( name.size() ) return name;
 
     return boost::lexical_cast<std::string>(static_cast<int>(value));
@@ -396,6 +406,19 @@ DriveType CLevelParserParam::ToDriveType(std::string value)
     return static_cast<DriveType>(Cast<int>(value, "drive"));
 }
 
+const std::string CLevelParserParam::FromDriveType(DriveType value)
+{
+    if (value == DriveType::Wheeled   ) return "Wheeled";
+    if (value == DriveType::Tracked   ) return "Tracked";
+    if (value == DriveType::Winged    ) return "Winged";
+    if (value == DriveType::Legged    ) return "Legged";
+    if (value == DriveType::Heavy     ) return "Heavy";
+    if (value == DriveType::Amphibious) return "Amphibious";
+    if (value == DriveType::Other     ) return "Other";
+
+    return boost::lexical_cast<std::string>(static_cast<int>(value));
+}
+
 DriveType CLevelParserParam::AsDriveType()
 {
     if (m_empty)
@@ -419,7 +442,19 @@ ToolType CLevelParserParam::ToToolType(std::string value)
     if (value == "OrgaShooter") return ToolType::OrganicShooter;
     if (value == "Builder"    ) return ToolType::Builder;
     if (value == "Other"      ) return ToolType::Other;
+
     return static_cast<ToolType>(Cast<int>(value, "tool"));
+}
+
+const std::string CLevelParserParam::FromToolType(ToolType value)
+{
+    if (value == ToolType::Grabber       ) return "Grabber";
+    if (value == ToolType::Sniffer       ) return "Sniffer";
+    if (value == ToolType::Shooter       ) return "Shooter";
+    if (value == ToolType::OrganicShooter) return "OrgaShooter";
+    if (value == ToolType::Builder       ) return "Builder";
+    if (value == ToolType::Other         ) return "Other";
+    return boost::lexical_cast<std::string>(static_cast<int>(value));
 }
 
 ToolType CLevelParserParam::AsToolType()
@@ -705,6 +740,55 @@ MissionType CLevelParserParam::AsMissionType(MissionType def)
     if (m_empty)
         return def;
     return AsMissionType();
+}
+
+EventType CLevelParserParam::AsEventType(EventType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<EventType>(Cast<int>(m_value, "AsEventType"));
+}
+
+Ui::WidgetType CLevelParserParam::AsWidgetType(Ui::WidgetType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<Ui::WidgetType>(Cast<int>(m_value, "WidgetType"));
+}
+
+Gfx::EngineObjectType CLevelParserParam::AsEngineObjectType(Gfx::EngineObjectType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<Gfx::EngineObjectType>(Cast<int>(m_value, "EngineObjectType"));
+}
+
+Gfx::EngineShadowType CLevelParserParam::AsEngineShadowType(Gfx::EngineShadowType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<Gfx::EngineShadowType>(Cast<int>(m_value, "EngineShadowType"));
+}
+
+SoundType CLevelParserParam::AsSoundType(SoundType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<SoundType>(Cast<int>(m_value, "SoundType"));
+}
+
+TaskExecutionType CLevelParserParam::AsTaskExecutionType(TaskExecutionType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<TaskExecutionType>(Cast<int>(m_value, "TaskExecutionType"));
+}
+
+Gfx::TerrainRes CLevelParserParam::AsTerrainRes(Gfx::TerrainRes def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<Gfx::TerrainRes>(Cast<int>(m_value, "TerrainRes"));
 }
 
 Gfx::PlanetType CLevelParserParam::AsPlanetType()

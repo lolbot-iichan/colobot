@@ -28,15 +28,11 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "physics/physics.h"
 
-
 #include <stdio.h>
-
-
 
 
 const float START_TIME      = 1000.0f;  // beginning of the relative time

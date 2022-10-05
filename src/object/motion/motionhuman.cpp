@@ -30,7 +30,6 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -38,9 +37,7 @@
 
 #include "sound/sound.h"
 
-
 #include <stdio.h>
-
 
 
 const int ADJUST_ACTION = (3*3*3*3*MH_SPEC+3*3*3*MHS_SATCOM);

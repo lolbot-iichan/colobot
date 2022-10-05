@@ -29,9 +29,10 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
 
 #include "object/interface/transportable_object.h"
 
@@ -91,10 +92,6 @@ void CAutoConvert::Init()
     m_time = 0.0f;
     m_timeVirus = 0.0f;
     m_lastParticle = 0.0f;
-
-    auto production = GetObjectAutomationDetails(m_object).production;
-    m_input  = production.input;
-    m_output = production.output;
 
     CAuto::Init();
 }
@@ -241,11 +238,16 @@ bool CAutoConvert::EventProcess(const Event &event)
             cargo = SearchStone();
             if ( cargo != nullptr )
             {
-                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-            }
+                for ( auto it : GetObjectAutomationDetails(m_object).production )
+                {
+                    if ( it.input != cargo->GetType() ) continue;
 
-            CreateMetal();  // Create the metal
-            m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
+                    CObjectManager::GetInstancePointer()->DeleteObject(cargo);
+                    CreateMetal(it.output);  // Create the metal
+                    m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
+                    break;
+                }
+            }
 
             m_phase    = ACP_OPEN;
             m_progress = 0.0f;
@@ -374,15 +376,23 @@ CObject* CAutoConvert::SearchStone()
 {
     Math::Vector cPos = m_object->GetPosition();
 
+    auto production = GetObjectAutomationDetails(m_object).production;
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        if (obj->GetType() != m_input) continue;
         if (IsObjectBeingTransported(obj)) continue;
-
-        Math::Vector oPos = obj->GetPosition();
-        float dist = Math::Distance(oPos, cPos);
-
-        if ( dist <= 5.0f )  return obj;
+        for ( auto it: production )
+        {
+            if ( obj->GetType() != it.input ) continue;
+    
+            Math::Vector oPos = obj->GetPosition();
+            float dist = Math::Distance(oPos, cPos);
+    
+            if ( dist <= 5.0f )
+            {
+                return obj;
+            }
+        }
     }
 
     return nullptr;
@@ -394,10 +404,16 @@ bool CAutoConvert::SearchVehicle()
 {
     Math::Vector cPos = m_object->GetPosition();
 
+    auto production = GetObjectAutomationDetails(m_object).production;
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
+        bool bSkip = false;
+        for ( auto it: production )
+            if (obj->GetType() == it.input) bSkip = true;
+
+        if (bSkip) continue;
         if (obj == m_object) continue;
-        if (obj->GetType() == m_input) continue;
         if (obj->GetCrashSphereCount() == 0) continue;
 
         auto crashSphere = obj->GetFirstCrashSphere();
@@ -410,13 +426,13 @@ bool CAutoConvert::SearchVehicle()
 
 // Creates an object metal.
 
-void CAutoConvert::CreateMetal()
+void CAutoConvert::CreateMetal(ObjectType type)
 {
     ObjectCreateParams params;
     params.pos = m_object->GetPosition();
     params.angle = m_object->GetRotationY();
     params.team = m_object->GetTeam();
-    params.type = m_output;
+    params.type = type;
     CObjectManager::GetInstancePointer()->CreateObject(params);
 
     m_main->DisplayError(INFO_CONVERT, m_object);

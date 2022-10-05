@@ -30,8 +30,9 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/transportable_details.h"
+
 #include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
 
 #include "object/motion/motionhuman.h"
 
@@ -255,14 +256,16 @@ Error CTaskTake::IsEnded()
         {
             CObject* cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
             TransporterDeposeObject();
-            if ( m_arm == TTA_FRIEND &&
-                 cargo->Implements(ObjectInterfaceType::PowerContainer) )
+            if ( m_arm == TTA_FRIEND && cargo->Implements(ObjectInterfaceType::PowerContainer) )
             {
                 m_sound->Play(SOUND_POWERON, m_object->GetPosition());
             }
-            if ( cargo != nullptr && m_cargoType == OBJECT_METAL && m_arm == TTA_FFRONT )
+            if ( m_arm == TTA_FFRONT && cargo != nullptr )
             {
-                m_main->ShowDropZone(cargo, m_object);  // shows buildable area
+                if ( GetObjectTransportableDetails(cargo).showDropZone )
+                {
+                    m_main->ShowDropZone(cargo, m_object);  // shows buildable area
+                }
             }
             m_motion->SetAction(-1);  // gets up
             m_progress = 0.0f;
@@ -409,8 +412,6 @@ bool CTaskTake::TransporterTakeObject()
         if (cargo == nullptr)  return false;  // nothing to take ?
         assert(cargo->Implements(ObjectInterfaceType::Transportable));
 
-        m_cargoType = cargo->GetType();
-
         dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
         dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(4);  // takes with the hand
 
@@ -435,8 +436,6 @@ bool CTaskTake::TransporterTakeObject()
         CObject* cargo = otherAsSlotted->GetSlotContainedObject(otherSlotNum);
         if (cargo == nullptr)  return false;  // the other does not have a battery?
         assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
 
         otherAsSlotted->SetSlotContainedObject(otherSlotNum, nullptr);
         dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
@@ -463,8 +462,6 @@ bool CTaskTake::TransporterDeposeObject()
         CObject* cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
         if (cargo == nullptr)  return false;  // does nothing?
         assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
 
         Math::Matrix* mat = cargo->GetWorldMatrix(0);
         Math::Vector pos = Transform(*mat, Math::Vector(-0.5f, 1.0f, 0.0f));
@@ -494,7 +491,6 @@ bool CTaskTake::TransporterDeposeObject()
         cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
         if (cargo == nullptr)  return false;
         assert(cargo->Implements(ObjectInterfaceType::Transportable));
-        m_cargoType = cargo->GetType();
 
         otherAsSlotted->SetSlotContainedObject(otherSlotNum, cargo);
         dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(other);

@@ -36,8 +36,9 @@
 #include "level/robotmain.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
+
+#include "object/details/assistant_details.h"
 
 #include "object/interface/movable_object.h"
 
@@ -907,10 +908,10 @@ void CDisplayInfo::ViewDisplayInfo()
 
 CObject* CDisplayInfo::SearchToto()
 {
-    auto assistant = GetObjectAssistantDetails();
-    if (assistant.reactOnSatcom)
-        return CObjectManager::GetInstancePointer()->FindNearest(nullptr, assistant.type);
-    return nullptr;
+    CObject* obj = CObjectManager::GetInstancePointer()->SearchToto();
+
+    auto assistant = GetObjectAssistantDetails(obj);
+    return assistant.reactOnSatcom ? obj : nullptr;
 }
 
 }

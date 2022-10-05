@@ -29,9 +29,10 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
 
 #include "object/interface/slotted_object.h"
 #include "object/interface/transportable_object.h"
@@ -104,10 +105,6 @@ void CAutoNuclearPlant::Init()
     m_phase    = ANUP_WAIT;  // waiting ...
     m_progress = 0.0f;
     m_speed    = 1.0f/2.0f;
-
-    auto production = GetObjectAutomationDetails(m_object).production;
-    m_input  = production.input;
-    m_output = production.output;
 
     CAuto::Init();
 }
@@ -243,11 +240,16 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
             cargo = SearchUranium();
             if ( cargo != nullptr )
             {
-                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-                m_object->SetSlotContainedObject(0, nullptr);
-            }
+                for ( auto it : GetObjectAutomationDetails(m_object).production )
+                {
+                    if ( it.input != cargo->GetType() ) continue;
 
-            CreatePower();  // creates the atomic cell
+                    CObjectManager::GetInstancePointer()->DeleteObject(cargo);
+                    m_object->SetSlotContainedObject(0, nullptr);
+                    CreatePower(it.output);  // creates the atomic cell
+                    break;
+                }
+            }
 
             max = static_cast< int >(20.0f*m_engine->GetParticleDensity());
             for ( i=0 ; i<max ; i++ )
@@ -304,7 +306,11 @@ CObject* CAutoNuclearPlant::SearchUranium()
 {
     CObject* obj = m_object->GetSlotContainedObject(0);
     if (obj == nullptr) return nullptr;
-    if (obj->GetType() == m_input) return obj;
+
+    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    {
+        if ( obj->GetType() == it.input )  return obj;
+    }
     return nullptr;
 }
 
@@ -329,17 +335,20 @@ bool CAutoNuclearPlant::SearchVehicle()
 
 // Creates an object stack.
 
-void CAutoNuclearPlant::CreatePower()
+void CAutoNuclearPlant::CreatePower(ObjectType type)
 {
     Math::Vector pos = m_object->GetPosition();
     float angle = m_object->GetRotationY();
 
     float powerLevel = 1.0f;
-    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, m_output, powerLevel);
+    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type, powerLevel);
 
-    dynamic_cast<CTransportableObject&>(*power).SetTransporter(m_object);
-    power->SetPosition(Math::Vector(22.0f, 3.0f, 0.0f));
-    m_object->SetSlotContainedObject(0, power);
+    if ( power != nullptr )
+    {
+        dynamic_cast<CTransportableObject&>(*power).SetTransporter(m_object);
+        power->SetPosition(Math::Vector(22.0f, 3.0f, 0.0f));
+        m_object->SetSlotContainedObject(0, power);
+    }
 }
 
 
@@ -362,11 +371,13 @@ Error CAutoNuclearPlant::GetError()
     CObject* obj = m_object->GetSlotContainedObject(0);
     if ( obj == nullptr )  return ERR_NUCLEAR_EMPTY;
     if ( obj->GetLock() )  return ERR_OK;
-    ObjectType type = obj->GetType();
-    if ( type == m_output  )  return ERR_OK;
-    if ( type != m_input )  return ERR_NUCLEAR_BAD;
 
-    return ERR_OK;
+    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    {
+        if ( obj->GetType() == it.input )  return ERR_OK;
+        if ( obj->GetType() == it.output  )  return ERR_OK;
+    }
+    return ERR_NUCLEAR_BAD;
 }
 
 

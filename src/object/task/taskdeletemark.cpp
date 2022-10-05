@@ -33,6 +33,8 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/task_executor_details.h"
+
 #include "physics/physics.h"
 
 
@@ -77,15 +79,13 @@ bool CTaskDeleteMark::Abort()
 
 void CTaskDeleteMark::DeleteMark()
 {
-    CObject* obj = CObjectManager::GetInstancePointer()->FindNearest(m_object, {
-        OBJECT_MARKPOWER,
-        OBJECT_MARKSTONE,
-        OBJECT_MARKURANIUM,
-        OBJECT_MARKKEYa,
-        OBJECT_MARKKEYb,
-        OBJECT_MARKKEYc,
-        OBJECT_MARKKEYd
-    }, 8.0f/g_unit);
+    auto sniff = GetObjectTaskExecutorDetails(m_object).sniff;
+
+    std::vector<ObjectType> types;
+    for ( auto it : sniff.objects )
+        types.push_back(it.output);
+
+    CObject* obj = CObjectManager::GetInstancePointer()->FindNearest(m_object, types, 8.0f/g_unit);
 
     if (obj != nullptr)
     {

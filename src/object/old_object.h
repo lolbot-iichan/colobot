@@ -45,6 +45,7 @@
 #include "object/interface/shielded_auto_regen_object.h"
 #include "object/interface/slotted_object.h"
 #include "object/interface/task_executor_object.h"
+#include "object/interface/thumpable_object.h"
 #include "object/interface/trace_drawing_object.h"
 #include "object/interface/transportable_object.h"
 
@@ -88,14 +89,14 @@ class COldObject : public CObject,
                    public CPowerContainerObjectImpl,
                    public CRangedObject,
                    public CTraceDrawingObject,
-                   public CShieldedAutoRegenObject
+                   public CShieldedAutoRegenObject,
+                   public CThumpableObject
 {
     friend class CObjectFactory;
     friend class CObjectManager;
 
 protected:
     void        DeleteObject(bool bAll=false);
-    void        SetProgrammable();
     void        SetMovable(std::unique_ptr<CMotion> motion, std::unique_ptr<CPhysics> physics);
     void        SetAuto(std::unique_ptr<CAuto> automat);
     void        SetOption(int option);
@@ -298,6 +299,10 @@ public:
     // Helper for CSlottedObject initialization
     void SetPowerPosition(const Math::Vector& powerPosition);
 
+    // CThumpableObject
+    void SetFixed(bool fixed) override;
+    bool GetFixed() override;
+
 protected:
     bool        EventFrame(const Event &event);
     void        VirusFrame(float rTime);
@@ -313,13 +318,13 @@ protected:
     void TransformCameraCollisionSphere(Math::Sphere& collisionSphere) override;
 
     /**
-     * \brief Check if given object type should be selectable by default
+     * \brief Check if set object type should be selectable by default
      * \note This is a default value for the selectable= parameter and can still be overriden in the scene file or using the \a selectinsect cheat
      */
-    static bool IsSelectableByDefault(ObjectType type);
+    bool IsSelectableByDefault();
 
     /**
-     * \brief Check if given object type should have bulletWall enabled by default
+     * \brief Check if set object type should have bulletWall enabled by default
      * \note This is a default value for the bulletWall= parameter and can still be overriden in the scene file
      */
     static bool IsBulletWallByDefault(ObjectType type);
@@ -399,4 +404,6 @@ protected:
 
     bool        m_hasCargoSlot;
     bool        m_hasPowerSlot;
+
+    bool m_fixed;
 };

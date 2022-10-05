@@ -256,12 +256,6 @@ bool CAutoDestroyer::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 106, EVENT_OBJECT_TYPE);
-
     pos.x = ox+sx*8.00f;
     pos.y = oy+sy*0.25f;
     ddim.x = (33.0f/640.0f)*1.5f;

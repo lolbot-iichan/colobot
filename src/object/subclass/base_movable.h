@@ -17,13 +17,31 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
-#include "object/subclass/base_vehicle.h"
+#pragma once
 
-CBaseVehicle::CBaseVehicle(int id, ObjectType type)
-    : COldObject(id)
+#include "object/old_object.h"
+
+struct ObjectCreateParams;
+
+namespace Gfx
 {
-    SetType(type);
+class COldModelManager;
+class CEngine;
 }
 
-CBaseVehicle::~CBaseVehicle()
-{}
+/**
+ * \class CBaseMovable
+ * \brief Base class for all robots
+ */
+class CBaseMovable : public COldObject
+{
+public:
+    CBaseMovable(int id, ObjectType type);
+    virtual ~CBaseMovable();
+
+public:
+    static std::unique_ptr<CBaseMovable> Create(
+        const ObjectCreateParams& params,
+        Gfx::COldModelManager* modelManager,
+        Gfx::CEngine* engine);
+};

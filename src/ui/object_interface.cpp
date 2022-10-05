@@ -36,6 +36,8 @@
 #include "object/old_object.h"
 #include "object/object_details.h"
 
+#include "object/details/controllable_details.h"
+
 #include "object/interface/programmable_object.h"
 #include "object/interface/slotted_object.h"
 #include "object/interface/task_executor_object.h"
@@ -485,11 +487,12 @@ bool CObjectInterface::EventProcess(const Event &event)
             }
         }
 
-        if ( action >= EVENT_OBJECT_BUILD_01 && action <= EVENT_OBJECT_BUILD_14 )
+        if ( action >= EVENT_OBJECT_BUILD_01 && action <= EVENT_OBJECT_BUILD_MAX )
         {
-            int index = action - EVENT_OBJECT_BUILD_01;
-            ObjectType type = GetObjectDetails().GetBuilderMenuItem(index).type;
-            err = m_taskExecutor->StartTaskBuild(type);
+            size_t index = action - EVENT_OBJECT_BUILD_01;
+            assert(index < GetObjectGlobalDetails().builderMenu.size());
+            auto item = GetObjectGlobalDetails().builderMenu[index];
+            err = m_taskExecutor->StartTaskBuild(item.type);
         }
 
         if ( action == EVENT_OBJECT_GFLAT )
@@ -795,8 +798,8 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    controlsDetails = GetObjectControlsDetails(m_object);
-    onboardCameraDetails = GetObjectCameraDetails(m_object).onboardCamera;
+    controlsDetails = GetObjectControllableDetails(m_object).controls;
+    onboardCameraDetails = GetObjectControllableDetails(m_object).camera.onboard;
 
     if ( controlsDetails.hasProgramUI )
     {
@@ -860,29 +863,25 @@ bool CObjectInterface::CreateInterface(bool bSelect)
 
     for ( auto it : controlsDetails.widgets )
     {
-        bool bSkip = false;
-        for ( auto b : it.onBuildingsEnabled )
-            if ( !m_main->IsBuildingEnabled(b) )
-                bSkip = true;
-
-        for ( auto r : it.onResearchsDone )
-            if ( !m_main->IsResearchDone(r, m_object->GetTeam()) )
-                bSkip = true;
-
-        if ( bSkip ) continue;
-        if ( it.disabledByTrainer && m_object->GetTrainer() ) continue;
-        if ( it.disabledByPlusExplorer && m_main->GetPlusExplorer() ) continue;
+        if ( it.disabledByTrainer &&
+            m_object->GetTrainer() ) continue;
+        if ( it.disabledByPlusExplorer &&
+            m_main->GetPlusExplorer() ) continue;
+        if ( it.onBuildingEnabled && 
+            !m_main->IsBuildingEnabled(static_cast<BuildType>(it.onBuildingEnabled)) ) continue;
+        if ( it.onResearchDone && 
+            !m_main->IsResearchDone(static_cast<ResearchType>(it.onResearchDone), m_object->GetTeam()) ) continue;
 
         pos.x  = ox + sx * it.position.x;
         pos.y  = oy + sy * it.position.y;
         ddim.x = dim.x * it.size.x;
         ddim.y = dim.y * it.size.y;
         
-        if ( it.type == WIDGET_ICON_BUTTON )
+        if ( it.widgetType == Ui::WIDGET_ICON_BUTTON )
             pw->CreateButton(pos, ddim, it.params.icon, it.event)->SetImmediat(it.isImmediat);
-        else if ( it.type == WIDGET_COLOR_BUTTON )
+        else if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
             pw->CreateColor(pos, ddim, -1, it.event)->SetColor(it.params.color);
-        else if ( it.type == WIDGET_ICON_LOGO )
+        else if ( it.widgetType == Ui::WIDGET_ICON_LOGO )
             pw->CreateLogo(pos, ddim, it.params.icon, it.event);
 
         if ( it.isDefault )
@@ -900,22 +899,16 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ddim.x = dim.x*0.9f;
         ddim.y = dim.y*0.9f;
 
-        pos.y = oy+sy*1.0f;
-        for (int i = 0; i < 7; i++)
+        size_t len = EVENT_OBJECT_BUILD_MAX - EVENT_OBJECT_BUILD_01 + 1;
+        auto builderMenu = GetObjectGlobalDetails().builderMenu;
+        len = builderMenu.size() > len ? len : builderMenu.size();
+        for (size_t i = 0; i < len; i++)
         {
-            pos.x = ox + i*sx*0.9f;
+            pos.x = ox + (i%7)*sx*0.9f;
+            pos.y = oy + sy*1.0f - (i/7)*sy*0.9f;
             EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_01 + i);
-            pw->CreateButton(pos, ddim, GetObjectDetails().GetBuilderMenuItem(i).icon, e);
-            DeadInterface(pw, e, m_main->CanBuild(GetObjectDetails().GetBuilderMenuItem(i).type, m_object->GetTeam()));
-        }
-
-        pos.y = oy+sy*0.1f;
-        for (int i = 0; i < 7; i++)
-        {
-            pos.x = ox + i*sx*0.9f;
-            EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_08 + i);
-            pw->CreateButton(pos, ddim, GetObjectDetails().GetBuilderMenuItem(i+7).icon, e);
-            DeadInterface(pw, e, m_main->CanBuild(GetObjectDetails().GetBuilderMenuItem(i+7).type, m_object->GetTeam()));
+            pw->CreateButton(pos, ddim, builderMenu[i].icon, e);
+            DeadInterface(pw, e, m_main->CanBuild(builderMenu[i].type, m_object->GetTeam()));
         }
     }
 
@@ -1160,22 +1153,17 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ddim.x = dim.x*0.9f;
         ddim.y = dim.y*0.9f;
 
-        pos.y = oy+sy*3.6f;
-        for (int i = 0; i < 7; i++)
+        size_t len = EVENT_OBJECT_BUILD_MAX - EVENT_OBJECT_BUILD_01 + 1;
+        auto builderMenu = GetObjectGlobalDetails().builderMenu;
+        len = builderMenu.size() > len ? len : builderMenu.size();
+        for (size_t i = 0; i < len; i++)
         {
-            pos.x = ox + i*sx*0.9f;
+            pos.x = ox + (i%7)*sx*0.9f;
+            pos.y = oy + sy*3.6f - (i/7)*sy*0.9f;
             EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_01 + i);
-            pw->CreateButton(pos, ddim, GetObjectDetails().GetBuilderMenuItem(i).icon, e);
-            DeadInterface(pw, e, m_main->CanBuild(GetObjectDetails().GetBuilderMenuItem(i).type, m_object->GetTeam()));
-        }
+            pw->CreateButton(pos, ddim, builderMenu[i].icon, e);
+            DeadInterface(pw, e, m_main->CanBuild(builderMenu[i].type, m_object->GetTeam()));
 
-        pos.y = oy+sy*2.7f;
-        for (int i = 0; i < 7; i++)
-        {
-            pos.x = ox + i*sx*0.9f;
-            EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_08 + i);
-            pw->CreateButton(pos, ddim, GetObjectDetails().GetBuilderMenuItem(i+7).icon, e);
-            DeadInterface(pw, e, m_main->CanBuild(GetObjectDetails().GetBuilderMenuItem(i+7).type, m_object->GetTeam()));
         }
 
         if ( m_main->IsBuildingEnabled(BUILD_GFLAT) )
@@ -1474,7 +1462,7 @@ void CObjectInterface::UpdateInterface()
     CheckInterface(pw, EVENT_OBJECT_MBACK,        m_manipStyle==EVENT_OBJECT_MBACK);
     CheckInterface(pw, EVENT_OBJECT_MFRONT,       m_manipStyle==EVENT_OBJECT_MFRONT);
 
-    controlsDetails = GetObjectControlsDetails(m_object);
+    controlsDetails = GetObjectControllableDetails(m_object).controls;
     if ( controlsDetails.hasShielderUIRobot )
     {
         if ( (!m_taskExecutor->IsBackgroundTask() || !m_taskExecutor->GetBackgroundTask()->IsBusy()) && !m_programmable->IsProgram() )

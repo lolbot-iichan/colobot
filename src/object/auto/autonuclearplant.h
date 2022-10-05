@@ -54,7 +54,7 @@ public:
 protected:
     CObject*    SearchUranium();
     bool        SearchVehicle();
-    void        CreatePower();
+    void        CreatePower(ObjectType type);
 
 protected:
     AutoNuclearPlantPhase    m_phase = ANUP_STOP;
@@ -64,6 +64,4 @@ protected:
     float               m_lastParticle = 0.0f;
     Math::Vector        m_pos;
     int                 m_channelSound = 0;
-    ObjectType          m_input = OBJECT_NULL;
-    ObjectType          m_output = OBJECT_NULL;
 };

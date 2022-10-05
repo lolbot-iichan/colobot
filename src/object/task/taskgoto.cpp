@@ -35,8 +35,7 @@
 
 #include "object/interface/slotted_object.h"
 #include "object/interface/transportable_object.h"
-
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -140,8 +139,8 @@ bool CTaskGoto::EventProcess(const Event &event)
     if ( m_engine->GetPause() )  return true;
 
     // Momentarily stationary object (ant on the back)?
-    CBaseAlien* alien = dynamic_cast<CBaseAlien*>(m_object);
-    if ( alien != nullptr && alien->GetFixed() )
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_physics->SetMotorSpeedX(0.0f);  // stops the advance
         m_physics->SetMotorSpeedZ(0.0f);  // stops the rotation
@@ -656,6 +655,9 @@ void CTaskGoto::WormFrame(float rTime)
 Error CTaskGoto::Start(Math::Vector goal, float altitude,
                        TaskGotoGoal goalMode, TaskGotoCrash crashMode)
 {
+    if (!m_object->Implements(ObjectInterfaceType::Movable))
+        return ERR_WRONG_BOT;
+
     Math::Vector    pos;
     CObject*    target;
     ObjectType  type;

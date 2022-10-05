@@ -19,29 +19,23 @@
 
 #pragma once
 
-#include "object/subclass/base_vehicle.h"
 
-struct ObjectCreateParams;
+#include "object/auto/auto.h"
 
-namespace Gfx
-{
-class COldModelManager;
-class CEngine;
-}
 
-/**
- * \class CBaseRobot
- * \brief Base class for all robots
- */
-class CBaseRobot : public CBaseVehicle
+class CAutoTrunk : public CAuto
 {
 public:
-    CBaseRobot(int id, ObjectType type);
-    virtual ~CBaseRobot();
+    CAutoTrunk(COldObject* object);
+    ~CAutoTrunk() override;
 
-public:
-    static std::unique_ptr<CBaseRobot> Create(
-        const ObjectCreateParams& params,
-        Gfx::COldModelManager* modelManager,
-        Gfx::CEngine* engine);
+    void        Init() override;
+    bool        EventProcess(const Event &event) override;
+
+protected:
+    float       m_speed = 0.0f;
+    float       m_progress = 0.0f;
+    float       m_lastParticle = 0.0f;
+    int         m_soundChannel = 0;
+    bool        m_silent = false;
 };

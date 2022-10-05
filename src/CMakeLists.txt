@@ -189,6 +189,8 @@ add_library(colobotbase STATIC
     object/auto/auto.h
     object/auto/autobase.cpp
     object/auto/autobase.h
+    object/auto/autoboat.cpp
+    object/auto/autoboat.h
     object/auto/autoconvert.cpp
     object/auto/autoconvert.h
     object/auto/autoderrick.cpp
@@ -199,14 +201,14 @@ add_library(colobotbase STATIC
     object/auto/autoegg.h
     object/auto/autofactory.cpp
     object/auto/autofactory.h
+    object/auto/autofan.cpp
+    object/auto/autofan.h
     object/auto/autoflag.cpp
     object/auto/autoflag.h
     object/auto/autohouston.cpp
     object/auto/autohouston.h
     object/auto/autojostle.cpp
     object/auto/autojostle.h
-    object/auto/autokid.cpp
-    object/auto/autokid.h
     object/auto/autolabo.cpp
     object/auto/autolabo.h
     object/auto/automush.cpp
@@ -233,9 +235,63 @@ add_library(colobotbase STATIC
     object/auto/autoroot.h
     object/auto/autotower.cpp
     object/auto/autotower.h
+    object/auto/autotrunk.cpp
+    object/auto/autotrunk.h
     object/auto/autovault.cpp
     object/auto/autovault.h
     object/crash_sphere.h
+    object/details/hardcode.cpp
+    object/details/hardcode.h
+    object/details/assistant_details.cpp
+    object/details/assistant_details.h
+    object/details/automation_details.cpp
+    object/details/automation_details.h
+    object/details/controllable_details.cpp
+    object/details/controllable_details.h
+    object/details/creation_details.cpp
+    object/details/creation_details.h
+    object/details/damageable_details.cpp
+    object/details/damageable_details.h
+    object/details/destroyable_details.cpp
+    object/details/destroyable_details.h
+    object/details/detectable_details.cpp
+    object/details/detectable_details.h
+    object/details/flying_details.cpp
+    object/details/flying_details.h
+    object/details/fragile_details.cpp
+    object/details/fragile_details.h
+    object/details/global_details.cpp
+    object/details/global_details.h
+    object/details/jet_flying_details.cpp
+    object/details/jet_flying_details.h
+    object/details/josteable_details.cpp
+    object/details/josteable_details.h
+    object/details/movable_details.cpp
+    object/details/movable_details.h
+    object/details/naming_details.cpp
+    object/details/naming_details.h
+    object/details/power_container_details.cpp
+    object/details/power_container_details.h
+    object/details/programmable_details.cpp
+    object/details/programmable_details.h
+    object/details/ranged_details.cpp
+    object/details/ranged_details.h
+    object/details/scripting_details.cpp
+    object/details/scripting_details.h
+    object/details/slotted_details.cpp
+    object/details/slotted_details.h
+    object/details/shielded_details.cpp
+    object/details/shielded_details.h
+    object/details/shielded_auto_regen_details.cpp
+    object/details/shielded_auto_regen_details.h
+    object/details/task_executor_details.cpp
+    object/details/task_executor_details.h
+    object/details/thumpable_details.cpp
+    object/details/thumpable_details.h
+    object/details/trace_drawing_details.cpp
+    object/details/trace_drawing_details.h
+    object/details/transportable_details.cpp
+    object/details/transportable_details.h
     object/drive_type.cpp
     object/drive_type.h
     object/implementation/power_container_impl.cpp
@@ -263,6 +319,7 @@ add_library(colobotbase STATIC
     object/interface/shielded_object.h
     object/interface/slotted_object.h
     object/interface/task_executor_object.h
+    object/interface/thumpable_object.h
     object/interface/trace_drawing_object.cpp
     object/interface/trace_drawing_object.h
     object/interface/transportable_object.h
@@ -296,22 +353,16 @@ add_library(colobotbase STATIC
     object/object_manager.h
     object/object_details.cpp
     object/object_details.h
-    object/object_details_hardcode.cpp
-    object/object_details_hardcode.h
     object/object_type.cpp
     object/object_type.h
     object/old_object.cpp
     object/old_object.h
     object/old_object_interface.cpp
     object/old_object_interface.h
-    object/subclass/base_alien.cpp
-    object/subclass/base_alien.h
     object/subclass/base_building.cpp
     object/subclass/base_building.h
-    object/subclass/base_robot.cpp
-    object/subclass/base_robot.h
-    object/subclass/base_vehicle.cpp
-    object/subclass/base_vehicle.h
+    object/subclass/base_movable.cpp
+    object/subclass/base_movable.h
     object/subclass/exchange_post.cpp
     object/subclass/exchange_post.h
     object/subclass/shielder.cpp
@@ -472,6 +523,7 @@ add_library(colobotbase STATIC
     ui/screen/screen_welcome.h
     ui/studio.cpp
     ui/studio.h
+    ui/widget.h
 )
 
 target_include_directories(colobotbase PUBLIC

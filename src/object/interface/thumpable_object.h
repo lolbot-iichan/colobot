@@ -19,23 +19,27 @@
 
 #pragma once
 
+#include "object/object_interface_type.h"
 
-#include "object/auto/auto.h"
+#include "object/interface/movable_object.h"
 
-
-class CAutoKid : public CAuto
+/**
+ * \class CThumpableObject
+ * \brief Interface for objects that can fly using a jet engine
+ */
+class CThumpableObject
 {
 public:
-    CAutoKid(COldObject* object);
-    ~CAutoKid() override;
+    explicit CThumpableObject(ObjectInterfaceTypes& types)
+    {
+        types[static_cast<int>(ObjectInterfaceType::Thumpable)] = true;
+    }
+    virtual ~CThumpableObject()
+    {}
 
-    void        Init() override;
-    bool        EventProcess(const Event &event) override;
-
-protected:
-    float       m_speed = 0.0f;
-    float       m_progress = 0.0f;
-    float       m_lastParticle = 0.0f;
-    int         m_soundChannel = 0;
-    bool        m_silent = false;
+    //! Management of "temporarirly stationary" mode (alien on the back)
+    //@{
+    virtual void SetFixed(bool fixed) = 0;
+    virtual bool GetFixed() = 0;
+    //@}
 };

@@ -21,7 +21,7 @@
 
 #include "graphics/engine/lightning.h"
 
-#include "object/object_details_hardcode.h"
+#include "object/details/hardcode.h"
 
 /* Macro to mark which texts are translatable by gettext
  * It doesn't do anything at compile-time, as all texts represented here are used later
@@ -34,79 +34,7 @@
  * after changing this file in order to update translation files. Thank you.
  */
 
-CObjectDetailsHardcodeCollection::CObjectDetailsHardcodeCollection()
-{
-    m_builderMenuObjects[0]  = { OBJECT_RESEARCH, 128+35, TR("Build a research center") };
-    m_builderMenuObjects[1]  = { OBJECT_FACTORY,  128+32, TR("Build a bot factory") };
-    m_builderMenuObjects[2]  = { OBJECT_CONVERT,  128+34, TR("Build a converter") };
-    m_builderMenuObjects[3]  = { OBJECT_STATION,  128+36, TR("Build a power station") };
-    m_builderMenuObjects[4]  = { OBJECT_RADAR,    128+40, TR("Build a radar station") };
-    m_builderMenuObjects[5]  = { OBJECT_REPAIR,   128+41, TR("Build a repair center") };
-    m_builderMenuObjects[6]  = { OBJECT_INFO,     128+44, TR("Build a exchange post") };
-    m_builderMenuObjects[7]  = { OBJECT_TOWER,    128+37, TR("Build a defense tower") };
-    m_builderMenuObjects[8]  = { OBJECT_ENERGY,   128+39, TR("Build a power cell factory") };
-    m_builderMenuObjects[9]  = { OBJECT_DERRICK,  128+33, TR("Build a derrick") };
-    m_builderMenuObjects[10] = { OBJECT_NUCLEAR,  128+42, TR("Build a nuclear power plant") };
-    m_builderMenuObjects[11] = { OBJECT_LABO,     128+38, TR("Build an autolab") };
-    m_builderMenuObjects[12] = { OBJECT_PARA,     128+46, TR("Build a lightning conductor") };
-    m_builderMenuObjects[13] = { OBJECT_SAFE,     128+47, TR("Build a vault") };
-
-    m_debugMenuObjects[0]  = {OBJECT_HUMAN,    128+8,  ""};
-    m_debugMenuObjects[1]  = {OBJECT_MOBILEwa, 128+9,  ""};
-    m_debugMenuObjects[2]  = {OBJECT_MOBILEwc, 128+15, ""};
-    m_debugMenuObjects[3]  = {OBJECT_MOBILErc, 128+19, ""};
-    m_debugMenuObjects[4]  = {OBJECT_FACTORY,  128+32, ""};
-    m_debugMenuObjects[5]  = {OBJECT_CONVERT,  128+34, ""};
-    m_debugMenuObjects[6]  = {OBJECT_DERRICK,  128+33, ""};
-    m_debugMenuObjects[7]  = {OBJECT_STATION,  128+36, ""};
-    m_debugMenuObjects[8]  = {OBJECT_METAL,    -1,     "Titanium"};
-    m_debugMenuObjects[9]  = {OBJECT_STONE,    -1,     "TitaniumOre"};
-    m_debugMenuObjects[10] = {OBJECT_URANIUM,  -1,     "UraniumOre"};
-    m_debugMenuObjects[11] = {OBJECT_POWER,    -1,     "PowerCell"};
-    m_debugMenuObjects[12] = {OBJECT_ATOMIC,   -1,     "NuclearCell"};
-}
-
-CObjectButton CObjectDetailsHardcodeCollection::GetBuilderMenuItem(int index)
-{
-    if (index < 0 || index >= 14) return CObjectButton();
-    return m_builderMenuObjects[index];
-}
-
-CObjectButton CObjectDetailsHardcodeCollection::GetDebugMenuItem(int index)
-{
-    if (index < 0 || index >= 14) return CObjectButton();
-    return m_debugMenuObjects[index];
-}
-
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionDestroyPerformerObject()
-{
-    return OBJECT_DESTROYER;
-}
-
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionFactoryPerformerObject()
-{
-    return OBJECT_FACTORY;
-}
-
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionResearchPerformerObject(ResearchType type)
-{
-    if ( type == RESEARCH_iPAW       ||
-         type == RESEARCH_iGUN       ||
-         type == RESEARCH_TARGET      ) return OBJECT_LABO;
-    return OBJECT_RESEARCH;
-}
-
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionTakeOffPerformerObject()
-{
-    return OBJECT_BASE;
-}
-
-ObjectType CObjectDetailsHardcodeCollection::GetFunctionReceivePerformerObject()
-{
-    return OBJECT_INFO;
-}
-
-float CObjectDetailsHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(ObjectType type)
+float CHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(ObjectType type)
 {
     if ( type == OBJECT_MOTHER ) return 1.2f;
     if ( type == OBJECT_ANT    ) return 1.2f;
@@ -117,7 +45,7 @@ float CObjectDetailsHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(Ob
     return 0.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::IsCollisionDamagable(ObjectType type)
+bool CHardcodeCollection::IsCollisionDamagable(ObjectType type)
 {
     if ( type == OBJECT_HUMAN    ||
          type == OBJECT_MOBILEwa ||
@@ -157,7 +85,7 @@ bool CObjectDetailsHardcodeCollection::IsCollisionDamagable(ObjectType type)
     return false;
 }
 
-float CObjectDetailsHardcodeCollection::GetCollisionSoftness(ObjectType type)
+float CHardcodeCollection::GetCollisionSoftness(ObjectType type)
 {
    if ( type == OBJECT_DERRICK  ||
          type == OBJECT_FACTORY  ||
@@ -205,7 +133,7 @@ float CObjectDetailsHardcodeCollection::GetCollisionSoftness(ObjectType type)
     }
 }
 
-float CObjectDetailsHardcodeCollection::GetMaxSafeWaterLevel(ObjectType type)
+float CHardcodeCollection::GetMaxSafeWaterLevel(ObjectType type)
 {
     if ( type == OBJECT_HUMAN ||
          type == OBJECT_TECH  )
@@ -253,7 +181,7 @@ float CObjectDetailsHardcodeCollection::GetMaxSafeWaterLevel(ObjectType type)
     return 0.0f; 
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWater(ObjectType type)
+bool CHardcodeCollection::IsExhaustBubblesOnEnteringWater(ObjectType type)
 {
     if ( type == OBJECT_MOBILEia ||
          type == OBJECT_MOBILEib ||
@@ -272,13 +200,13 @@ bool CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWater(ObjectTyp
     return true;
 }
 
-float CObjectDetailsHardcodeCollection::IsExhaustBubblesOnEnteringWaterTime(ObjectType type)
+float CHardcodeCollection::IsExhaustBubblesOnEnteringWaterTime(ObjectType type)
 {
     if ( type == OBJECT_HUMAN )  return 3.0f;
     return 8.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustDropsOnLeavingWater(ObjectType type)
+bool CHardcodeCollection::IsExhaustDropsOnLeavingWater(ObjectType type)
 {
     if ( type == OBJECT_MOBILEia ||
          type == OBJECT_MOBILEib ||
@@ -297,14 +225,14 @@ bool CObjectDetailsHardcodeCollection::IsExhaustDropsOnLeavingWater(ObjectType t
     return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHuman(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnCrashAsHuman(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsTrackedRobot(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnCrashAsTrackedRobot(ObjectType type)
 {
     if ((type == OBJECT_MOBILEta ||
          type == OBJECT_MOBILEtb ||
@@ -315,7 +243,7 @@ bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsTrackedRobot(ObjectType
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHeavyRobot(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnCrashAsHeavyRobot(ObjectType type)
 {
     if ((type == OBJECT_MOBILErt ||
          type == OBJECT_MOBILErc ||
@@ -325,14 +253,14 @@ bool CObjectDetailsHardcodeCollection::IsExhaustOnCrashAsHeavyRobot(ObjectType t
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHuman(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnLandAsHuman(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsWingedRobot(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnLandAsWingedRobot(ObjectType type)
 {
     if ((type == OBJECT_MOBILEfa ||
          type == OBJECT_MOBILEfb ||
@@ -343,14 +271,14 @@ bool CObjectDetailsHardcodeCollection::IsExhaustOnLandAsWingedRobot(ObjectType t
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsHuman(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnFlightAsHuman(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return true;
     return false;
 }
 
-bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHeavyRobot(ObjectType type)
+bool  CHardcodeCollection::IsExhaustOnLandAsHeavyRobot(ObjectType type)
 {
     if ((type == OBJECT_MOBILErt ||
          type == OBJECT_MOBILErc ||
@@ -360,7 +288,7 @@ bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsHeavyRobot(ObjectType t
     return false;
 }
 
-bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsNormalRobot(ObjectType type)
+bool  CHardcodeCollection::IsExhaustOnLandAsNormalRobot(ObjectType type)
 {
     if ((type == OBJECT_MOBILEta ||
          type == OBJECT_MOBILEtb ||
@@ -380,7 +308,7 @@ bool  CObjectDetailsHardcodeCollection::IsExhaustOnLandAsNormalRobot(ObjectType 
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsWingedRobot(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnFlightAsWingedRobot(ObjectType type)
 {
     if ((type == OBJECT_MOBILEfa ||
          type == OBJECT_MOBILEfb ||
@@ -391,21 +319,21 @@ bool CObjectDetailsHardcodeCollection::IsExhaustOnFlightAsWingedRobot(ObjectType
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnSwimAsHuman(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnSwimAsHuman(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExhaustOnSwimAsAmphibiousRobot(ObjectType type)
+bool CHardcodeCollection::IsExhaustOnSwimAsAmphibiousRobot(ObjectType type)
 {
     if ( (type == OBJECT_MOBILEst ||
           type == OBJECT_MOBILEsa  ) )   return true;
     return false;
 }
 
-float CObjectDetailsHardcodeCollection::GetThumperSafeRadius(ObjectType type)
+float CHardcodeCollection::GetThumperSafeRadius(ObjectType type)
 {
     if ( type == OBJECT_BULLET ||
          type == OBJECT_NEST   ||
@@ -483,7 +411,7 @@ float CObjectDetailsHardcodeCollection::GetThumperSafeRadius(ObjectType type)
     return -1;
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetThumperPyroType(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetThumperPyroType(ObjectType type)
 {
         if ( type == OBJECT_BULLET ||
              type == OBJECT_NEST   ||
@@ -560,7 +488,7 @@ Gfx::PyroType CObjectDetailsHardcodeCollection::GetThumperPyroType(ObjectType ty
     return Gfx::PT_NULL;
 }
 
-float CObjectDetailsHardcodeCollection::GetThumperExplosionDamage(ObjectType type)
+float CHardcodeCollection::GetThumperExplosionDamage(ObjectType type)
 {
     if ( type == OBJECT_TNT || type == OBJECT_BOMB ) // Explosives?
     {
@@ -570,12 +498,12 @@ float CObjectDetailsHardcodeCollection::GetThumperExplosionDamage(ObjectType typ
     return 0.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::GetThumperTurnOnBack(ObjectType type)
+bool CHardcodeCollection::GetThumperTurnOnBack(ObjectType type)
 {
     return type == OBJECT_ANT || type == OBJECT_SPIDER;
 }
 
-float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMin(ObjectType type)
+float CHardcodeCollection::GetWaterSplashLevelMin(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return 3.0f;
@@ -583,7 +511,7 @@ float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMin(ObjectType type)
     return 0.0f;
 }
 
-float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMax(ObjectType type)
+float CHardcodeCollection::GetWaterSplashLevelMax(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return 3.0f;
@@ -591,7 +519,7 @@ float CObjectDetailsHardcodeCollection::GetWaterSplashLevelMax(ObjectType type)
     return 9.0f;
 }
 
-float CObjectDetailsHardcodeCollection::GetWaterSplashDiameter(ObjectType type)
+float CHardcodeCollection::GetWaterSplashDiameter(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return 5.0f;
@@ -599,7 +527,7 @@ float CObjectDetailsHardcodeCollection::GetWaterSplashDiameter(ObjectType type)
     return 2.5f;
 }
 
-float CObjectDetailsHardcodeCollection::GetWaterSplashForce(ObjectType type)
+float CHardcodeCollection::GetWaterSplashForce(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return 1.0f;
@@ -607,7 +535,7 @@ float CObjectDetailsHardcodeCollection::GetWaterSplashForce(ObjectType type)
     return 1.3f;
 }
 
-float CObjectDetailsHardcodeCollection::GetLightningRodHeight(ObjectType type)
+float CHardcodeCollection::GetLightningRodHeight(ObjectType type)
 {
     if (type == OBJECT_BASE)
     {
@@ -630,7 +558,7 @@ float CObjectDetailsHardcodeCollection::GetLightningRodHeight(ObjectType type)
 // Object naming details
 //////////////////////////////////////////////////////////////////////////////
 
-std::string CObjectDetailsHardcodeCollection::GetNameInLevelFiles(ObjectType type)
+std::string CHardcodeCollection::GetNameInLevelFiles(ObjectType type)
 {
     if ( type == OBJECT_PORTICO ) return "Portico";
     if ( type == OBJECT_BASE ) return "SpaceShip";
@@ -836,7 +764,7 @@ std::string CObjectDetailsHardcodeCollection::GetNameInLevelFiles(ObjectType typ
     return "";   
 }
 
-std::string CObjectDetailsHardcodeCollection::GetAliasInLevelFiles(ObjectType type)
+std::string CHardcodeCollection::GetAliasInLevelFiles(ObjectType type)
 {
     if ( type == OBJECT_MOBILEwt    )  return "PracticeBot";
     if ( type == OBJECT_MARKURANIUM )  return "PlatinumSpot";
@@ -846,7 +774,7 @@ std::string CObjectDetailsHardcodeCollection::GetAliasInLevelFiles(ObjectType ty
     return "";
 }
 
-std::string CObjectDetailsHardcodeCollection::GetNameInScriptFiles(ObjectType type)
+std::string CHardcodeCollection::GetNameInScriptFiles(ObjectType type)
 {
     if ( type == OBJECT_PORTICO     )  return "Portico";
     if ( type == OBJECT_BASE        )  return "SpaceShip";
@@ -951,7 +879,7 @@ std::string CObjectDetailsHardcodeCollection::GetNameInScriptFiles(ObjectType ty
     return "";
 }
 
-std::string CObjectDetailsHardcodeCollection::GetAliasInScriptFiles(ObjectType type)
+std::string CHardcodeCollection::GetAliasInScriptFiles(ObjectType type)
 {
     if ( type == OBJECT_MARKURANIUM )  return "PlatinumSpot";
     if ( type == OBJECT_URANIUM     )  return "PlatinumOre";
@@ -960,7 +888,7 @@ std::string CObjectDetailsHardcodeCollection::GetAliasInScriptFiles(ObjectType t
     return "";
 }
 
-std::string CObjectDetailsHardcodeCollection::GetHelpTopicPathName(ObjectType type)
+std::string CHardcodeCollection::GetHelpTopicPathName(ObjectType type)
 {
     if ( type == OBJECT_BASE        )  return "object/base";
     if ( type == OBJECT_DERRICK     )  return "object/derrick";
@@ -1057,14 +985,14 @@ std::string CObjectDetailsHardcodeCollection::GetHelpTopicPathName(ObjectType ty
     return "";
 }
 
-bool CObjectDetailsHardcodeCollection::IsDisplayedNameAsPlayer(ObjectType type)
+bool CHardcodeCollection::IsDisplayedNameAsPlayer(ObjectType type)
 {
     if ( type == OBJECT_HUMAN ) return true;
 
     return false;
 }
 
-std::string CObjectDetailsHardcodeCollection::GetDisplayedName(ObjectType type)
+std::string CHardcodeCollection::GetDisplayedName(ObjectType type)
 {
     if( type == OBJECT_PORTICO ) return TR("Gantry crane");
     if( type == OBJECT_BASE ) return TR("Spaceship");
@@ -1184,7 +1112,7 @@ std::string CObjectDetailsHardcodeCollection::GetDisplayedName(ObjectType type)
 // Object scripting details
 //////////////////////////////////////////////////////////////////////////////
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedBuild(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedBuild(ObjectType type)
 {
     if ( type != OBJECT_MOBILEfb &&  // allowed only for builder bots && humans
          type != OBJECT_MOBILEtb &&
@@ -1195,7 +1123,7 @@ bool CObjectDetailsHardcodeCollection::IsFunctionImplementedBuild(ObjectType typ
     return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedFlags(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedFlags(ObjectType type)
 {
     if ( type != OBJECT_MOBILEfs &&  // allowed only for sniffer bots && humans
          type != OBJECT_MOBILEts &&
@@ -1206,32 +1134,32 @@ bool CObjectDetailsHardcodeCollection::IsFunctionImplementedFlags(ObjectType typ
     return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedSniff(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedSniff(ObjectType type)
 {
     return type == OBJECT_MOBILErs;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShield(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedShield(ObjectType type)
 {
     return type == OBJECT_MOBILErs;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedRecycle(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedRecycle(ObjectType type)
 {
     return type == OBJECT_MOBILErr;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedDrawAsRobot(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedDrawAsRobot(ObjectType type)
 {
     return type == OBJECT_MOBILEdr;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedGrabAsHuman(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedGrabAsHuman(ObjectType type)
 {
     return type == OBJECT_HUMAN || type == OBJECT_TECH;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedGrabAsRobot(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedGrabAsRobot(ObjectType type)
 {
     if ( (type == OBJECT_MOBILEfa ||
           type == OBJECT_MOBILEta ||
@@ -1244,17 +1172,17 @@ bool CObjectDetailsHardcodeCollection::IsFunctionImplementedGrabAsRobot(ObjectTy
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShootAsAnt(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedShootAsAnt(ObjectType type)
 {
     return type == OBJECT_ANT;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShootAsSpider(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedShootAsSpider(ObjectType type)
 {
     return type == OBJECT_SPIDER;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShootAsRobot(ObjectType type)
+bool CHardcodeCollection::IsFunctionImplementedShootAsRobot(ObjectType type)
 {
     if ( type == OBJECT_MOBILEfc ||
          type == OBJECT_MOBILEtc ||
@@ -1269,7 +1197,7 @@ bool CObjectDetailsHardcodeCollection::IsFunctionImplementedShootAsRobot(ObjectT
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsValidObjectTypeId(ObjectType type)
+bool CHardcodeCollection::IsValidObjectTypeId(ObjectType type)
 {
     static const std::unordered_set<int> validIds{
         OBJECT_PORTICO,
@@ -1479,7 +1407,7 @@ bool CObjectDetailsHardcodeCollection::IsValidObjectTypeId(ObjectType type)
     return validIds.count(type);
 }
 
-std::vector<ObjectType> CObjectDetailsHardcodeCollection::GetObjectsFindableByType(ObjectType type)
+std::vector<ObjectType> CHardcodeCollection::GetObjectsFindableByType(ObjectType type)
 {
     std::vector<ObjectType> result;
 
@@ -1492,15 +1420,13 @@ std::vector<ObjectType> CObjectDetailsHardcodeCollection::GetObjectsFindableByTy
         result.push_back(OBJECT_MOBILErp);
         result.push_back(OBJECT_MOBILEst);
     }
-    else
-    {
-        result.push_back(type);
-    }
+
+
 
     return result;
 }
 
-ObjectType CObjectDetailsHardcodeCollection::GetProduceContainer(ObjectType type)
+ObjectType CHardcodeCollection::GetProduceContainer(ObjectType type)
 {
     if (type == OBJECT_ANT   ||
         type == OBJECT_SPIDER ||
@@ -1510,28 +1436,76 @@ ObjectType CObjectDetailsHardcodeCollection::GetProduceContainer(ObjectType type
     return OBJECT_NULL;
 }
 
-bool CObjectDetailsHardcodeCollection::IsProduceAlreadyCharged(ObjectType type)
+bool CHardcodeCollection::IsProduceAlreadyCharged(ObjectType type)
 {
     return (type == OBJECT_POWER || type == OBJECT_ATOMIC);
 }
 
-bool CObjectDetailsHardcodeCollection::IsProduceManual(ObjectType type)
+bool CHardcodeCollection::IsProduceManual(ObjectType type)
 {
     return (type == OBJECT_MOBILEdr);
 }
 
-bool CObjectDetailsHardcodeCollection::IsRadarExplicitOnly(ObjectType type)
+bool CHardcodeCollection::IsRadarExplicitOnly(ObjectType type)
 {
     return (type == OBJECT_TOTO || type == OBJECT_CONTROLLER);
 }
 
+ObjectType CHardcodeCollection::GetBaseType(ObjectType type)
+{
+    if ( type == OBJECT_RUINmobilew2 ||
+        type == OBJECT_RUINmobilet1 ||
+        type == OBJECT_RUINmobilet2 ||
+        type == OBJECT_RUINmobiler1 ||
+        type == OBJECT_RUINmobiler2 )
+    {
+        return OBJECT_RUINmobilew1;  // any wreck
+    }
+
+    if ( type == OBJECT_BARRIER2 ||
+         type == OBJECT_BARRIER3 ||
+         type == OBJECT_BARRICADE0 ||
+         type == OBJECT_BARRICADE1 )  // barriers?
+    {
+        return OBJECT_BARRIER1;  // any barrier
+    }
+
+    if ( type == OBJECT_RUINdoor    ||
+         type == OBJECT_RUINsupport ||
+         type == OBJECT_RUINradar   ||
+         type == OBJECT_RUINconvert )  // ruins?
+    {
+        return OBJECT_RUINfactory;  // any ruin
+    }
+
+    if ( type == OBJECT_PLANT1  ||
+         type == OBJECT_PLANT2  ||
+         type == OBJECT_PLANT3  ||
+         type == OBJECT_PLANT4  ||
+         type == OBJECT_PLANT15 ||
+         type == OBJECT_PLANT16 ||
+         type == OBJECT_PLANT17 ||
+         type == OBJECT_PLANT18 )  // bushes?
+    {
+        return OBJECT_PLANT0;  // any bush
+    }
+
+    if ( type == OBJECT_QUARTZ1 ||
+         type == OBJECT_QUARTZ2 ||
+         type == OBJECT_QUARTZ3 )  // crystals?
+    {
+        return OBJECT_QUARTZ0;  // any crystal
+    }
+
+    return OBJECT_NULL;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
 // Creation details
 //////////////////////////////////////////////////////////////////////////////
 
-BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type)
+BaseClass CHardcodeCollection::GetCreationBaseClass(ObjectType type)
 {
     switch(type)
     {
@@ -1729,7 +1703,7 @@ BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type
         case OBJECT_SPIDER:
         case OBJECT_BEE:
         case OBJECT_WORM:
-            return BASE_CLASS_ALIEN;
+            return BASE_CLASS_MOVABLE;
 
         case OBJECT_HUMAN:
         case OBJECT_TECH:
@@ -1767,7 +1741,7 @@ BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type
         case OBJECT_MOBILEst:
         case OBJECT_MOBILEdr:
         case OBJECT_APOLLO2:
-            return BASE_CLASS_ROBOT;
+            return BASE_CLASS_MOVABLE;
 
         case OBJECT_MOBILErs:
             return BASE_CLASS_SHIELDER;
@@ -1777,7 +1751,25 @@ BaseClass CObjectDetailsHardcodeCollection::GetCreationBaseClass(ObjectType type
     }
 }
 
-std::vector<CObjectCreationModelNode> CObjectDetailsHardcodeCollection::GetCreationModel(ObjectType type)
+AutoClass CHardcodeCollection::GetCreationAutoClass(ObjectType type)
+{
+
+    if ( type == OBJECT_EGG )       return AUTO_CLASS_EGG;
+    if ( type == OBJECT_ROOT5 )     return AUTO_CLASS_ROOT;
+    if ( type == OBJECT_MUSHROOM2 ) return AUTO_CLASS_MUSHROOM;
+    if ( type == OBJECT_FLAGb ||
+         type == OBJECT_FLAGr ||
+         type == OBJECT_FLAGg ||
+         type == OBJECT_FLAGy ||
+         type == OBJECT_FLAGv )     return AUTO_CLASS_FLAG;
+    if ( type == OBJECT_TEEN36 )    return AUTO_CLASS_TRUNK;   // trunk?
+    if ( type == OBJECT_TEEN37 )    return AUTO_CLASS_BOAT;    // boat?
+    if ( type == OBJECT_TEEN38 )    return AUTO_CLASS_FAN;     // fan?
+
+    return AUTO_CLASS_NONE;
+}
+
+std::vector<CObjectCreationModelNode> CHardcodeCollection::GetCreationModel(ObjectType type)
 {
     std::vector<CObjectCreationModelNode> result;
 
@@ -2109,10 +2101,16 @@ std::vector<CObjectCreationModelNode> CObjectDetailsHardcodeCollection::GetCreat
         return result;
     }
 
+    if ( type == OBJECT_CONTROLLER )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_VEHICLE}); // No model!
+        return result;
+    }
+
     return result;
 }
 
-std::vector<CrashSphere> CObjectDetailsHardcodeCollection::GetCreationCrashSpheres(ObjectType type)
+std::vector<CrashSphere> CHardcodeCollection::GetCreationCrashSpheres(ObjectType type)
 {
     std::vector<CrashSphere> result;
 
@@ -2801,21 +2799,19 @@ std::vector<CrashSphere> CObjectDetailsHardcodeCollection::GetCreationCrashSpher
     return result;
 }
 
-std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationCameraCollisionSpheres(ObjectType type)
+Math::Sphere CHardcodeCollection::GetCreationCameraCollisionSphere(ObjectType type)
 {
-    std::vector<Math::Sphere> result;
-
     if ( type == OBJECT_EGG )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
     }
     else if ( type == OBJECT_BOMB )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 3.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 3.0f));
     }
     else if ( type == OBJECT_BAG )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
     }
     else if ( type == OBJECT_STONE   ||
               type == OBJECT_URANIUM ||
@@ -2830,7 +2826,7 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationCameraCol
               type == OBJECT_SHOW    ||
               type == OBJECT_WINFIRE )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 1.0f, 0.0f), 1.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 1.0f, 0.0f), 1.5f));
     }
 
     if ( type == OBJECT_PLANT0 ||
@@ -2839,7 +2835,7 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationCameraCol
          type == OBJECT_PLANT3 ||
          type == OBJECT_PLANT4 )  // standard?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 6.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 6.0f));
     }
 
     if ( type == OBJECT_PLANT10 ||
@@ -2848,7 +2844,7 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationCameraCol
          type == OBJECT_PLANT13 ||
          type == OBJECT_PLANT14 )  // succulent?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f));
     }
 
     if ( type == OBJECT_PLANT15 ||
@@ -2856,247 +2852,286 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationCameraCol
          type == OBJECT_PLANT17 ||
          type == OBJECT_PLANT18 )  // fern?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 6.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 6.0f));
     }
 
     if ( type == OBJECT_MUSHROOM1 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 5.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 5.5f));
     }
 
     if ( type == OBJECT_MUSHROOM2 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.5f));
     }
 
     if ( type == OBJECT_TEEN3 )  // jar with pencils
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 4.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 4.0f));
     }
 
     if ( type == OBJECT_TEEN8 )  // a stack of books 1
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 12.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 12.0f));
     }
 
     if ( type == OBJECT_TEEN9 )  // a stack of books 2
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 12.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 12.0f));
     }
 
     if ( type == OBJECT_TEEN10 )  // bookcase
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 20.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 20.0f));
     }
 
     if ( type == OBJECT_TEEN12 )  // coke
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 9.0f, 0.0f), 5.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 9.0f, 0.0f), 5.0f));
     }
 
     if ( type == OBJECT_TEEN13 )  // cardboard farm
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
     }
 
     if ( type == OBJECT_TEEN14 )  // open box
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
     }
 
     if ( type == OBJECT_TEEN15 )  // stack of cartons
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 15.0f));
     }
 
     if ( type == OBJECT_TEEN16 )  // watering can
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 13.0f, 0.0f), 20.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 13.0f, 0.0f), 20.0f));
     }
 
     if ( type == OBJECT_TEEN17 )  // wheel |
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 31.0f, 0.0f), 31.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 31.0f, 0.0f), 31.0f));
     }
 
     if ( type == OBJECT_TEEN18 )  // wheel /
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 31.0f, 0.0f), 31.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 31.0f, 0.0f), 31.0f));
     }
 
     if ( type == OBJECT_TEEN19 )  // wheel =
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 32.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 32.0f));
     }
 
     if ( type == OBJECT_TEEN30 )  // jump?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 15.0f, 0.0f), 17.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 15.0f, 0.0f), 17.0f));
     }
 
     if ( type == OBJECT_TEEN31 )  // basket?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 10.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_TEEN32 )  // chair?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 26.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 26.0f));
     }
 
 
     if ( type == OBJECT_TEEN38 )  // fan?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 10.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_TEEN39 )  // potted plant?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 8.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 8.5f));
     }
 
     if ( type == OBJECT_TEEN40 )  // balloon?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 14.0f, 0.0f), 15.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 14.0f, 0.0f), 15.0f));
     }
 
     if ( type == OBJECT_TEEN44 )  // car?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 55.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 55.0f));
     }
 
     if ( type == OBJECT_QUARTZ0 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 3.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 2.0f, 0.0f), 3.5f));
     }
     if ( type == OBJECT_QUARTZ1 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.0f));
     }
     if ( type == OBJECT_QUARTZ2 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 6.0f));
     }
     if ( type == OBJECT_QUARTZ3 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 10.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_ROOT0 )
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 11.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 11.0f));
     }
     if ( type == OBJECT_ROOT1 )
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 12.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 12.0f));
     }
     if ( type == OBJECT_ROOT2 )
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 10.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 10.0f));
     }
     if ( type == OBJECT_ROOT3 )
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 14.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 14.0f));
     }
     if ( type == OBJECT_ROOT4 )
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 12.0f, 0.0f), 20.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 12.0f, 0.0f), 20.0f));
     }
     if ( type == OBJECT_ROOT5 )  // gravity root ?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 12.0f, 0.0f), 20.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 12.0f, 0.0f), 20.0f));
     }
 
     if ( type == OBJECT_HOME1 )
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 11.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 6.0f, 0.0f), 11.0f));
     }
 
     if ( type == OBJECT_RUINmobilew1 )  // vehicle had wheels?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_RUINmobilew2 )  // vehicle has wheels?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_RUINmobilet1 )  // vehicle have caterpillars?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(1.0f, 5.0f, -1.0f), 10.0f));
+//?     return (Math::Sphere(Math::Vector(1.0f, 5.0f, -1.0f), 10.0f));
     }
 
     if ( type == OBJECT_RUINmobilet2 )  // vehicle have caterpillars?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_RUINmobiler1 )  // vehicle skating?
     {
-        result.push_back(Math::Sphere(Math::Vector(1.0f, 5.0f, -1.0f), 10.0f));
+        return (Math::Sphere(Math::Vector(1.0f, 5.0f, -1.0f), 10.0f));
     }
 
     if ( type == OBJECT_RUINmobiler2 )  // vehicle skating?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 10.0f));
     }
 
     if ( type == OBJECT_RUINfactory )  // factory ?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 18.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 18.0f));
     }
 
     if ( type == OBJECT_RUINdoor )  // converter holder?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 6.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 6.0f));
     }
 
     if ( type == OBJECT_RUINsupport )  // radar holder?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
     }
 
     if ( type == OBJECT_RUINradar )  // radar base?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 6.0f));
+//?     return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 6.0f));
     }
 
     if ( type == OBJECT_RUINconvert )  // converter?
     {
-//?     result.push_back(Math::Sphere(Math::Vector(-3.0f, 0.0f, 0.0f), 14.0f));
+//?     return (Math::Sphere(Math::Vector(-3.0f, 0.0f, 0.0f), 14.0f));
     }
 
     if ( type == OBJECT_RUINbase )  // base?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 48.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 48.0f));
     }
 
     if ( type == OBJECT_RUINhead )  // base cap?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 35.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 35.0f));
     }
 
     if ( type == OBJECT_APOLLO1 )  // LEM ?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 9.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 9.0f));
     }
 
-
-    return result;
+    return Math::Sphere();
 }
 
-std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationJostlingSpheres(ObjectType type)
+bool CHardcodeCollection::IsJosteable(ObjectType type)
 {
-    std::vector<Math::Sphere> result;
+    if ( type == OBJECT_FLAGb ||
+         type == OBJECT_FLAGr ||
+         type == OBJECT_FLAGg ||
+         type == OBJECT_FLAGy ||
+         type == OBJECT_FLAGv ) return true;
+    if ( type == OBJECT_PLANT0 ||
+         type == OBJECT_PLANT1 ||
+         type == OBJECT_PLANT2 ||
+         type == OBJECT_PLANT3 ||
+         type == OBJECT_PLANT4 ) return true;
+    if ( type == OBJECT_PLANT5 ||
+         type == OBJECT_PLANT6 ||
+         type == OBJECT_PLANT7 ) return true;
+    if ( type == OBJECT_PLANT10 ||
+         type == OBJECT_PLANT11 ||
+         type == OBJECT_PLANT12 ||
+         type == OBJECT_PLANT13 ||
+         type == OBJECT_PLANT14 ) return true;
+    if ( type == OBJECT_PLANT15 ||
+         type == OBJECT_PLANT16 ||
+         type == OBJECT_PLANT17 ||
+         type == OBJECT_PLANT18 ) return true;
+    if ( type == OBJECT_PLANT19 ) return true;
+    if ( type == OBJECT_MUSHROOM1 ) return true;
+    if ( type == OBJECT_MUSHROOM2 ) return true;
+    if ( type == OBJECT_APOLLO3 ) return true;
 
+    return false;
+}
+
+float CHardcodeCollection::GetJosteFactor(ObjectType type)
+{
+    if ( type >= OBJECT_PLANT5 &&
+         type <= OBJECT_PLANT7 )  // clover?
+    {
+        return 3.0f;
+    }
+    return 1.0f;
+}
+
+Math::Sphere CHardcodeCollection::GetJostlingSphere(ObjectType type)
+{
     if ( type == OBJECT_FLAGb ||
          type == OBJECT_FLAGr ||
          type == OBJECT_FLAGg ||
          type == OBJECT_FLAGy ||
          type == OBJECT_FLAGv )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 1.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 1.0f));
     }
 
     if ( type == OBJECT_PLANT0 ||
@@ -3105,14 +3140,14 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationJostlingS
          type == OBJECT_PLANT3 ||
          type == OBJECT_PLANT4 )  // standard?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
     }
 
     if ( type == OBJECT_PLANT5 ||
          type == OBJECT_PLANT6 ||
          type == OBJECT_PLANT7 )  // clover?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 4.0f));
     }
 
     if ( type == OBJECT_PLANT10 ||
@@ -3121,7 +3156,7 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationJostlingS
          type == OBJECT_PLANT13 ||
          type == OBJECT_PLANT14 )  // succulent?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 8.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 8.0f));
     }
 
     if ( type == OBJECT_PLANT15 ||
@@ -3129,33 +3164,33 @@ std::vector<Math::Sphere> CObjectDetailsHardcodeCollection::GetCreationJostlingS
          type == OBJECT_PLANT17 ||
          type == OBJECT_PLANT18 )  // fern?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
     }
 
     if ( type == OBJECT_PLANT19 )  // fern?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 0.0f, 0.0f), 8.0f));
     }
 
     if ( type == OBJECT_MUSHROOM1 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 5.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 3.0f, 0.0f), 5.5f));
     }
 
     if ( type == OBJECT_MUSHROOM2 )
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.5f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 5.5f));
     }
 
     if ( type == OBJECT_APOLLO3 )  // flag?
     {
-        result.push_back(Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 1.0f));
+        return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 1.0f));
     }
 
-    return result;
+    return Math::Sphere();
 }
 
-std::vector<CObjectCreationBuildingLevel> CObjectDetailsHardcodeCollection::GetCreationBuildingLevels(ObjectType type)
+std::vector<CObjectCreationBuildingLevel> CHardcodeCollection::GetCreationBuildingLevels(ObjectType type)
 {
     std::vector<CObjectCreationBuildingLevel> result;
 
@@ -3177,7 +3212,7 @@ std::vector<CObjectCreationBuildingLevel> CObjectDetailsHardcodeCollection::GetC
     return result;
 }
 
-CObjectCreationShadowCircle CObjectDetailsHardcodeCollection::GetCreationShadowCircle(ObjectType type)
+CObjectCreationShadowCircle CHardcodeCollection::GetCreationShadowCircle(ObjectType type)
 {
     if ( type == OBJECT_MARKSTONE   ||
          type == OBJECT_MARKURANIUM ||
@@ -3652,7 +3687,7 @@ CObjectCreationShadowCircle CObjectDetailsHardcodeCollection::GetCreationShadowC
     return CObjectCreationShadowCircle();
 }
 
-float CObjectDetailsHardcodeCollection::GetCreationScale(ObjectType type)
+float CHardcodeCollection::GetCreationScale(ObjectType type)
 {
     if ( type == OBJECT_BAG )   return 1.5f;
     if ( type == OBJECT_ROOT0 ) return 2.0f;
@@ -3666,7 +3701,7 @@ float CObjectDetailsHardcodeCollection::GetCreationScale(ObjectType type)
     return 1.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::IsCreationForceLoadTextures(ObjectType type)
+bool CHardcodeCollection::IsCreationForceLoadTextures(ObjectType type)
 {
     switch(type)
     {
@@ -3709,7 +3744,7 @@ bool CObjectDetailsHardcodeCollection::IsCreationForceLoadTextures(ObjectType ty
     }
 }
 
-bool CObjectDetailsHardcodeCollection::IsCreationSetFloorHeight(ObjectType type)
+bool CHardcodeCollection::IsCreationSetFloorHeight(ObjectType type)
 {
     switch(type)
     {
@@ -3881,7 +3916,7 @@ bool CObjectDetailsHardcodeCollection::IsCreationSetFloorHeight(ObjectType type)
     }
 }
 
-bool CObjectDetailsHardcodeCollection::IsCreationFloorAdjust(ObjectType type)
+bool CHardcodeCollection::IsCreationFloorAdjust(ObjectType type)
 {
     switch(type)
     {
@@ -4023,7 +4058,7 @@ bool CObjectDetailsHardcodeCollection::IsCreationFloorAdjust(ObjectType type)
     }
 }
 
-bool CObjectDetailsHardcodeCollection::IsCreationFixedPosition(ObjectType type)
+bool CHardcodeCollection::IsCreationFixedPosition(ObjectType type)
 {
     return type == OBJECT_SHOW;
 }
@@ -4034,7 +4069,98 @@ bool CObjectDetailsHardcodeCollection::IsCreationFixedPosition(ObjectType type)
 // Common interface details
 //////////////////////////////////////////////////////////////////////////////
 
-bool CObjectDetailsHardcodeCollection::IsTransportable(ObjectType type)
+DriveType CHardcodeCollection::GetDriveType(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_MOBILEwt:
+        case OBJECT_MOBILEwa:
+        case OBJECT_MOBILEwc:
+        case OBJECT_MOBILEwi:
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEwb:
+            return DriveType::Wheeled;
+
+        case OBJECT_MOBILEtt:
+        case OBJECT_MOBILEta:
+        case OBJECT_MOBILEtc:
+        case OBJECT_MOBILEti:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEtb:
+            return DriveType::Tracked;
+
+        case OBJECT_MOBILEft:
+        case OBJECT_MOBILEfa:
+        case OBJECT_MOBILEfc:
+        case OBJECT_MOBILEfi:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEfb:
+            return DriveType::Winged;
+
+        case OBJECT_MOBILEit:
+        case OBJECT_MOBILEia:
+        case OBJECT_MOBILEic:
+        case OBJECT_MOBILEii:
+        case OBJECT_MOBILEis:
+        case OBJECT_MOBILEib:
+            return DriveType::Legged;
+
+        case OBJECT_MOBILErp:
+        case OBJECT_MOBILErt:
+        case OBJECT_MOBILErc:
+        case OBJECT_MOBILErr:
+        case OBJECT_MOBILErs:
+            return DriveType::Heavy;
+
+        case OBJECT_MOBILEst:
+        case OBJECT_MOBILEsa:
+           return DriveType::Amphibious;
+
+        default:
+            return DriveType::Other;
+    }
+}
+
+ToolType CHardcodeCollection::GetToolType(ObjectType type)
+{
+    switch (type)
+    {
+        case OBJECT_MOBILEwa:
+        case OBJECT_MOBILEta:
+        case OBJECT_MOBILEfa:
+        case OBJECT_MOBILEia:
+            return ToolType::Grabber;
+
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEis:
+            return ToolType::Sniffer;
+
+        case OBJECT_MOBILEwc:
+        case OBJECT_MOBILEtc:
+        case OBJECT_MOBILEfc:
+        case OBJECT_MOBILEic:
+            return ToolType::Shooter;
+
+        case OBJECT_MOBILEwi:
+        case OBJECT_MOBILEti:
+        case OBJECT_MOBILEfi:
+        case OBJECT_MOBILEii:
+            return ToolType::OrganicShooter;
+
+        case OBJECT_MOBILEwb:
+        case OBJECT_MOBILEtb:
+        case OBJECT_MOBILEfb:
+        case OBJECT_MOBILEib:
+            return ToolType::Builder;
+
+        default:
+            return ToolType::Other;
+    }
+}
+
+bool CHardcodeCollection::IsTransportable(ObjectType type)
 {
     // TODO: Hacking in progress...
     if ( type == OBJECT_STONE   ||
@@ -4052,7 +4178,82 @@ bool CObjectDetailsHardcodeCollection::IsTransportable(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsMovable(ObjectType type)
+bool CHardcodeCollection::IsDropZoneShownOnPut(ObjectType type)
+{
+    return type == OBJECT_METAL;
+}
+
+CObjectFlagTaskExecutorDetails CHardcodeCollection::GetFlagTaskExecutionDetails(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+            return {ExecutionAsHuman, 0, Math::Vector(4.0f, 0.0f, 0.0f)};
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEis:
+            return {ExecutionAsSniffer, 0, Math::Vector(6.0f, 0.0f, 0.0f)};
+        default:
+            return {ExecutionNoMotion, 0, Math::Vector(0.0f, 0.0f, 0.0f)};
+    }
+}
+
+std::vector<CObjectFlagTaskExecutorObject> CHardcodeCollection::GetFlagTaskExecutionObjects(ObjectType type)
+{
+    std::vector<CObjectFlagTaskExecutorObject> result;
+
+    switch(type)
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEis:
+            return {{OBJECT_FLAGb,5}, {OBJECT_FLAGr,5}, {OBJECT_FLAGg,5}, {OBJECT_FLAGy,5}, {OBJECT_FLAGv,5}};
+        default:
+            return result;
+    }
+}
+
+CObjectSniffTaskExecutorDetails CHardcodeCollection::GetSniffTaskExecutionDetails(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEis:
+            return {ExecutionAsSniffer, 0, Math::Vector(7.5f, 0.0f, 0.0f)};
+        default:
+            return {ExecutionNoMotion, 0, Math::Vector(0.0f, 0.0f, 0.0f)};
+    }
+}
+
+std::vector<CObjectSniffTaskExecutorObject> CHardcodeCollection::GetSniffTaskExecutionObjects(ObjectType type)
+{
+    std::vector<CObjectSniffTaskExecutorObject> result;
+
+    if ( (type == OBJECT_MOBILEfs ||
+          type == OBJECT_MOBILEts ||
+          type == OBJECT_MOBILEws ||
+          type == OBJECT_MOBILEis ) )
+    {
+        result.push_back({Gfx::TR_POWER,   OBJECT_MARKPOWER,   TR("Found a site for power station")});
+        result.push_back({Gfx::TR_STONE,   OBJECT_MARKSTONE,   TR("Found a site for a derrick")});
+        result.push_back({Gfx::TR_URANIUM, OBJECT_MARKURANIUM, TR("Found a site for a derrick")});
+        result.push_back({Gfx::TR_KEY_A,   OBJECT_MARKKEYa,    TR("Found a site for a derrick")});
+        result.push_back({Gfx::TR_KEY_B,   OBJECT_MARKKEYb,    TR("Found a site for a derrick")});
+        result.push_back({Gfx::TR_KEY_C,   OBJECT_MARKKEYc,    TR("Found a site for a derrick")});
+        result.push_back({Gfx::TR_KEY_D,   OBJECT_MARKKEYd,    TR("Found a site for a derrick")});
+    }
+          
+    return result;
+}
+
+bool CHardcodeCollection::IsMovable(ObjectType type)
 {
     if ( type == OBJECT_MOTHER ) return true;
     if ( type == OBJECT_ANT ) return true;
@@ -4061,6 +4262,7 @@ bool CObjectDetailsHardcodeCollection::IsMovable(ObjectType type)
     if ( type == OBJECT_WORM ) return true;
     if ( type == OBJECT_HUMAN ) return true;
     if ( type == OBJECT_TECH ) return true;
+    if ( type == OBJECT_TOTO ) return true;
     if ( type == OBJECT_CONTROLLER ) return true;
     if ( type == OBJECT_APOLLO2 ) return true;
     if ( type == OBJECT_MOBILEdr ) return true;
@@ -4100,7 +4302,56 @@ bool CObjectDetailsHardcodeCollection::IsMovable(ObjectType type)
     return false;
 }
 
-Motion CObjectDetailsHardcodeCollection::GetLinMotion(ObjectType type)
+bool CHardcodeCollection::IsProgrammable(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER ) return true;
+    if ( type == OBJECT_ANT ) return true;
+    if ( type == OBJECT_SPIDER ) return true;
+    if ( type == OBJECT_BEE ) return true;
+    if ( type == OBJECT_WORM ) return true;
+    if ( type == OBJECT_HUMAN ) return true;
+    if ( type == OBJECT_TECH ) return true;
+    if ( type == OBJECT_TOTO ) return true;
+    if ( type == OBJECT_CONTROLLER ) return true;
+    if ( type == OBJECT_APOLLO2 ) return true;
+    if ( type == OBJECT_MOBILEdr ) return true;
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst ) return true;
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp) return true;
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft ) return true;
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit) return true;
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt ) return true;
+    if ( type == OBJECT_MOBILEtg ) return true;
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt ) return true;
+
+    return false;
+}
+
+Motion CHardcodeCollection::GetLinMotion(ObjectType type)
 {
     CPhysics physics(nullptr);
 
@@ -4397,7 +4648,7 @@ Motion CObjectDetailsHardcodeCollection::GetLinMotion(ObjectType type)
     return result;
 }
 
-Motion CObjectDetailsHardcodeCollection::GetCirMotion(ObjectType type)
+Motion CHardcodeCollection::GetCirMotion(ObjectType type)
 {
     CPhysics physics(nullptr);
 
@@ -4584,7 +4835,7 @@ Motion CObjectDetailsHardcodeCollection::GetCirMotion(ObjectType type)
     return result;
 }
 
-Character CObjectDetailsHardcodeCollection::GetWheels(ObjectType type)
+Character CHardcodeCollection::GetWheels(ObjectType type)
 {
     Character character;
     if ( type == OBJECT_MOTHER )
@@ -4739,7 +4990,7 @@ Character CObjectDetailsHardcodeCollection::GetWheels(ObjectType type)
     return character;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFlying(ObjectType type)
+bool CHardcodeCollection::IsFlying(ObjectType type)
 {
     // TODO: Temporary hack
     if ( type == OBJECT_MOBILEfa || // WingedGrabber
@@ -4755,7 +5006,7 @@ bool CObjectDetailsHardcodeCollection::IsFlying(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsJetFlying(ObjectType type)
+bool CHardcodeCollection::IsJetFlying(ObjectType type)
 {
     // TODO: Temporary hack
     if ( type == OBJECT_MOBILEfa || // WingedGrabber
@@ -4770,7 +5021,7 @@ bool CObjectDetailsHardcodeCollection::IsJetFlying(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsSelectableByDefault(ObjectType type)
+bool CHardcodeCollection::IsSelectableByDefault(ObjectType type)
 {
     if ( type == OBJECT_MOTHER   ||
          type == OBJECT_ANT      ||
@@ -4784,7 +5035,7 @@ bool CObjectDetailsHardcodeCollection::IsSelectableByDefault(ObjectType type)
 }
 
 
-bool CObjectDetailsHardcodeCollection::IsControllable(ObjectType type)
+bool CHardcodeCollection::IsControllable(ObjectType type)
 {
     // TODO: You have been hacked!
     if (type == OBJECT_HUMAN    ||
@@ -4850,7 +5101,7 @@ bool CObjectDetailsHardcodeCollection::IsControllable(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsPowerContainer(ObjectType type)
+bool CHardcodeCollection::IsPowerContainer(ObjectType type)
 {
     // TODO: Another one? :/
     if ( type == OBJECT_POWER   || // PowerCell
@@ -4861,17 +5112,22 @@ bool CObjectDetailsHardcodeCollection::IsPowerContainer(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsTraceDrawing(ObjectType type)
+bool CHardcodeCollection::IsTaskExecutor(ObjectType type)
 {
     return true; // huh!!!
 }
 
-bool CObjectDetailsHardcodeCollection::IsRanged(ObjectType type)
+bool CHardcodeCollection::IsTraceDrawing(ObjectType type)
+{
+    return true; // huh!!!
+}
+
+bool CHardcodeCollection::IsRanged(ObjectType type)
 {
     return true; // huh
 }
 
-float CObjectDetailsHardcodeCollection::GetRangedRadius(ObjectType type)
+float CHardcodeCollection::GetRangedRadius(ObjectType type)
 {
     if ( type == OBJECT_BASE     ) return 200.0f; // SpaceShip
     if ( type == OBJECT_MOBILErt ) return 400.0f; // Thumper
@@ -4880,7 +5136,7 @@ float CObjectDetailsHardcodeCollection::GetRangedRadius(ObjectType type)
     return 0.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::IsDamageable(ObjectType type)
+bool CHardcodeCollection::IsDamageable(ObjectType type)
 {
     // TODO: Hacking some more
     if ( type == OBJECT_MOBILEtg ||
@@ -4986,7 +5242,7 @@ bool CObjectDetailsHardcodeCollection::IsDamageable(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsDestroyable(ObjectType type)
+bool CHardcodeCollection::IsDestroyable(ObjectType type)
 {
     // TODO: Hacking some more
     if ( type == OBJECT_MOBILEtg ||
@@ -5092,7 +5348,7 @@ bool CObjectDetailsHardcodeCollection::IsDestroyable(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsFragile(ObjectType type)
+bool CHardcodeCollection::IsFragile(ObjectType type)
 {
     // TODO: Hacking some more
     if ( type == OBJECT_MOBILEtg ||
@@ -5198,7 +5454,17 @@ bool CObjectDetailsHardcodeCollection::IsFragile(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsShielded(ObjectType type)
+bool CHardcodeCollection::IsFragileBurnable(ObjectType type)
+{
+    if ( type == OBJECT_ANT    ||
+         type == OBJECT_WORM   ||
+         type == OBJECT_SPIDER ||
+         type == OBJECT_BEE     ) return true;
+
+    return false;
+}
+
+bool CHardcodeCollection::IsShielded(ObjectType type)
 {
     // TODO: Hacking some more
     if ( type == OBJECT_MOBILEtg ||
@@ -5304,13 +5570,13 @@ bool CObjectDetailsHardcodeCollection::IsShielded(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToFireballs(ObjectType type)
+bool CHardcodeCollection::IsImmuneToFireballs(ObjectType type)
 {
     if (type == OBJECT_MOTHER)  return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToInsects(ObjectType type)
+bool CHardcodeCollection::IsImmuneToInsects(ObjectType type)
 {
     return ( type == OBJECT_ANT      ||
              type == OBJECT_SPIDER   ||
@@ -5324,7 +5590,7 @@ bool CObjectDetailsHardcodeCollection::IsImmuneToInsects(ObjectType type)
              type == OBJECT_TEEN31   );
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToSpiders(ObjectType type)
+bool CHardcodeCollection::IsImmuneToSpiders(ObjectType type)
 {
     return ( type == OBJECT_ANT      ||
              type == OBJECT_SPIDER   ||
@@ -5338,18 +5604,18 @@ bool CObjectDetailsHardcodeCollection::IsImmuneToSpiders(ObjectType type)
              type == OBJECT_TEEN31   );
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
+bool CHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
 {
     if (type == OBJECT_MOTHER)  return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToPhazers(ObjectType type)
+bool CHardcodeCollection::IsImmuneToPhazers(ObjectType type)
 {
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
+bool CHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
 {
     if (type == OBJECT_MOBILEtg ||
      type == OBJECT_TEEN28   ||
@@ -5364,22 +5630,22 @@ bool CObjectDetailsHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
      return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsShieldAutoregen(ObjectType type)
+bool CHardcodeCollection::IsShieldAutoregen(ObjectType type)
 {
     return type == OBJECT_HUMAN;
 }
 
-float CObjectDetailsHardcodeCollection::GetShieldAutoregenTime(ObjectType type)
+float CHardcodeCollection::GetShieldAutoregenTime(ObjectType type)
 {
     return type == OBJECT_HUMAN ? 120.0f : 0.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::IsSloted(ObjectType type)
+bool CHardcodeCollection::IsSloted(ObjectType type)
 {
     return HasCargoSlot(type) || HasPowerSlot(type) || HasOtherSlot(type);
 }
 
-bool CObjectDetailsHardcodeCollection::HasCargoSlot(ObjectType type)
+bool CHardcodeCollection::HasCargoSlot(ObjectType type)
 {
     if ( type == OBJECT_HUMAN ||
          type == OBJECT_TECH ||
@@ -5396,7 +5662,7 @@ bool CObjectDetailsHardcodeCollection::HasCargoSlot(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasPowerSlot(ObjectType type)
+bool CHardcodeCollection::HasPowerSlot(ObjectType type)
 {
     // TODO: Another temporary hack
     if (type == OBJECT_MOBILEfa ||
@@ -5437,7 +5703,49 @@ bool CObjectDetailsHardcodeCollection::HasPowerSlot(ObjectType type)
     return false;
 }
 
-Math::Vector CObjectDetailsHardcodeCollection::GetPowerSlotPosition(ObjectType type)
+int CHardcodeCollection::GetCargoSlotPartNumber(ObjectType type)
+{
+    switch (type)
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+            return 4;
+        case OBJECT_BEE:
+            return 3;
+        case OBJECT_MOBILEsa: // subber
+            return 2;
+        case OBJECT_MOBILEfa: // Grabbers
+        case OBJECT_MOBILEta:
+        case OBJECT_MOBILEwa:
+        case OBJECT_MOBILEia:
+            return 3;
+        default:
+            return 0;
+    }
+}
+
+Math::Vector CHardcodeCollection::GetCargoSlotPosition(ObjectType type)
+{
+    switch (type)
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+            return Math::Vector(1.7f, -0.5f, 1.1f);
+        case OBJECT_BEE:
+            return Math::Vector(4.7f, 0.0f, 0.0f);
+        case OBJECT_MOBILEsa: // subber
+            return Math::Vector(1.1f, -1.0f, 1.0f);
+        case OBJECT_MOBILEfa: // Grabbers
+        case OBJECT_MOBILEta:
+        case OBJECT_MOBILEwa:
+        case OBJECT_MOBILEia:
+            return Math::Vector(4.7f, 0.0f, 0.0f);
+        default:
+            return Math::Vector();
+    }
+}
+
+Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
 {
     if ( type == OBJECT_MOBILEwa ||
          type == OBJECT_MOBILEwb ||
@@ -5509,7 +5817,7 @@ Math::Vector CObjectDetailsHardcodeCollection::GetPowerSlotPosition(ObjectType t
     return Math::Vector();
 }
 
-bool CObjectDetailsHardcodeCollection::HasOtherSlot(ObjectType type)
+bool CHardcodeCollection::HasOtherSlot(ObjectType type)
 {
     if (type == OBJECT_ENERGY   ||
         type == OBJECT_LABO     ||
@@ -5517,7 +5825,7 @@ bool CObjectDetailsHardcodeCollection::HasOtherSlot(ObjectType type)
     return false;
 }
 
-Math::Vector CObjectDetailsHardcodeCollection::GetOtherSlotPosition(ObjectType type)
+Math::Vector CHardcodeCollection::GetOtherSlotPosition(ObjectType type)
 {
     if ( type == OBJECT_ENERGY )
     {
@@ -5534,7 +5842,15 @@ Math::Vector CObjectDetailsHardcodeCollection::GetOtherSlotPosition(ObjectType t
     return Math::Vector();
 }
 
-bool CObjectDetailsHardcodeCollection::IsSquashedByHeavy(ObjectType type)
+bool CHardcodeCollection::IsThumpable(ObjectType type)
+{
+    if (type == OBJECT_ANT) return true;
+    if (type == OBJECT_SPIDER) return true;
+    
+    return false;
+}
+
+bool CHardcodeCollection::IsSquashedByHeavy(ObjectType type)
 {
     if (type == OBJECT_PLANT0  ||
         type == OBJECT_PLANT1  ||
@@ -5549,7 +5865,7 @@ bool CObjectDetailsHardcodeCollection::IsSquashedByHeavy(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsDestructionRemoveBuildingLevel(ObjectType type)
+bool CHardcodeCollection::IsDestructionRemoveBuildingLevel(ObjectType type)
 {
     if ( type == OBJECT_BASE     ||
          type == OBJECT_FACTORY  ||
@@ -5577,7 +5893,7 @@ bool CObjectDetailsHardcodeCollection::IsDestructionRemoveBuildingLevel(ObjectTy
     return false;
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByExplosion(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetDestructionByExplosion(ObjectType type)
 {
     if ( type == OBJECT_ANT    ||
          type == OBJECT_SPIDER ||
@@ -5634,12 +5950,12 @@ Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByExplosion(Object
     }
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByWater(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetDestructionByWater(ObjectType type)
 {
     return Gfx::PT_FRAGW;
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByBurning(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetDestructionByBurning(ObjectType type)
 {
     if ( type == OBJECT_MOTHER ||
          type == OBJECT_ANT    ||
@@ -5660,27 +5976,444 @@ Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByBurning(ObjectTy
     }
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByDrowned(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetDestructionByDrowned(ObjectType type)
 {
     return Gfx::PT_DEADW;
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionByWin(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetDestructionByWin(ObjectType type)
 {
     return Gfx::PT_WPCHECK;
 }
 
-Gfx::PyroType CObjectDetailsHardcodeCollection::GetDestructionBySquash(ObjectType type)
+Gfx::PyroType CHardcodeCollection::GetDestructionBySquash(ObjectType type)
 {
     return Gfx::PT_SQUASH;
 }
 
-bool CObjectDetailsHardcodeCollection::IsDestructionKilledByBurning(ObjectType type)
+bool CHardcodeCollection::IsDestructionKilledByBurning(ObjectType type)
 {
     return type != OBJECT_HUMAN;
 }
 
-bool CObjectDetailsHardcodeCollection::IsExplodesInWater(ObjectType type)
+std::vector<CPyroBurnPartDetails> CHardcodeCollection::GetBurnParts(ObjectType type)
+{
+    std::vector<CPyroBurnPartDetails> result;
+
+    if ( type == OBJECT_DERRICK  ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     )
+    {
+        Math::Vector pos(0.0f, -4.0f, 0.0f);
+        Math::Vector posR(0.0f, -4.0f, 0.0f);
+        Math::Vector angle(-0.2f, 0.0f, -0.2f);
+        Math::Vector angleR(0.4f, 0.0f, 0.4f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_STATION ||
+              type == OBJECT_RADAR   ||
+              type == OBJECT_INFO    )
+    {
+        Math::Vector pos(0.0f, -1.0f, 0.0f);
+        Math::Vector posR(0.0f, -1.0f, 0.0f);
+        Math::Vector angle(-0.1f, 0.0f, -0.1f);
+        Math::Vector angleR(0.2f, 0.0f, 0.2f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_NUCLEAR )
+    {
+        Math::Vector pos(0.0f, -10.0f, 0.0f);
+        Math::Vector posR(0.0f, -10.0f, 0.0f);
+        Math::Vector angle(-0.2f, 0.0f, -0.2f);
+        Math::Vector angleR(0.4f, 0.0f, 0.4f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_PARA )
+    {
+        Math::Vector pos(0.0f, -10.0f, 0.0f);
+        Math::Vector posR(0.0f, -10.0f, 0.0f);
+        Math::Vector angle(-0.2f, 0.0f, -0.2f);
+        Math::Vector angleR(0.4f, 0.0f, 0.4f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_SAFE )
+    {
+        Math::Vector pos(0.0f, -10.0f, 0.0f);
+        Math::Vector posR(0.0f, -10.0f, 0.0f);
+        Math::Vector angle(-0.2f, 0.0f, -0.2f);
+        Math::Vector angleR(0.4f, 0.0f, 0.4f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_HUSTON )
+    {
+        Math::Vector pos(0.0f, -10.0f, 0.0f);
+        Math::Vector posR(0.0f, -10.0f, 0.0f);
+        Math::Vector angle(-0.2f, 0.0f, -0.2f);
+        Math::Vector angleR(0.4f, 0.0f, 0.4f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_MOBILEwa ||
+              type == OBJECT_MOBILEwb ||
+              type == OBJECT_MOBILEwc ||
+              type == OBJECT_MOBILEwi ||
+              type == OBJECT_MOBILEws ||
+              type == OBJECT_MOBILEwt )
+    {
+        Math::Vector pos(0.0f, -0.5f, 0.0f);
+        Math::Vector posR(0.0f, -1.0f, 0.0f);
+        Math::Vector angle(-0.4f, 0.0f, -0.2f);
+        Math::Vector angleR(0.8f, 0.0f, 0.4f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else if ( type == OBJECT_TEEN31 )  // basket?
+    {
+        Math::Vector pos(0.0f, 0.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.4f, 0.0f, -0.1f);
+        Math::Vector angleR(0.8f, 0.0f, 0.2f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+    else
+    {
+        Math::Vector pos(0.0f, -2.0f, 0.0f);
+        Math::Vector posR(0.0f, -2.0f, 0.0f);
+        Math::Vector angle(-0.4f, 0.0f, -0.4f);
+        Math::Vector angleR(0.8f, 0.0f, 0.8f);
+        result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
+    }
+
+    if ( type == OBJECT_DERRICK )
+    {
+        Math::Vector pos(0.0f, -40.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(0.0f, 0.0f, 0.0f);
+        Math::Vector angleR(0.0f, 0.0f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the drill
+    }
+    if ( type == OBJECT_REPAIR )
+    {
+        Math::Vector pos(0.0f, -12.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, -90.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the sensor
+    }
+    if ( type == OBJECT_DESTROYER )
+    {
+        Math::Vector pos(0.0f, -12.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, -90.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the sensor
+    }
+    if ( type == OBJECT_CONVERT )
+    {
+        Math::Vector pos(0.0f, -200.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.25f, -0.25f, 0.0f);
+        Math::Vector angleR(0.5f, 0.5f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the cover
+        result.push_back({2, pos, posR, angle, angleR});
+        result.push_back({3, pos, posR, angle, angleR});
+    }
+    if ( type == OBJECT_TOWER )
+    {
+        Math::Vector pos(0.0f, -7.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.2f, -0.2f, 0.0f);
+        Math::Vector angleR(0.4f, 0.4f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the cannon
+    }
+    if ( type == OBJECT_RESEARCH )
+    {
+        Math::Vector pos(0.0f, -7.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, 0.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the anemometer
+    }
+    if ( type == OBJECT_RADAR )
+    {
+        Math::Vector pos(0.0f, -14.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.2f, -0.2f, 0.0f);
+        Math::Vector angleR(0.4f, 0.4f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the radar
+        result.push_back({2, pos, posR, angle, angleR});
+    }
+    if ( type == OBJECT_INFO )
+    {
+        Math::Vector pos(0.0f, -14.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.2f, -0.2f, 0.0f);
+        Math::Vector angleR(0.4f, 0.4f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the information terminal
+        result.push_back({2, pos, posR, angle, angleR});
+    }
+    if ( type == OBJECT_LABO )
+    {
+        Math::Vector pos(0.0f, -12.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(0.0f, 0.0f, 0.0f);
+        Math::Vector angleR(0.0f, 0.0f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the arm
+    }
+    if ( type == OBJECT_NUCLEAR )
+    {
+        Math::Vector pos(0.0f, 0.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(0.0f, 0.0f, -135.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.0f, 0.0f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the cover
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia )
+    {
+        Math::Vector pos(2.0f, -5.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, 40.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the arm
+    }
+    if ( type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis )
+    {
+        Math::Vector pos(0.0f, -7.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, 50.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the sensor
+    }
+    if ( type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic )
+    {
+        Math::Vector pos(-1.5f, -5.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, -25.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the cannon
+    }
+    if ( type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii )
+    {
+        Math::Vector pos(-1.5f, -5.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, -25.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the insect-cannon
+    }
+    if ( type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib )
+    {
+        Math::Vector pos(-1.5f, -5.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(-0.1f, -0.1f, -25.0f*Math::PI/180.0f);
+        Math::Vector angleR(0.2f, 0.2f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the neutron gun
+    }
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc )
+    {
+        {
+            Math::Vector pos(0.0f, -10.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, 0.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({1, pos, posR, angle, angleR});  // down the holder
+        }
+        {
+            Math::Vector pos(0.0f, -10.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, 0.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({2, pos, posR, angle, angleR});  // down the pestle/cannon
+        }
+    }
+    if ( type == OBJECT_MOBILErr )
+    {
+        {
+            Math::Vector pos(0.0f, -10.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, 0.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({1, pos, posR, angle, angleR});  // down the holder
+        }
+        {
+            Math::Vector pos(0.0f, 0.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, -Math::PI/2.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({4, pos, posR, angle, angleR});
+        }
+        {
+            Math::Vector pos(0.0f, 0.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, Math::PI/2.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({2, pos, posR, angle, angleR});
+        }
+    }
+    if ( type == OBJECT_MOBILErs )
+    {
+        {
+            Math::Vector pos(0.0f, -10.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, 0.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({1, pos, posR, angle, angleR});  // down the holder
+        }
+        {
+            Math::Vector pos(0.0f, -5.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, 0.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({2, pos, posR, angle, angleR});
+        }
+        {
+            Math::Vector pos(0.0f, -5.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, 0.0f);
+            Math::Vector angleR(0.0f, 0.0f, 0.0f);
+            result.push_back({3, pos, posR, angle, angleR});
+        }
+    }
+    if ( type == OBJECT_MOBILEsa )
+    {
+        Math::Vector pos(0.0f, -10.0f, 0.0f);
+        Math::Vector posR(0.0f, 0.0f, 0.0f);
+        Math::Vector angle(0.0f, 0.0f, 0.0f);
+        Math::Vector angleR(0.0f, 0.0f, 0.0f);
+        result.push_back({1, pos, posR, angle, angleR});  // down the holder
+    }
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEwt )  // wheels?
+    {
+        int i = 0;
+        for (; i < 4; i++)
+        {
+            Math::Vector pos(0.0f, 0.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.5f, 0.0f);
+            Math::Vector angle(-0.5f*Math::PI/2.0f, -0.5f*Math::PI/2.0f, 0.0f);
+            Math::Vector angleR(Math::PI/2.0f, Math::PI/2.0f, 0.0f);
+            result.push_back({6+i, pos, posR, angle, angleR, true});  // wheel
+        }
+    }
+    if ( type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_MOBILEdr )  // caterpillars?
+    {
+        {
+            Math::Vector pos(0.0f, -4.0f, 2.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(-0.5f*20.0f*Math::PI/180.0f, -0.5f*10.0f*Math::PI/180.0f, -0.5f*30.0f*Math::PI/180.0f);
+            Math::Vector angleR(20.0f*Math::PI/180.0f, 10.0f*Math::PI/180.0f, 30.0f*Math::PI/180.0f);
+            result.push_back({6, pos, posR, angle, angleR});  // down the right caterpillar
+        }
+        {
+            Math::Vector pos(0.0f, -4.0f, -2.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(-0.5f*20.0f*Math::PI/180.0f, -0.5f*10.0f*Math::PI/180.0f, -0.5f*30.0f*Math::PI/180.0f);
+            Math::Vector angleR(20.0f*Math::PI/180.0f, 10.0f*Math::PI/180.0f, 30.0f*Math::PI/180.0f);
+            result.push_back({7, pos, posR, angle, angleR});  // down the left caterpillar
+        }
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEft )  // flying?
+    {
+        int i = 0;
+        for (; i<3; i++)
+        {
+            Math::Vector pos(0.0f, -3.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, 0.0f, -0.5f*Math::PI/2.0f);
+            Math::Vector angleR(0.0f, 0.0f, Math::PI/2.0f);
+            result.push_back({6+i, pos, posR, angle, angleR});  // foot
+        }
+    }
+    if ( type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILEit )  // legs?
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            Math::Vector pos(0.0f, -3.0f, 0.0f);
+            Math::Vector posR(0.0f, 0.0f, 0.0f);
+            Math::Vector angle(0.0f, -0.5f*Math::PI/4.0f, -0.5f*Math::PI/4.0f);
+            Math::Vector angleR(0.0f, Math::PI/4.0f, Math::PI/4.0f);
+            result.push_back({6+i, pos, posR, angle, angleR});  // leg
+        }
+    }
+    return result;
+}
+
+ObjectType CHardcodeCollection::GetTypeAfterBurn(ObjectType type)
+{
+    if ( type == OBJECT_DERRICK  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_SAFE     ||
+         type == OBJECT_HUSTON   ||
+         type == OBJECT_START    ||
+         type == OBJECT_END      )
+    {
+        return (OBJECT_RUINfactory); // Ruin
+    }
+    else
+    {
+        return (OBJECT_RUINmobilew1); // Wreck (recoverable by Recycler)
+    }
+}
+
+bool CHardcodeCollection::IsExplodesInWater(ObjectType type)
 {
     if ( type == OBJECT_MOBILEfa ||
          type == OBJECT_MOBILEta ||
@@ -5723,7 +6456,7 @@ bool CObjectDetailsHardcodeCollection::IsExplodesInWater(ObjectType type)
 // Camera Details
 //////////////////////////////////////////////////////////////////////////////
 
-bool CObjectDetailsHardcodeCollection::IsCameraTypeChangable(ObjectType type)
+bool CHardcodeCollection::IsCameraTypeChangable(ObjectType type)
 {
     if ( type != OBJECT_HUMAN &&
          type != OBJECT_TECH &&
@@ -5765,7 +6498,7 @@ bool CObjectDetailsHardcodeCollection::IsCameraTypeChangable(ObjectType type)
     return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsCameraTypePersistent(ObjectType type)
+bool CHardcodeCollection::IsCameraTypePersistent(ObjectType type)
 {
     if ( type == OBJECT_HUMAN    ||
          type == OBJECT_MOBILEfa ||
@@ -5805,7 +6538,7 @@ bool CObjectDetailsHardcodeCollection::IsCameraTypePersistent(ObjectType type)
     return false;
 }
 
-Gfx::CameraType CObjectDetailsHardcodeCollection::GetDefaultCameraType(ObjectType type)
+Gfx::CameraType CHardcodeCollection::GetDefaultCameraType(ObjectType type)
 {
     if ( type == OBJECT_MOBILEwc ||
          type == OBJECT_MOBILEtc ||
@@ -5822,7 +6555,7 @@ Gfx::CameraType CObjectDetailsHardcodeCollection::GetDefaultCameraType(ObjectTyp
     return Gfx::CAM_TYPE_BACK;
 }
 
-float CObjectDetailsHardcodeCollection::GetBackCameraDistance(ObjectType type)
+float CHardcodeCollection::GetBackCameraDistance(ObjectType type)
 {
     float m_backDist = 30.0f;
     if ( type == OBJECT_BASE     )  m_backDist = 200.0f;
@@ -5842,7 +6575,7 @@ float CObjectDetailsHardcodeCollection::GetBackCameraDistance(ObjectType type)
     return m_backDist;
 }
 
-float CObjectDetailsHardcodeCollection::GetBackCameraDistanceMin(ObjectType type)
+float CHardcodeCollection::GetBackCameraDistanceMin(ObjectType type)
 {
     float m_backDist = GetBackCameraDistance(type);
     float m_backMin = m_backDist/3.0f;
@@ -5857,7 +6590,7 @@ float CObjectDetailsHardcodeCollection::GetBackCameraDistanceMin(ObjectType type
     return m_backMin;
 }
 
-float CObjectDetailsHardcodeCollection::GetBackCameraHeight(ObjectType type)
+float CHardcodeCollection::GetBackCameraHeight(ObjectType type)
 {
          if (type == OBJECT_BASE ) return 40.0f;
     else if (type == OBJECT_HUMAN) return 1.0f;
@@ -5865,7 +6598,7 @@ float CObjectDetailsHardcodeCollection::GetBackCameraHeight(ObjectType type)
     else                           return 4.0f;
 }
 
-float CObjectDetailsHardcodeCollection::GetBackCameraRotationY(ObjectType type)
+float CHardcodeCollection::GetBackCameraRotationY(ObjectType type)
 {
     if ( type == OBJECT_DERRICK  ||
          type == OBJECT_FACTORY  ||
@@ -5894,14 +6627,14 @@ float CObjectDetailsHardcodeCollection::GetBackCameraRotationY(ObjectType type)
     }
 }
 
-float CObjectDetailsHardcodeCollection::GetBackCameraRotationZ(ObjectType type)
+float CHardcodeCollection::GetBackCameraRotationZ(ObjectType type)
 {
     if (type == OBJECT_MOBILEdr)  // designer?
         return 0.09375f;
     return 0.0;
 }
 
-float CObjectDetailsHardcodeCollection::GetVisitCameraDistance(ObjectType type)
+float CHardcodeCollection::GetVisitCameraDistance(ObjectType type)
 {
     if ( type == OBJECT_PORTICO )  return 200.0f;
     if ( type == OBJECT_BASE    )  return 200.0f;
@@ -5912,7 +6645,7 @@ float CObjectDetailsHardcodeCollection::GetVisitCameraDistance(ObjectType type)
     return 60.0f;
 }
 
-float CObjectDetailsHardcodeCollection::GetVisitCameraHeight(ObjectType type)
+float CHardcodeCollection::GetVisitCameraHeight(ObjectType type)
 {
     if ( type == OBJECT_DERRICK  )  return 35.0f;
     if ( type == OBJECT_FACTORY  )  return 22.0f;
@@ -5932,7 +6665,7 @@ float CObjectDetailsHardcodeCollection::GetVisitCameraHeight(ObjectType type)
     return 15.0f;
 }
 
-bool CObjectDetailsHardcodeCollection::DisableBackCameraCanForceTransparency(ObjectType type)
+bool CHardcodeCollection::DisableBackCameraCanForceTransparency(ObjectType type)
 {
     if ( type == OBJECT_BASE     ||  // building?
          type == OBJECT_DERRICK  ||
@@ -5953,7 +6686,7 @@ bool CObjectDetailsHardcodeCollection::DisableBackCameraCanForceTransparency(Obj
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::DisableBackCameraCanViewAsTransparent(ObjectType type)
+bool CHardcodeCollection::DisableBackCameraCanViewAsTransparent(ObjectType type)
 {
     if ( type == OBJECT_HUMAN  ||
          type == OBJECT_TECH   ||
@@ -5965,14 +6698,14 @@ bool CObjectDetailsHardcodeCollection::DisableBackCameraCanViewAsTransparent(Obj
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasGateTransparencyOnBackCamera(ObjectType type)
+bool CHardcodeCollection::HasGateTransparencyOnBackCamera(ObjectType type)
 {
     if (type == OBJECT_FACTORY)  return true;
     return false;
 }
 
 
-bool CObjectDetailsHardcodeCollection::DisableCollisionsOnFixCamera(ObjectType type)
+bool CHardcodeCollection::DisableCollisionsOnFixCamera(ObjectType type)
 {
     if ( type == OBJECT_TOTO    ||
          type == OBJECT_STONE   ||
@@ -5993,14 +6726,14 @@ bool CObjectDetailsHardcodeCollection::DisableCollisionsOnFixCamera(ObjectType t
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::DisableOnboardCameraCorners(ObjectType type)
+bool CHardcodeCollection::DisableOnboardCameraCorners(ObjectType type)
 {
     if (type == OBJECT_HUMAN ||
         type == OBJECT_TECH) return true;
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasOnboardCameraCrosshair(ObjectType type)
+bool CHardcodeCollection::HasOnboardCameraCrosshair(ObjectType type)
 {
     if ( (type == OBJECT_MOBILEfc ||
           type == OBJECT_MOBILEtc ||
@@ -6021,7 +6754,7 @@ bool CObjectDetailsHardcodeCollection::HasOnboardCameraCrosshair(ObjectType type
 // Automation Details
 //////////////////////////////////////////////////////////////////////////////
 
-bool CObjectDetailsHardcodeCollection::IsBlockingBuilding(ObjectType type)
+bool CHardcodeCollection::IsBlockingBuilding(ObjectType type)
 {
     if ( type == OBJECT_DERRICK  ||
          type == OBJECT_FACTORY  ||
@@ -6044,7 +6777,7 @@ bool CObjectDetailsHardcodeCollection::IsBlockingBuilding(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoTargetedByTower(ObjectType type)
+bool CHardcodeCollection::IsAutoTargetedByTower(ObjectType type)
 {
     if (type == OBJECT_ANT      ||
         type == OBJECT_SPIDER   ||
@@ -6055,7 +6788,7 @@ bool CObjectDetailsHardcodeCollection::IsAutoTargetedByTower(ObjectType type)
      return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoTargetedByMushroom(ObjectType type)
+bool CHardcodeCollection::IsAutoTargetedByMushroom(ObjectType type)
 {
         if ( type == OBJECT_MOBILEfa ||
              type == OBJECT_MOBILEta ||
@@ -6109,7 +6842,7 @@ bool CObjectDetailsHardcodeCollection::IsAutoTargetedByMushroom(ObjectType type)
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoCommentedByAssistant(ObjectType type)
+bool CHardcodeCollection::IsAutoCommentedByAssistant(ObjectType type)
 {
     if (type == OBJECT_HUMAN    ||
         type == OBJECT_TECH     ||
@@ -6150,7 +6883,7 @@ bool CObjectDetailsHardcodeCollection::IsAutoCommentedByAssistant(ObjectType typ
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoChargedAtPowerStation(ObjectType type)
+bool CHardcodeCollection::IsAutoChargedAtPowerStation(ObjectType type)
 {
     if ( type != OBJECT_HUMAN    &&
          type != OBJECT_MOBILEfa &&
@@ -6190,7 +6923,7 @@ bool CObjectDetailsHardcodeCollection::IsAutoChargedAtPowerStation(ObjectType ty
      return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoBlockingPowerPlant(ObjectType type)
+bool CHardcodeCollection::IsAutoBlockingPowerPlant(ObjectType type)
 {
     if ( type != OBJECT_HUMAN    &&
          type != OBJECT_MOBILEfa &&
@@ -6235,7 +6968,7 @@ bool CObjectDetailsHardcodeCollection::IsAutoBlockingPowerPlant(ObjectType type)
      return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoBlockingNuclearPlant(ObjectType type)
+bool CHardcodeCollection::IsAutoBlockingNuclearPlant(ObjectType type)
 {
     if ( type != OBJECT_HUMAN    &&
          type != OBJECT_MOBILEfa &&
@@ -6280,7 +7013,7 @@ bool CObjectDetailsHardcodeCollection::IsAutoBlockingNuclearPlant(ObjectType typ
      return true;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAutoBlockingFactory(ObjectType type)
+bool CHardcodeCollection::IsAutoBlockingFactory(ObjectType type)
 {
     if ( type != OBJECT_HUMAN    &&
          type != OBJECT_MOBILEfa &&
@@ -6325,30 +7058,36 @@ bool CObjectDetailsHardcodeCollection::IsAutoBlockingFactory(ObjectType type)
      return true;
 }
 
-ObjectType CObjectDetailsHardcodeCollection::GetProductionInput(ObjectType type)
+std::vector<CObjectProductionAutomationDetails> CHardcodeCollection::GetProduction(ObjectType type)
 {
-    if ( type == OBJECT_CONVERT ) return OBJECT_STONE;
-    if ( type == OBJECT_ENERGY ) return OBJECT_METAL;
-    if ( type == OBJECT_NUCLEAR ) return OBJECT_URANIUM;
-    return OBJECT_NULL;
+    std::vector<CObjectProductionAutomationDetails> result;
+
+    if ( type == OBJECT_CONVERT )
+        result.push_back({OBJECT_STONE, OBJECT_METAL});
+    if ( type == OBJECT_ENERGY )
+        result.push_back({OBJECT_METAL, OBJECT_POWER});
+    if ( type == OBJECT_NUCLEAR )
+        result.push_back({OBJECT_URANIUM, OBJECT_ATOMIC});
+    if ( type == OBJECT_NEST )
+        result.push_back({OBJECT_NULL, OBJECT_BULLET});
+    if ( type == OBJECT_MOBILErr)
+    {
+        result.push_back({OBJECT_RUINmobilew1, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobilew2, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobilet1, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobilet2, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobiler1, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobiler2, OBJECT_METAL});
+    }
+
+    return result;
 }
-
-ObjectType CObjectDetailsHardcodeCollection::GetProductionOutput(ObjectType type)
-{
-    if ( type == OBJECT_CONVERT ) return OBJECT_METAL;
-    if ( type == OBJECT_ENERGY ) return OBJECT_POWER;
-    if ( type == OBJECT_NUCLEAR ) return OBJECT_ATOMIC;
-    if ( type == OBJECT_NEST ) return OBJECT_BULLET;
-    return OBJECT_NULL;
-}
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 // UI Icon Details
 //////////////////////////////////////////////////////////////////////////////
 
-bool CObjectDetailsHardcodeCollection::GetMapShowEvenUnselectable(ObjectType type)
+bool CHardcodeCollection::GetMapShowEvenUnselectable(ObjectType type)
 {
     if ( type == OBJECT_MOTHER   ||
          type == OBJECT_ANT      ||
@@ -6360,7 +7099,7 @@ bool CObjectDetailsHardcodeCollection::GetMapShowEvenUnselectable(ObjectType typ
     return false;
 }
 
-MapColor CObjectDetailsHardcodeCollection::GetMapIconColor(ObjectType type)
+MapColor CHardcodeCollection::GetMapIconColor(ObjectType type)
 {
     MapColor color = MAPCOLOR_NULL;
     if ( type == OBJECT_BASE )
@@ -6468,7 +7207,7 @@ MapColor CObjectDetailsHardcodeCollection::GetMapIconColor(ObjectType type)
     return color;
 }
 
-int CObjectDetailsHardcodeCollection::GetMapIcon(ObjectType type)
+int CHardcodeCollection::GetMapIcon(ObjectType type)
 {
     int icon = -1;
     switch ( type )
@@ -6555,7 +7294,7 @@ int CObjectDetailsHardcodeCollection::GetMapIcon(ObjectType type)
     }
 }
 
-bool CObjectDetailsHardcodeCollection::IsShortcutBuilding(ObjectType type)
+bool CHardcodeCollection::IsShortcutBuilding(ObjectType type)
 {
     switch ( type )
     {
@@ -6582,7 +7321,7 @@ bool CObjectDetailsHardcodeCollection::IsShortcutBuilding(ObjectType type)
     }
 }
 
-bool CObjectDetailsHardcodeCollection::IsShortcutMovable(ObjectType type)
+bool CHardcodeCollection::IsShortcutMovable(ObjectType type)
 {
     switch ( type )
     {
@@ -6627,7 +7366,7 @@ bool CObjectDetailsHardcodeCollection::IsShortcutMovable(ObjectType type)
     }
 }
 
-int CObjectDetailsHardcodeCollection::GetShortcutIcon(ObjectType type)
+int CHardcodeCollection::GetShortcutIcon(ObjectType type)
 {
     int icon = -1;
     switch ( type )
@@ -6711,7 +7450,7 @@ int CObjectDetailsHardcodeCollection::GetShortcutIcon(ObjectType type)
 // User Interface Details
 //////////////////////////////////////////////////////////////////////////////
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceProgramUI(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceProgramUI(ObjectType type)
 {
     if ( type == OBJECT_MOBILEfa ||
          type == OBJECT_MOBILEta ||
@@ -6756,7 +7495,7 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceProgramUI(ObjectType type
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceProgramUIBlink(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceProgramUIBlink(ObjectType type)
 {
     if ( type == OBJECT_HUMAN    || // HUMAN ?!
          type == OBJECT_TECH     || // TECH ?!
@@ -6803,37 +7542,33 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceProgramUIBlink(ObjectType
     return false;
 }
 
-std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInterfaceWidgetList(ObjectType type)
+std::vector<Ui::CWidget> CHardcodeCollection::GetUserInterfaceWidgetList(ObjectType type)
 {
-    std::vector<CObjectControlsWidget> result;
-    ObjectUIWidgetParams params = {-1};
+    std::vector<Ui::CWidget> result;
+    Ui::CWidgetParams params = {-1};
     
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )
     {
-        result.push_back({Math::Point(7.7f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 31, EVENT_OBJECT_HTAKE, true, false, false, true});
+        result.push_back({Math::Point(7.7f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 31, EVENT_OBJECT_HTAKE, true, false, false, true});
 
-        std::vector<BuildType> onBuildingsEnabled;
-        onBuildingsEnabled.push_back(BUILD_FLAG);
-        result.push_back({Math::Point(10.1f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 64+54, EVENT_OBJECT_FCREATE, false, false, false, true, onBuildingsEnabled});
-        result.push_back({Math::Point(11.1f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 64+55, EVENT_OBJECT_FDELETE, false, false, false, true, onBuildingsEnabled});     
+        result.push_back({Math::Point(10.1f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 64+54, EVENT_OBJECT_FCREATE, false, false, false, true, BUILD_FLAG});
+        result.push_back({Math::Point(11.1f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 64+55, EVENT_OBJECT_FDELETE, false, false, false, true, BUILD_FLAG});     
         params.color = Gfx::Color(0.28f, 0.56f, 1.0f, 0.0f);
-        result.push_back({Math::Point(10.1f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORb, false, false, false, true, onBuildingsEnabled});
+        result.push_back({Math::Point(10.1f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORb, false, false, false, true, BUILD_FLAG});
         params.color = Gfx::Color(1.0f, 0.0f, 0.0f, 0.0f);
-        result.push_back({Math::Point(10.5f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORr, false, false, false, true, onBuildingsEnabled});
+        result.push_back({Math::Point(10.5f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORr, false, false, false, true, BUILD_FLAG});
         params.color = Gfx::Color(0.0f, 0.8f, 0.0f, 0.0f);
-        result.push_back({Math::Point(10.9f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORg, false, false, false, true, onBuildingsEnabled});
+        result.push_back({Math::Point(10.9f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORg, false, false, false, true, BUILD_FLAG});
         params.color = Gfx::Color(1.0f, 0.93f, 0.0f, 0.0f);
-        result.push_back({Math::Point(11.3f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORy, false, false, false, true, onBuildingsEnabled});
+        result.push_back({Math::Point(11.3f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORy, false, false, false, true, BUILD_FLAG});
         params.color = Gfx::Color(0.82f, 0.004f, 0.99f, 0.0f);
-        result.push_back({Math::Point(11.7f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORv, false, false, false, true, onBuildingsEnabled});
+        result.push_back({Math::Point(11.7f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORv, false, false, false, true, BUILD_FLAG});
     }
 
     if ( (type == OBJECT_HUMAN ) )
     {
-        std::vector<BuildType> onBuildingsEnabled;
-        onBuildingsEnabled.push_back(BUILD_GFLAT);
-        result.push_back({Math::Point(9.0f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 64+47, EVENT_OBJECT_GFLAT, false, false, false, true, onBuildingsEnabled});
+        result.push_back({Math::Point(9.0f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 64+47, EVENT_OBJECT_GFLAT, false, false, false, true, BUILD_GFLAT});
     }
 
     if ( (type == OBJECT_MOBILEfa ||
@@ -6841,15 +7576,15 @@ std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInte
           type == OBJECT_MOBILEwa ||
           type == OBJECT_MOBILEia ) )
     {
-        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 32, EVENT_OBJECT_MTAKE,  true, false,  true, false});
-        result.push_back({Math::Point(8.9f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 34, EVENT_OBJECT_MBACK,  false, false, true, false});
-        result.push_back({Math::Point(9.9f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 35, EVENT_OBJECT_MPOWER, false, false, true, false});
-        result.push_back({Math::Point(10.9f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 33, EVENT_OBJECT_MFRONT, false, false, true, false});
+        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 32, EVENT_OBJECT_MTAKE,  true, false,  true, false});
+        result.push_back({Math::Point(8.9f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 34, EVENT_OBJECT_MBACK,  false, false, true, false});
+        result.push_back({Math::Point(9.9f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 35, EVENT_OBJECT_MPOWER, false, false, true, false});
+        result.push_back({Math::Point(10.9f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 33, EVENT_OBJECT_MFRONT, false, false, true, false});
     }
 
     if ( (type == OBJECT_MOBILEsa ) )
     {
-        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 32, EVENT_OBJECT_MTAKE,  true, false,  true, false});
+        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 32, EVENT_OBJECT_MTAKE,  true, false,  true, false});
     }
 
     if ( (type == OBJECT_MOBILEfs ||
@@ -6857,34 +7592,32 @@ std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInte
           type == OBJECT_MOBILEws ||
           type == OBJECT_MOBILEis ) )
     {
-        result.push_back({Math::Point(7.7f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 40, EVENT_OBJECT_SEARCH, true, false, true, false});
-        result.push_back({Math::Point(9.0f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 11, EVENT_OBJECT_DELSEARCH, false, false, true, false});
+        result.push_back({Math::Point(7.7f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 40, EVENT_OBJECT_SEARCH, true, false, true, false});
+        result.push_back({Math::Point(9.0f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 11, EVENT_OBJECT_DELSEARCH, false, false, true, false});
         
-        std::vector<BuildType> onBuildingsEnabled;
-        onBuildingsEnabled.push_back(BUILD_FLAG);
-        result.push_back({Math::Point(10.1f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 64+54, EVENT_OBJECT_FCREATE, false, false, true, false, onBuildingsEnabled});
-        result.push_back({Math::Point(11.1f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 64+55, EVENT_OBJECT_FDELETE, false, false, true, false, onBuildingsEnabled});     
+        result.push_back({Math::Point(10.1f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 64+54, EVENT_OBJECT_FCREATE, false, false, true, false, BUILD_FLAG});
+        result.push_back({Math::Point(11.1f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 64+55, EVENT_OBJECT_FDELETE, false, false, true, false, BUILD_FLAG});     
         params.color = Gfx::Color(0.28f, 0.56f, 1.0f, 0.0f);
-        result.push_back({Math::Point(10.1f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORb, false, false, true, false, onBuildingsEnabled});
+        result.push_back({Math::Point(10.1f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORb, false, false, true, false, BUILD_FLAG});
         params.color = Gfx::Color(1.0f, 0.0f, 0.0f, 0.0f);
-        result.push_back({Math::Point(10.5f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORr, false, false, true, false, onBuildingsEnabled});
+        result.push_back({Math::Point(10.5f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORr, false, false, true, false, BUILD_FLAG});
         params.color = Gfx::Color(0.0f, 0.8f, 0.0f, 0.0f);
-        result.push_back({Math::Point(10.9f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORg, false, false, true, false, onBuildingsEnabled});
+        result.push_back({Math::Point(10.9f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORg, false, false, true, false, BUILD_FLAG});
         params.color = Gfx::Color(1.0f, 0.93f, 0.0f, 0.0f);
-        result.push_back({Math::Point(11.3f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORy, false, false, true, false, onBuildingsEnabled});
+        result.push_back({Math::Point(11.3f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORy, false, false, true, false, BUILD_FLAG});
         params.color = Gfx::Color(0.82f, 0.004f, 0.99f, 0.0f);
-        result.push_back({Math::Point(11.7f, 1.6f), Math::Point(0.4f, 0.4f), WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORv, false, false, true, false, onBuildingsEnabled});
+        result.push_back({Math::Point(11.7f, 1.6f), Math::Point(0.4f, 0.4f), Ui::WIDGET_COLOR_BUTTON, params, EVENT_OBJECT_FCOLORv, false, false, true, false, BUILD_FLAG});
     }
 
     if ( (type == OBJECT_MOBILErt ) )
     {
-        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 128+18, EVENT_OBJECT_TERRAFORM, true, false,  true, false});
-        result.push_back({Math::Point(10.2f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 41, EVENT_OBJECT_LIMIT, false, false, true, false});
+        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 128+18, EVENT_OBJECT_TERRAFORM, true, false,  true, false});
+        result.push_back({Math::Point(10.2f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 41, EVENT_OBJECT_LIMIT, false, false, true, false});
     }
 
     if ( (type == OBJECT_MOBILErr ) )
     {
-        result.push_back({Math::Point(7.7f, 0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 128+20, EVENT_OBJECT_RECOVER, true, false, true, false});
+        result.push_back({Math::Point(7.7f, 0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 128+20, EVENT_OBJECT_RECOVER, true, false, true, false});
     }
 
     if ( (type == OBJECT_MOBILEfc ||
@@ -6897,7 +7630,7 @@ std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInte
           type == OBJECT_MOBILEii ||
           type == OBJECT_MOBILErc ) )
     {
-        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 42, EVENT_OBJECT_FIRE,  true, true,  true, false});
+        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 42, EVENT_OBJECT_FIRE,  true, true,  true, false});
     }
 
     if ( (type == OBJECT_MOBILEdr ) )
@@ -6907,12 +7640,12 @@ std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInte
 
     if ( (type == OBJECT_BEE ) )
     {
-        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 32, EVENT_OBJECT_MTAKE,  true, false,  false, false});
+        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 32, EVENT_OBJECT_MTAKE,  true, false,  false, false});
     }
 
     if ( (type == OBJECT_SPIDER ) )
     {
-        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), WIDGET_ICON_BUTTON, 42, EVENT_OBJECT_SPIDEREXPLO,  true, true,  false, false});
+        result.push_back({Math::Point(7.7f,  0.5f), Math::Point(1.0f, 1.0f), Ui::WIDGET_ICON_BUTTON, 42, EVENT_OBJECT_SPIDEREXPLO,  true, true,  false, false});
     }
     
     if (type == OBJECT_CONVERT ||
@@ -6931,87 +7664,90 @@ std::vector<CObjectControlsWidget> CObjectDetailsHardcodeCollection::GetUserInte
         type == OBJECT_RESEARCH ||
         type == OBJECT_TOWER)
     {
-        result.push_back({Math::Point(2.1f,  0.0f), Math::Point(0.6f, 0.6f), WIDGET_ICON_BUTTON, 12, EVENT_OBJECT_DELETE,  false, false,  false, false});
+        result.push_back({Math::Point(2.1f,  0.0f), Math::Point(0.6f, 0.6f), Ui::WIDGET_ICON_BUTTON, 12, EVENT_OBJECT_DELETE,  false, false,  false, false});
     }
 
     if (type == OBJECT_BASE )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+43, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+43, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_FACTORY )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+32, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+32, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_RESEARCH )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+35, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+35, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_CONVERT )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+34, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+34, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_STATION )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+36, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+36, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_RADAR )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+40, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+40, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_REPAIR )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+41, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+41, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_TOWER )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+37, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+37, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_ENERGY )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+39, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+39, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_DERRICK )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+33, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+33, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_NUCLEAR )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+42, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+42, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_LABO )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+38, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+38, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_INFO )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+44, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+44, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_PARA )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+46, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+46, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_SAFE )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+47, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+47, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
     if (type == OBJECT_HUSTON )
     {
-        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), WIDGET_ICON_LOGO, 128+48, EVENT_OBJECT_TYPE,  false, false,  false, false});
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+48, EVENT_OBJECT_TYPE,  false, false,  false, false});
     }
-
+    if (type == OBJECT_DESTROYER )
+    {
+        result.push_back({Math::Point(0.0f,  0.0f), Math::Point(2.0f, 2.0f), Ui::WIDGET_ICON_LOGO, 128+41, EVENT_OBJECT_TYPE,  false, false,  false, false});
+    }
 
 
     return result;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceBuilderUIHuman(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceBuilderUIHuman(ObjectType type)
 {
     if ( type == OBJECT_HUMAN )  return true;
 
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceBuilderUIRobot(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceBuilderUIRobot(ObjectType type)
 {
     if ( (type == OBJECT_MOBILEfb ||
           type == OBJECT_MOBILEtb ||
@@ -7021,21 +7757,21 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceBuilderUIRobot(ObjectType
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceShielderUIRobot(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceShielderUIRobot(ObjectType type)
 {
     if ( (type == OBJECT_MOBILErs ) )  return true;
 
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceScribblerUIRobot(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceScribblerUIRobot(ObjectType type)
 {
     if ( (type == OBJECT_MOBILEdr ) )  return true;
 
     return false;
 }
 
-bool CObjectDetailsHardcodeCollection::HasUserInterfaceDisableFlyWhileGrabbing(ObjectType type)
+bool CHardcodeCollection::HasUserInterfaceDisableFlyWhileGrabbing(ObjectType type)
 {
     if ( (type == OBJECT_HUMAN ||
           type == OBJECT_TECH  ) )   return true;
@@ -7046,45 +7782,79 @@ bool CObjectDetailsHardcodeCollection::HasUserInterfaceDisableFlyWhileGrabbing(O
 
 
 //////////////////////////////////////////////////////////////////////////////
-// Assistant global details
+// Global details
 //////////////////////////////////////////////////////////////////////////////
 
-ObjectType CObjectDetailsHardcodeCollection::GetAssistantType()
+ObjectType CHardcodeCollection::GetPlayerType()
+{
+    return OBJECT_HUMAN;
+}
+
+ObjectType CHardcodeCollection::GetBaseType()
+{
+    return OBJECT_BASE;
+}
+
+ObjectType CHardcodeCollection::GetAssistantType()
 {
     return OBJECT_TOTO;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAssistantReactingOnDisplayedInfo()
+ObjectType CHardcodeCollection::GetFunctionDestroyPerformerObject()
 {
-    return true;
+    return OBJECT_DESTROYER;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAssistantReactingOnDisplayedText()
+ObjectType CHardcodeCollection::GetFunctionFactoryPerformerObject()
 {
-    return true;
+    return OBJECT_FACTORY;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAssistantIgnoredOnSaveLoad()
+ObjectType CHardcodeCollection::GetFunctionTakeOffPerformerObject()
 {
-    return true;
+    return OBJECT_BASE;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAssistantMovesWithCamera()
+ObjectType CHardcodeCollection::GetFunctionReceivePerformerObject()
 {
-    return true;
+    return OBJECT_INFO;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAssistantClickable()
+std::vector<CObjectButton> CHardcodeCollection::GetBuilderMenuButtons()
 {
-    return true;
+    std::vector<CObjectButton> result;
+    result.push_back({ OBJECT_RESEARCH, 128+35, TR("Build a research center") });
+    result.push_back({ OBJECT_FACTORY,  128+32, TR("Build a bot factory") });
+    result.push_back({ OBJECT_CONVERT,  128+34, TR("Build a converter") });
+    result.push_back({ OBJECT_STATION,  128+36, TR("Build a power station") });
+    result.push_back({ OBJECT_RADAR,    128+40, TR("Build a radar station") });
+    result.push_back({ OBJECT_REPAIR,   128+41, TR("Build a repair center") });
+    result.push_back({ OBJECT_INFO,     128+44, TR("Build a exchange post") });
+    result.push_back({ OBJECT_TOWER,    128+37, TR("Build a defense tower") });
+    result.push_back({ OBJECT_ENERGY,   128+39, TR("Build a power cell factory") });
+    result.push_back({ OBJECT_DERRICK,  128+33, TR("Build a derrick") });
+    result.push_back({ OBJECT_NUCLEAR,  128+42, TR("Build a nuclear power plant") });
+    result.push_back({ OBJECT_LABO,     128+38, TR("Build an autolab") });
+    result.push_back({ OBJECT_PARA,     128+46, TR("Build a lightning conductor") });
+    result.push_back({ OBJECT_SAFE,     128+47, TR("Build a vault") });
+    return result;
 }
 
-bool CObjectDetailsHardcodeCollection::IsAssistantUndamagable()
+std::vector<CObjectButton> CHardcodeCollection::GetDebugMenuButtons()
 {
-    return true;
-}
-
-bool CObjectDetailsHardcodeCollection::IsAssistantUnpausable()
-{
-    return true;
+    std::vector<CObjectButton> result;
+    result.push_back({OBJECT_HUMAN,    128+8,  ""});
+    result.push_back({OBJECT_MOBILEwa, 128+9,  ""});
+    result.push_back({OBJECT_MOBILEwc, 128+15, ""});
+    result.push_back({OBJECT_MOBILErc, 128+19, ""});
+    result.push_back({OBJECT_FACTORY,  128+32, ""});
+    result.push_back({OBJECT_CONVERT,  128+34, ""});
+    result.push_back({OBJECT_DERRICK,  128+33, ""});
+    result.push_back({OBJECT_STATION,  128+36, ""});
+    result.push_back({OBJECT_METAL,    -1,     "Titanium"});
+    result.push_back({OBJECT_STONE,    -1,     "TitaniumOre"});
+    result.push_back({OBJECT_URANIUM,  -1,     "UraniumOre"});
+    result.push_back({OBJECT_POWER,    -1,     "PowerCell"});
+    result.push_back({OBJECT_ATOMIC,   -1,     "NuclearCell"});
+    return result;
 }

@@ -18,9 +18,6 @@
  */
 
 
-#include "object/object_details.h"
-#include "object/motion/motion.h"
-
 #include "app/app.h"
 
 #include "common/make_unique.h"
@@ -30,9 +27,13 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
+#include "object/object_details.h"
 #include "object/old_object.h"
 
+#include "object/details/assistant_details.h"
+#include "object/details/movable_details.h"
 
+#include "object/motion/motion.h"
 
 #include <cstdio>
 #include <cstring>
@@ -81,9 +82,11 @@ bool CMotion::EventProcess(const Event &event)
     Math::Vector    pos, dir;
     float       time;
 
-    auto assistant = GetObjectAssistantDetails();
-    if ( !( m_object->GetType() == assistant.type && assistant.unpausable) &&
-         m_engine->GetPause() )  return true;
+    if ( m_engine->GetPause() )
+    {
+        auto assistant = GetObjectAssistantDetails(m_object);
+        if ( !(assistant.enabled && assistant.unpausable) ) return true;
+    }
 
     if ( event.type != EVENT_FRAME )  return true;
 
@@ -224,7 +227,7 @@ void CMotion::DeleteObject(bool bAll)
 void CMotion::Create(Math::Vector pos, float angle, ObjectType type,
                           float power, Gfx::COldModelManager*)
 {
-    auto movable = GetObjectCommonInterfaceDetails(m_object).movable;
+    auto movable = GetObjectMovableDetails(m_object);
 
     auto character = m_object->GetCharacter();
     character->wheelFront = movable.wheels.wheelFront;

@@ -27,9 +27,10 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
 
 
 // Object's constructor.
@@ -79,12 +80,6 @@ void CAutoNest::Init()
     pos = m_object->GetPosition();
     m_terrain->AdjustToFloor(pos);
     m_cargoPos = pos;
-
-    auto production = GetObjectAutomationDetails(m_object).production;
-    m_output = production.output;
-
-    auto creation = GetObjectCreationDetails(m_output);
-    m_scale = creation.scale;
 }
 
 
@@ -113,7 +108,12 @@ bool CAutoNest::EventProcess(const Event &event)
             }
             else
             {
-                CreateCargo(m_cargoPos, 0.0f, m_output);
+                auto production = GetObjectAutomationDetails(m_object).production;
+                if ( auto len = production.size() )
+                {
+                    auto it = production[ std::rand() % len ];
+                    CreateCargo(m_cargoPos, 0.0f, it.output);
+                }
                 m_phase    = ANP_BIRTH;
                 m_progress = 0.0f;
                 m_speed    = 1.0f/5.0f;
@@ -129,14 +129,14 @@ bool CAutoNest::EventProcess(const Event &event)
         {
             if ( cargo != nullptr )
             {
-                cargo->SetScale(m_progress * m_scale);
+                cargo->SetScale(m_progress);
             }
         }
         else
         {
             if ( cargo != nullptr )
             {
-                cargo->SetScale(m_scale);
+                cargo->SetScale(1.0f);
                 cargo->SetLock(false);
             }
 
@@ -186,18 +186,20 @@ void CAutoNest::CreateCargo(Math::Vector pos, float angle, ObjectType type)
 
 CObject* CAutoNest::SearchCargo()
 {
+    auto production = GetObjectAutomationDetails(m_object).production;
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         if ( !obj->GetLock() )  continue;
-
-        ObjectType type = obj->GetType();
-        if ( type != m_output )  continue;
-
-        Math::Vector oPos = obj->GetPosition();
-        if ( oPos.x == m_cargoPos.x &&
-             oPos.z == m_cargoPos.z )
+        for ( auto it: production )
         {
-            return obj;
+            if ( obj->GetType() != it.output ) continue;
+
+            Math::Vector oPos = obj->GetPosition();
+            if ( oPos.x == m_cargoPos.x && oPos.z == m_cargoPos.z )
+            {
+                return obj;
+            }
         }
     }
 

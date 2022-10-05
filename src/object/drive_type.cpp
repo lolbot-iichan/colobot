@@ -19,54 +19,9 @@
 
 #include "object/drive_type.h"
 
+#include "object/details/movable_details.h"
+
 DriveType GetDriveFromObject(ObjectType type)
 {
-    switch(type)
-    {
-        case OBJECT_MOBILEwt:
-        case OBJECT_MOBILEwa:
-        case OBJECT_MOBILEwc:
-        case OBJECT_MOBILEwi:
-        case OBJECT_MOBILEws:
-        case OBJECT_MOBILEwb:
-            return DriveType::Wheeled;
-
-        case OBJECT_MOBILEtt:
-        case OBJECT_MOBILEta:
-        case OBJECT_MOBILEtc:
-        case OBJECT_MOBILEti:
-        case OBJECT_MOBILEts:
-        case OBJECT_MOBILEtb:
-            return DriveType::Tracked;
-
-        case OBJECT_MOBILEft:
-        case OBJECT_MOBILEfa:
-        case OBJECT_MOBILEfc:
-        case OBJECT_MOBILEfi:
-        case OBJECT_MOBILEfs:
-        case OBJECT_MOBILEfb:
-            return DriveType::Winged;
-
-        case OBJECT_MOBILEit:
-        case OBJECT_MOBILEia:
-        case OBJECT_MOBILEic:
-        case OBJECT_MOBILEii:
-        case OBJECT_MOBILEis:
-        case OBJECT_MOBILEib:
-            return DriveType::Legged;
-
-        case OBJECT_MOBILErp:
-        case OBJECT_MOBILErt:
-        case OBJECT_MOBILErc:
-        case OBJECT_MOBILErr:
-        case OBJECT_MOBILErs:
-            return DriveType::Heavy;
-
-        case OBJECT_MOBILEst:
-        case OBJECT_MOBILEsa:
-           return DriveType::Amphibious;
-
-        default:
-            return DriveType::Other;
-    }
+    return GetObjectMovableDetails(type).drive;
 }

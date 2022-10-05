@@ -97,7 +97,6 @@ protected:
     bool            m_bBee = false;
     float           m_angle = 0.0f;
     float           m_move = 0.0f;
-    Math::Vector        m_targetPos;
+    Math::Vector    m_targetPos;
     float           m_timeLimit = 0.0f;
-    ObjectType      m_cargoType = OBJECT_NULL;
 };

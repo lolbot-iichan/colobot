@@ -27,7 +27,7 @@
 
 #include "object/motion/motionspider.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -57,7 +57,8 @@ bool CTaskSpiderExplo::EventProcess(const Event &event)
     if ( event.type != EVENT_FRAME )  return true;
 
     // Momentarily stationary object (ant on the back)?
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_bError = true;
         return true;

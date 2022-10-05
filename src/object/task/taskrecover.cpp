@@ -28,9 +28,11 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
+
+#include "object/details/automation_details.h"
+#include "object/details/programmable_details.h"
 
 #include "object/interface/slotted_object.h"
 
@@ -186,7 +188,7 @@ Error CTaskRecover::Start()
     m_bError = true;  // operation impossible
     if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
 
-    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
+    auto allowedScripting = GetObjectProgrammableDetails(m_object).allowed;
     if (!allowedScripting.recycle)  return ERR_WRONG_BOT;
 
     CPowerContainerObject *power = GetObjectPowerCell(m_object);
@@ -374,5 +376,11 @@ bool CTaskRecover::Abort()
 
 CObject* CTaskRecover::SearchRuin()
 {
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, m_recoverPos, {OBJECT_RUINmobilew1, OBJECT_RUINmobilew2, OBJECT_RUINmobilet1, OBJECT_RUINmobilet2, OBJECT_RUINmobiler1, OBJECT_RUINmobiler2}, 40.0f/g_unit);
+    std::vector<ObjectType> types;
+
+    auto automation = GetObjectAutomationDetails(m_object);
+    for ( auto it : automation.production )
+        types.push_back(it.input);
+
+    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, m_recoverPos, types, 40.0f/g_unit);
 }

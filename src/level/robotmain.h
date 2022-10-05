@@ -43,6 +43,8 @@
 #include "object/object_type.h"
 #include "object/tool_type.h"
 
+#include "ui/displaytext.h"
+
 #include <deque>
 #include <stdexcept>
 
@@ -344,6 +346,7 @@ public:
 
     void        DisplayError(Error err, CObject* pObj, float time=10.0f);
     void        DisplayError(Error err, Math::Vector goal, float height=15.0f, float dist=60.0f, float time=10.0f);
+    void        DisplayText(std::string text, Math::Vector goal, float height=15.0f, float dist=60.0f, float time=10.0f, Ui::TextType type=Ui::TT_INFO);
 
     void        UpdateCustomLevelList();
     std::string GetCustomLevelName(int id);

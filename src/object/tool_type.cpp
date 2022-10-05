@@ -19,41 +19,10 @@
 
 #include "object/tool_type.h"
 
+#include "object/details/task_executor_details.h"
+
 ToolType GetToolFromObject(ObjectType type)
 {
-    switch (type)
-    {
-        case OBJECT_MOBILEwa:
-        case OBJECT_MOBILEta:
-        case OBJECT_MOBILEfa:
-        case OBJECT_MOBILEia:
-            return ToolType::Grabber;
+     return GetObjectTaskExecutorDetails(type).tool;
 
-        case OBJECT_MOBILEws:
-        case OBJECT_MOBILEts:
-        case OBJECT_MOBILEfs:
-        case OBJECT_MOBILEis:
-            return ToolType::Sniffer;
-
-        case OBJECT_MOBILEwc:
-        case OBJECT_MOBILEtc:
-        case OBJECT_MOBILEfc:
-        case OBJECT_MOBILEic:
-            return ToolType::Shooter;
-
-        case OBJECT_MOBILEwi:
-        case OBJECT_MOBILEti:
-        case OBJECT_MOBILEfi:
-        case OBJECT_MOBILEii:
-            return ToolType::OrganicShooter;
-
-        case OBJECT_MOBILEwb:
-        case OBJECT_MOBILEtb:
-        case OBJECT_MOBILEfb:
-        case OBJECT_MOBILEib:
-            return ToolType::Builder;
-
-        default:
-            return ToolType::Other;
-    }
 }

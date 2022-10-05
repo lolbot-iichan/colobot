@@ -33,7 +33,8 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
+
+#include "object/details/movable_details.h"
 
 #include "sound/sound.h"
 
@@ -555,7 +556,7 @@ float CWater::GetLevel()
 
 float CWater::GetLevel(CObject* object)
 {
-    return m_level - GetObjectPhysicsDetails(object).water.waterLevel;
+    return m_level - GetObjectMovableDetails(object).water.waterLevel;
 }
 
 void CWater::SetLava(bool lava)

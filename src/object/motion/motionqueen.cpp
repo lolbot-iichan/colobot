@@ -24,11 +24,9 @@
 
 #include "graphics/engine/oldmodelmanager.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
 
 #include "physics/physics.h"
-
 
 #include <stdio.h>
 

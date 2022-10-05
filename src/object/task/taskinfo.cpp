@@ -26,6 +26,8 @@
 
 #include "object/object_manager.h"
 
+#include "object/details/global_details.h"
+
 #include "object/subclass/exchange_post.h"
 
 #include <string.h>
@@ -148,6 +150,7 @@ bool CTaskInfo::Abort()
 
 CExchangePost* CTaskInfo::FindExchangePost(float power)
 {
+    ObjectType type = GetObjectGlobalDetails().defaults.receivePerformer;
     return dynamic_cast<CExchangePost*>(
-        CObjectManager::GetInstancePointer()->FindNearest(m_object, OBJECT_INFO, power/g_unit));
+        CObjectManager::GetInstancePointer()->FindNearest(m_object, type, power/g_unit));
 }

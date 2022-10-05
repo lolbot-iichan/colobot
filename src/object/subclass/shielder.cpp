@@ -36,7 +36,7 @@
 
 
 CShielder::CShielder(int id)
-    : CBaseRobot(id, OBJECT_MOBILErs),
+    : CBaseMovable(id, OBJECT_MOBILErs),
       m_shieldRadius(1.0f)
 {}
 
@@ -63,7 +63,6 @@ std::unique_ptr<CShielder> CShielder::Create(
 
     motion->Create(params.pos, params.angle, params.type, params.power, modelManager);
 
-    obj->SetProgrammable();
     obj->SetMovable(std::move(motion), std::move(physics));
 
     return obj;

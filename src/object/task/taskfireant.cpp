@@ -24,12 +24,13 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/old_object.h"
+
+#include "object/details/programmable_details.h"
 
 #include "object/motion/motionant.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -61,10 +62,12 @@ bool CTaskFireAnt::EventProcess(const Event &event)
     if ( event.type != EVENT_FRAME )  return true;
     if ( m_bError )  return false;
 
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  // insect on its back?
+    // insect on its back?
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_bError = true;
-        return false;
+        return true;
     }
 
     m_time += event.rTime;
@@ -96,11 +99,12 @@ Error CTaskFireAnt::Start(Math::Vector impact)
     m_bError = true;  // operation impossible
     if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
 
-    auto allowedScripting = GetObjectScriptingDetails(m_object).allowed;
-    if (!allowedScripting.shootAsAnt)  return ERR_WRONG_BOT;
+    auto allowedScripting = GetObjectProgrammableDetails(m_object).allowed;
+    if (!allowedScripting.shootPointParam)  return ERR_WRONG_BOT;
 
-    // Insect on its back?
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  return ERR_WRONG_BOT;
+    // insect on its back?
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )  return ERR_WRONG_BOT;
 
     m_physics->SetMotorSpeed(Math::Vector(0.0f, 0.0f, 0.0f));
 
@@ -130,7 +134,10 @@ Error CTaskFireAnt::IsEnded()
 
     if ( m_engine->GetPause() )  return ERR_CONTINUE;
     if ( m_bError )  return ERR_STOP;
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  return ERR_STOP;  // insect on its back?
+
+    // insect on its back?
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )  return ERR_STOP;
 
     if ( m_phase == TFA_TURN )  // rotation ?
     {

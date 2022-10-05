@@ -56,7 +56,6 @@ public:
 protected:
     void    InitAngle();
     bool    CreateMark();
-    void    DeleteMark(ObjectType type);
 
 protected:
     TaskSearchHand  m_hand = TSH_UP;
