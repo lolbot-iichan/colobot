@@ -41,6 +41,9 @@ void CObjectTaskExecutorDetails::ReadHardcode(ObjectType type)
 
     sniff         = hardcode.GetSniffTaskExecutionDetails(type);
     sniff.objects = hardcode.GetSniffTaskExecutionObjects(type);
+
+//TODO    recycle         = hardcode.GetRecycleTaskExecutionDetails(type);
+    recycle.objects = hardcode.GetRecycleTaskExecutionObjects(type);
 }
 
 bool CObjectTaskExecutorDetails::Read(CLevelParserLine* line)
@@ -73,6 +76,24 @@ bool CObjectTaskExecutorDetails::Read(CLevelParserLine* line)
     READ_ARG( "soil",    AsTerrainRes, sniff.objects[id].soil    );
     READ_ARG( "output",  AsObjectType, sniff.objects[id].output  );
     READ_ARG( "message", AsString,     sniff.objects[id].message );
+    READ_END();
+
+    READ_LINE( "AddObjectTaskRecycleObject" );
+    READ_NEW( id,                      recycle.objects             );
+    READ_ARG( "input",   AsObjectType, recycle.objects[id].input  );
+    READ_ARG( "output",  AsObjectType, recycle.objects[id].output  );
+    READ_END();
+
+    READ_LINE( "ClrObjectTaskFlagObject" );
+    flag.objects.clear();
+    READ_END();  
+
+    READ_LINE( "ClrObjectTaskSniffObject" );
+    sniff.objects.clear();
+    READ_END();  
+
+    READ_LINE( "ClrObjectTaskRecycleObject" );
+    sniff.objects.clear();
     READ_END();
 
     return false;
@@ -115,6 +136,15 @@ void CObjectTaskExecutorDetails::Write(CLevelParser* parser, ObjectType type)
         WRITE_IT( "soil",    defS, soil    );
         WRITE_IT( "output",  defS, output  );
         WRITE_IT( "message", defS, message );
+        WRITE_END();    
+    }
+
+    CObjectRecycleTaskExecutorObject defR;
+    for ( auto it : recycle.objects )
+    {
+        WRITE_LINE( "AddObjectTaskRecycleObject" );
+        WRITE_IT( "input",  defR, input  );
+        WRITE_IT( "output", defR, output );
         WRITE_END();    
     }
 }

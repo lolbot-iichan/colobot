@@ -78,6 +78,21 @@ struct CObjectSniffTaskExecutorDetails
     std::vector<CObjectSniffTaskExecutorObject> objects;
 };
 
+struct CObjectRecycleTaskExecutorObject
+{
+    ObjectType      input  = OBJECT_NULL;
+    ObjectType      output = OBJECT_NULL;
+};
+
+struct CObjectRecycleTaskExecutorDetails
+{
+//TODO    TaskExecutionType execution  = ExecutionNoMotion;
+//TODO    int               partNum    = 0;
+//TODO    Math::Vector      pos        = Math::Vector(0.0f, 0.0f, 0.0f);
+
+    std::vector<CObjectRecycleTaskExecutorObject> objects;
+};
+
 //////////////////////////////////////////////////////////////////////////////
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
@@ -87,8 +102,9 @@ struct CObjectTaskExecutorDetails
     bool     enabled = true;
     ToolType tool    = ToolType::Other;
 
-    CObjectFlagTaskExecutorDetails  flag;  // for CTaskFlag
-    CObjectSniffTaskExecutorDetails sniff; // for CTaskDeleteMark, CTaskSearch
+    CObjectFlagTaskExecutorDetails  flag;      // for CTaskFlag
+    CObjectSniffTaskExecutorDetails sniff;     // for CTaskDeleteMark, CTaskSearch
+    CObjectRecycleTaskExecutorDetails recycle; // for CTaskRecover
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

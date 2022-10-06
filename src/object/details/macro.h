@@ -24,19 +24,42 @@
 
 #pragma once
 
-#define WRITE_NEW(C)       auto line = MakeUnique<CLevelParserLine>(C);
-#define WRITE_VAL(K,V)     line->AddParam((K),MakeUnique<CLevelParserParam>(V));
+#include <boost/lexical_cast.hpp>
 
-#define WRITE_GLOB(C)      { bool bWrite = false; WRITE_NEW(C);
-#define WRITE_LINE(C)      { bool bWrite = false; WRITE_NEW(C); WRITE_VAL("type",type);
-#define WRITE_VAR(K,D,P)   if((P) != (D))   { bWrite = true; WRITE_VAL((K),(P)); }
-#define WRITE_ARG(K,D,P)   if((P) != (D.P)) { bWrite = true; WRITE_VAL((K),(P)); }
-#define WRITE_IT(K,D,P)    if((it.P) != (D.P)) { bWrite = true; WRITE_VAL((K),(it.P)); }
-#define WRITE_END()        if(bWrite) { parser->AddLine(std::move(line)); } }
+#include <set>
 
-#define READ_LINE(C)      if (line->GetCommand() == (C)) {
+#define WRITE_NEW(C)      auto line = MakeUnique<CLevelParserLine>(C);
+#define WRITE_VAL(K,V)    line->AddParam((K),MakeUnique<CLevelParserParam>(V));
+
+#define WRITE_GLOB(C)     { bool bWrite = false; WRITE_NEW(C);
+#define WRITE_LINE(C)     { bool bWrite = false; WRITE_NEW(C); WRITE_VAL("type",type);
+#define WRITE_VAR(K,D,P)  if((P) != (D))   { bWrite = true; WRITE_VAL((K),(P)); }
+#define WRITE_ARG(K,D,P)  if((P) != (D.P)) { bWrite = true; WRITE_VAL((K),(P)); }
+#define WRITE_IT(K,D,P)   if((it.P) != (D.P)) { bWrite = true; WRITE_VAL((K),(it.P)); }
+#define WRITE_END()       if(bWrite) { parser->AddLine(std::move(line)); } }
+
+#define TST_UNMATCHED()   for ( auto k: line->GetKeys() ) if (!keys.count(k)) UnusedArg(line, k);
+
+#define READ_LINE(C)      if (line->GetCommand() == (C)) { std::set<std::string> keys = {"type"};
 #define READ_NEW(I,P)     auto I = P.size(); P.resize(I+1);
-#define READ_IDX(N)       auto N = line->GetParam("id")->AsInt();
-#define READ_ARG(K,A,P)   P = line->GetParam(K)->A(P);
-#define READ_RAW(K,P)     P = line->GetParam(K)->GetValue();
-#define READ_END()        return true; }
+#define READ_IDX(N)       auto N = line->GetParam("id")->AsInt(); keys.insert("id");
+#define READ_ARG(K,A,P)   P = line->GetParam(K)->A(P); keys.insert(K);
+#define READ_END()        TST_UNMATCHED(); return true; }
+
+void inline UnusedCmd(CLevelParserLine* line)
+{
+    auto command    = line->GetCommand();
+    auto fileName   = line->GetLevelFilename();
+    auto lineNumber = boost::lexical_cast<std::string>(line->GetLineNumber());
+    std::string msg = "Unknown command '" + command + "' (in " + fileName + ":" + lineNumber + ")";
+    throw std::runtime_error(msg);
+}
+
+void inline UnusedArg(CLevelParserLine* line, std::string arg)
+{
+    auto command    = line->GetCommand();
+    auto fileName   = line->GetLevelFilename();
+    auto lineNumber = boost::lexical_cast<std::string>(line->GetLineNumber());
+    std::string msg = "Unknown argument '" + arg  + "' for command '" + command + "' (in " + fileName + ":" + lineNumber + ")";
+    throw std::runtime_error(msg);
+}

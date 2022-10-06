@@ -1112,6 +1112,11 @@ bool CCamera::EventFrameBack(const Event &event)
         Math::Vector lookatPt = m_cameraObj->GetPosition();
         lookatPt.y += cameraDetails.height;
 
+        if (m_cameraObj->Implements(ObjectInterfaceType::Transportable) && IsObjectBeingTransported(m_cameraObj))
+        {
+            CObject* transporter = dynamic_cast<CTransportableObject&>(*m_cameraObj).GetTransporter();
+            lookatPt += transporter->GetPosition();
+        }
 
         float h = -m_cameraObj->GetRotationY();  // angle vehicle / building
         h += Math::PI * cameraDetails.rotationY;

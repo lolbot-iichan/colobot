@@ -71,25 +71,25 @@ bool CObjectGlobalDetails::Read(CLevelParserLine* line)
     READ_ARG( "text",   AsString,     debugMenu[id].text );
     READ_END();
 
-    READ_LINE( "UpdateBuilderMenuItem" );
+    READ_LINE( "UpdBuilderMenuItem" );
     READ_IDX( id );
     READ_ARG( "object", AsObjectType, builderMenu[id].type );
     READ_ARG( "icon",   AsInt,        builderMenu[id].icon );
     READ_ARG( "text",   AsString,     builderMenu[id].text );
     READ_END();
 
-    READ_LINE( "UpdateDebugMenuItem" );
+    READ_LINE( "UpdDebugMenuItem" );
     READ_IDX( id );
     READ_ARG( "object", AsObjectType, debugMenu[id].type );
     READ_ARG( "icon",   AsInt,        debugMenu[id].icon );
     READ_ARG( "text",   AsString,     debugMenu[id].text );
     READ_END();
 
-    READ_LINE( "ClearBuilderMenuItems" );
+    READ_LINE( "ClrBuilderMenuItems" );
     builderMenu.clear();
     READ_END();
 
-    READ_LINE( "ClearDebugMenuItems" );
+    READ_LINE( "ClrDebugMenuItems" );
     debugMenu.clear();
     READ_END();
 

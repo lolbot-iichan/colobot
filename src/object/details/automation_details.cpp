@@ -68,7 +68,7 @@ bool CObjectAutomationDetails::Read(CLevelParserLine* line)
     READ_ARG( "output", AsObjectType, production[id].output );
     READ_END();
 
-    READ_LINE( "UpdateObjectAutomationProduction" );
+    READ_LINE( "UpdObjectAutomationProduction" );
     READ_IDX( id );
     READ_ARG( "input",  AsObjectType, production[id].input  );
     READ_ARG( "output", AsObjectType, production[id].output );

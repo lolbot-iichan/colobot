@@ -31,8 +31,8 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "object/details/automation_details.h"
 #include "object/details/programmable_details.h"
+#include "object/details/task_executor_details.h"
 
 #include "object/interface/slotted_object.h"
 
@@ -206,6 +206,13 @@ Error CTaskRecover::Start()
     if ( m_ruin == nullptr )  return ERR_RECOVER_NULL;
     m_ruin->SetLock(true);  // ruin no longer usable
 
+    auto recycle = GetObjectTaskExecutorDetails(m_object).recycle;
+    for ( auto it : recycle.objects )
+    {
+        if ( it.input == m_ruin->GetType() )
+            m_metalType = it.output;
+    }
+
     Math::Vector iPos = m_object->GetPosition();
     Math::Vector oPos = m_ruin->GetPosition();
     m_angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
@@ -304,7 +311,7 @@ Error CTaskRecover::IsEnded()
 
     if ( m_phase == TRP_DOWN )
     {
-        m_metal = CObjectManager::GetInstancePointer()->CreateObject(m_recoverPos, 0.0f, OBJECT_METAL);
+        m_metal = CObjectManager::GetInstancePointer()->CreateObject(m_recoverPos, 0.0f, m_metalType);
         m_metal->SetLock(true);  // metal not yet usable
         m_metal->SetScale(0.0f);
 
@@ -376,10 +383,10 @@ bool CTaskRecover::Abort()
 
 CObject* CTaskRecover::SearchRuin()
 {
-    std::vector<ObjectType> types;
+    auto recycle = GetObjectTaskExecutorDetails(m_object).recycle;
 
-    auto automation = GetObjectAutomationDetails(m_object);
-    for ( auto it : automation.production )
+    std::vector<ObjectType> types;
+    for ( auto it : recycle.objects )
         types.push_back(it.input);
 
     return CObjectManager::GetInstancePointer()->FindNearest(nullptr, m_recoverPos, types, 40.0f/g_unit);

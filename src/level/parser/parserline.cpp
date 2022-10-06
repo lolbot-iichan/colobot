@@ -95,6 +95,14 @@ void CLevelParserLine::AddParam(std::string name, CLevelParserParamUPtr value)
     m_params.insert(std::make_pair(name, std::move(value)));
 }
 
+std::vector<std::string> CLevelParserLine::GetKeys()
+{
+    std::vector<std::string> result;
+    for ( auto const& it: m_params )
+        result.push_back(it.first);
+    return result;
+}
+
 std::ostream& operator<<(std::ostream& str, const CLevelParserLine& line)
 {
     str << line.m_command;

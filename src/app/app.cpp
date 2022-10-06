@@ -43,7 +43,6 @@
 
 #include "level/robotmain.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "sound/sound.h"

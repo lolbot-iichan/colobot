@@ -2636,7 +2636,7 @@ void CRobotMain::ScenePerso()
 
     m_engine->SetDrawWorld(false);  // does not draw anything on the interface
     m_engine->SetDrawFront(true);  // draws on the human interface
-    CObject* obj = SearchHuman();
+    CObject* obj = m_objMan->FindNearest(nullptr, OBJECT_NULL);
     if (obj != nullptr)
     {
         obj->SetDrawFront(true);  // draws the interface

@@ -17,12 +17,9 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
-#include <boost/lexical_cast.hpp>
-
-#include <unordered_set>
-
-#include "object/object_details.h"
+#include "object/details/details_provider.h"
 #include "object/details/hardcode.h"
+#include "object/details/macro.h"
 
 CObjectDetails::CObjectDetails()
 {
@@ -111,7 +108,7 @@ void CObjectDetails::Load(const char* fname)
             continue;
         }
 
-        if ( line.get()->GetParam("type")->IsDefined() )
+        if ( line->GetParam("type")->IsDefined() )
         {
             ObjectType type = line->GetParam("type")->AsObjectType();
 
@@ -138,12 +135,8 @@ void CObjectDetails::Load(const char* fname)
                 m_objects[type].shielded_auto_regen.Read(line.get()) ||
                 m_objects[type].slotted.Read(line.get()) ||
                 m_objects[type].thumpable.Read(line.get()) ) continue;
-
-            auto command    = line.get()->GetCommand();
-            auto fileName   = line.get()->GetLevelFilename();
-            auto lineNumber = boost::lexical_cast<std::string>(line.get()->GetLineNumber());
-            std::string msg = "Unknown command '" + command + "' (in " + fileName + ":" + lineNumber + ")";
-            throw std::runtime_error(msg);
+            else
+                UnusedCmd(line.get());
         }
 
         if ( m_globals.Read(line.get()) ) continue;

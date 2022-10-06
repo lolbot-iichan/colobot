@@ -4253,6 +4253,23 @@ std::vector<CObjectSniffTaskExecutorObject> CHardcodeCollection::GetSniffTaskExe
     return result;
 }
 
+std::vector<CObjectRecycleTaskExecutorObject> CHardcodeCollection::GetRecycleTaskExecutionObjects(ObjectType type)
+{
+    std::vector<CObjectRecycleTaskExecutorObject> result;
+
+    if ( type == OBJECT_MOBILErr)
+    {
+        result.push_back({OBJECT_RUINmobilew1, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobilew2, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobilet1, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobilet2, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobiler1, OBJECT_METAL});
+        result.push_back({OBJECT_RUINmobiler2, OBJECT_METAL});
+    }
+
+    return result;
+}
+
 bool CHardcodeCollection::IsMovable(ObjectType type)
 {
     if ( type == OBJECT_MOTHER ) return true;
@@ -7070,18 +7087,10 @@ std::vector<CObjectProductionAutomationDetails> CHardcodeCollection::GetProducti
         result.push_back({OBJECT_URANIUM, OBJECT_ATOMIC});
     if ( type == OBJECT_NEST )
         result.push_back({OBJECT_NULL, OBJECT_BULLET});
-    if ( type == OBJECT_MOBILErr)
-    {
-        result.push_back({OBJECT_RUINmobilew1, OBJECT_METAL});
-        result.push_back({OBJECT_RUINmobilew2, OBJECT_METAL});
-        result.push_back({OBJECT_RUINmobilet1, OBJECT_METAL});
-        result.push_back({OBJECT_RUINmobilet2, OBJECT_METAL});
-        result.push_back({OBJECT_RUINmobiler1, OBJECT_METAL});
-        result.push_back({OBJECT_RUINmobiler2, OBJECT_METAL});
-    }
 
     return result;
 }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // UI Icon Details

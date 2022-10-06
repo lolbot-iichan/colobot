@@ -57,6 +57,9 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_LINE( "SetObjectCreation" );
     READ_ARG( "baseClass",     AsInt,    baseClass           );
     READ_ARG( "autoClass",     AsInt,    autoClass           );
+    READ_END();
+
+    READ_LINE( "SetObjectModel" );
     READ_ARG( "forceTextures", AsBool,   isForceLoadTextures );
     READ_ARG( "floorHeight",   AsBool,   isSetFloorHeight    );
     READ_ARG( "floorAdjust",   AsBool,   isFloorAdjust       );
@@ -65,12 +68,12 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_ARG( "name",          AsString, displayedName       );
     READ_END();
 
-    READ_LINE( "SetObjectCreationCameraCollisionSphere" );
+    READ_LINE( "SetObjectModelCameraCollisionSphere" );
     READ_ARG( "position",  AsPoint,            cameraCollisionSphere.pos    );
     READ_ARG( "radius",    AsFloat,            cameraCollisionSphere.radius );
     READ_END();
 
-    READ_LINE( "SetObjectCreationShadowCircle" );
+    READ_LINE( "SetObjectModelShadowCircle" );
     READ_ARG( "radius",    AsFloat,            shadowCircle.radius    );
     READ_ARG( "intensity", AsFloat,            shadowCircle.intensity );
     READ_ARG( "shadow",    AsEngineShadowType, shadowCircle.shadowType    );
@@ -88,7 +91,7 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_ARG( "copyModel", AsBool,             model[id].copyModel );
     READ_END();
 
-    READ_LINE( "AddObjectCrashSphere" );
+    READ_LINE( "AddObjectModelCrashSphere" );
     READ_NEW( id,                              crashSpheres);
     READ_ARG( "pos",       AsPoint,            crashSpheres[id].sphere.pos    );
     READ_ARG( "radius",    AsFloat,            crashSpheres[id].sphere.radius );
@@ -96,7 +99,7 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_ARG( "hardness",  AsFloat,            crashSpheres[id].hardness      );
     READ_END();
 
-    READ_LINE( "AddObjectBuildingLevel" );
+    READ_LINE( "AddObjectModelBuildingLevel" );
     READ_NEW( id,                              buildingLevels);
     READ_ARG( "min",       AsFloat,            buildingLevels[id].min    );
     READ_ARG( "max",       AsFloat,            buildingLevels[id].max    );
@@ -104,7 +107,7 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_ARG( "factor",    AsFloat,            buildingLevels[id].factor );
     READ_END();
 
-    READ_LINE( "UpdateObjectCrashSphere" );
+    READ_LINE( "UpdObjectModelCrashSphere" );
     READ_IDX( id );
     READ_ARG( "pos",       AsPoint,            crashSpheres[id].sphere.pos    );
     READ_ARG( "radius",    AsFloat,            crashSpheres[id].sphere.radius );
@@ -122,6 +125,9 @@ void CObjectCreationDetails::Write(CLevelParser* parser, ObjectType type)
     WRITE_LINE( "SetObjectCreation" );
     WRITE_ARG( "baseClass",     def, baseClass           );
     WRITE_ARG( "autoClass",     def, autoClass           );
+    WRITE_END();
+
+    WRITE_LINE( "SetObjectModel" );
     WRITE_ARG( "forceTextures", def, isForceLoadTextures );
     WRITE_ARG( "floorHeight",   def, isSetFloorHeight    );
     WRITE_ARG( "floorAdjust",   def, isFloorAdjust       );
@@ -130,12 +136,12 @@ void CObjectCreationDetails::Write(CLevelParser* parser, ObjectType type)
     WRITE_ARG( "name",          def, displayedName       );
     WRITE_END();
 
-    WRITE_LINE( "SetObjectCreationCameraCollisionSphere" );
+    WRITE_LINE( "SetObjectModelCameraCollisionSphere" );
     WRITE_ARG( "position",      def, cameraCollisionSphere.pos    );
     WRITE_ARG( "radius",        def, cameraCollisionSphere.radius );
     WRITE_END();
 
-    WRITE_LINE( "SetObjectCreationShadowCircle" );
+    WRITE_LINE( "SetObjectModelShadowCircle" );
     WRITE_ARG( "radius",        def, shadowCircle.radius     );
     WRITE_ARG( "intensity",     def, shadowCircle.intensity  );
     WRITE_ARG( "shadow",        def, shadowCircle.shadowType );
@@ -159,7 +165,7 @@ void CObjectCreationDetails::Write(CLevelParser* parser, ObjectType type)
     CrashSphere defC;
     for ( auto it : crashSpheres )
     {
-        WRITE_LINE( "AddObjectCrashSphere" );
+        WRITE_LINE( "AddObjectModelCrashSphere" );
         WRITE_IT( "pos",      defC, sphere.pos    );
         WRITE_IT( "radius",   defC, sphere.radius );
         WRITE_IT( "sound",    defC, sound         );
@@ -170,7 +176,7 @@ void CObjectCreationDetails::Write(CLevelParser* parser, ObjectType type)
     CObjectCreationBuildingLevel defB;
     for ( auto it : buildingLevels )
     {
-        WRITE_LINE( "AddObjectBuildingLevel" );
+        WRITE_LINE( "AddObjectModelBuildingLevel" );
         WRITE_IT( "min",      defB, min    );
         WRITE_IT( "max",      defB, max    );
         WRITE_IT( "height",   defB, height );

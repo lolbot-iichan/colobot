@@ -377,7 +377,7 @@ bool IsAutoBlockingNuclearPlant(ObjectType type);
 bool IsAutoBlockingFactory(ObjectType type);
 
 std::vector<CObjectProductionAutomationDetails> GetProduction(ObjectType type);
-
+std::vector<CObjectRecycleTaskExecutorObject> GetRecycleTaskExecutionObjects(ObjectType type);
 
 
 //////////////////////////////////////////////////////////////////////////////

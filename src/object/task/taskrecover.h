@@ -20,6 +20,8 @@
 #pragma once
 
 
+#include "object/object_type.h"
+
 #include "object/task/task.h"
 
 #include "math/vector.h"
@@ -64,4 +66,5 @@ protected:
     CObject*        m_metal = nullptr;
     Math::Vector    m_recoverPos;
     int             m_soundChannel = 0;
+    ObjectType      m_metalType = OBJECT_NULL;
 };
