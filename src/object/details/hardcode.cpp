@@ -6096,7 +6096,7 @@ std::vector<CPyroBurnPartDetails> CHardcodeCollection::GetBurnParts(ObjectType t
         Math::Vector angleR(0.8f, 0.0f, 0.2f);
         result.push_back({0, pos, posR, angle, angleR});  // movement of the main part
     }
-    else
+    else if ( IsDestroyable(type) ) //TODO: another criteria?
     {
         Math::Vector pos(0.0f, -2.0f, 0.0f);
         Math::Vector posR(0.0f, -2.0f, 0.0f);
@@ -6424,9 +6424,13 @@ ObjectType CHardcodeCollection::GetTypeAfterBurn(ObjectType type)
     {
         return (OBJECT_RUINfactory); // Ruin
     }
-    else
+    else if ( IsDestroyable(type) )
     {
         return (OBJECT_RUINmobilew1); // Wreck (recoverable by Recycler)
+    }
+    else
+    {
+        return OBJECT_NULL;
     }
 }
 

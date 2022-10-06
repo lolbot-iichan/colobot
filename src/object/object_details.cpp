@@ -87,11 +87,11 @@ void CObjectDetails::Load(const char* fname)
     CLevelParser parser(fname);
     if (!parser.Exists())
     {
-        assert(false);
         return;
     }
 
     parser.Load();
+
     for (auto& line : parser.GetLines())
     {
         if ( line->GetCommand() == "SetObjectNaming" )
