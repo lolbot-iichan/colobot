@@ -34,7 +34,6 @@ public:
     bool        EventProcess(const Event &event) override;
 
 protected:
-    void        CreatePhysics(ObjectType type);
     bool        EventFrame(const Event &event);
     bool        EventFrameFly(const Event &event);
     bool        EventFrameInsect(const Event &event);

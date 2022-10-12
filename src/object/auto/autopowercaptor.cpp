@@ -228,10 +228,6 @@ bool CAutoPowerCaptor::CreateInterface(bool bSelect)
 
 Error CAutoPowerCaptor::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
     return ERR_OK;
 }
 

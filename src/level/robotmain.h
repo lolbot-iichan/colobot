@@ -346,7 +346,7 @@ public:
 
     void        DisplayError(Error err, CObject* pObj, float time=10.0f);
     void        DisplayError(Error err, Math::Vector goal, float height=15.0f, float dist=60.0f, float time=10.0f);
-    void        DisplayText(std::string text, Math::Vector goal, float height=15.0f, float dist=60.0f, float time=10.0f, Ui::TextType type=Ui::TT_INFO);
+    void        DisplayText(std::string text, CObject* pObj, Ui::TextType type, float height=15.0f, float dist=60.0f, float time=10.0f);
 
     void        UpdateCustomLevelList();
     std::string GetCustomLevelName(int id);

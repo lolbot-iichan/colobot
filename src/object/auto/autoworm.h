@@ -19,29 +19,24 @@
 
 #pragma once
 
-#include "object/old_object.h"
 
-struct ObjectCreateParams;
+#include "object/object.h"
 
-namespace Gfx
-{
-class COldModelManager;
-class CEngine;
-}
+#include "object/auto/auto.h"
 
-/**
- * \class CBaseBuilding
- * \brief Base class for all buildings
- */
-class CBaseBuilding : public COldObject
+
+class CAutoWorm : public CAuto
 {
 public:
-    CBaseBuilding(int id, ObjectType type);
-    virtual ~CBaseBuilding();
+    CAutoWorm(COldObject* object);
+    ~CAutoWorm() override;
 
-public:
-    static std::unique_ptr<CBaseBuilding> Create(
-        const ObjectCreateParams& params,
-        Gfx::COldModelManager* modelManager,
-        Gfx::CEngine* engine);
+    void        Init() override;
+    bool        EventProcess(const Event &event) override;
+
+protected:
+    CObject*    WormSearch(Math::Vector &impact);
+    void        WormFrame(float rTime);
+
+    float       m_wormLastTime = 0.0f;
 };

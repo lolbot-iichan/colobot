@@ -88,6 +88,8 @@ struct CObjectDestroyableDetails
     bool enabled              = false;
     bool removeBuildingLevel  = false; // TODO: maybe we should just check for BuildingLevel in creation model ?!
 
+    std::string message;
+
     CObjectExplosionDestroyableDetails explosion;
     CObjectWaterDestroyableDetails     water;
     CObjectBurningDestroyableDetails   burning;

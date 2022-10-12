@@ -86,4 +86,5 @@ protected:
     float           m_buildingHeight = 0.0f;        // height of the building
     int             m_lightRank[TBMAXLIGHT] = {}; // lights for the effects
     int             m_soundChannel = 0;
+    std::string     m_onCompleted;
 };

@@ -238,15 +238,19 @@ bool CAutoConvert::EventProcess(const Event &event)
             cargo = SearchStone();
             if ( cargo != nullptr )
             {
-                for ( auto it : GetObjectAutomationDetails(m_object).production )
+                std::vector<CObjectProductionAutomation> matched;
+                for ( auto it : GetObjectAutomationDetails(m_object).production.objects )
                 {
-                    if ( it.input != cargo->GetType() ) continue;
-
-                    CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-                    CreateMetal(it.output);  // Create the metal
-                    m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
-                    break;
+                    if ( cargo->GetType() == it.input )
+                        matched.push_back(it);
                 }
+
+                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
+                m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
+
+                CObjectProductionAutomation matchedFinal = matched[ std::rand() % matched.size() ];
+                CreateMetal(matchedFinal.output);  // Create the metal
+                m_main->DisplayText(matchedFinal.message, m_object, Ui::TT_INFO);
             }
 
             m_phase    = ACP_OPEN;
@@ -300,12 +304,11 @@ bool CAutoConvert::EventProcess(const Event &event)
 
 Error CAutoConvert::GetError()
 {
-    if ( m_object->GetVirusMode() )
+    auto production = GetObjectAutomationDetails(m_object).production;
+    if ( m_phase == ACP_WAIT )
     {
-        return ERR_BAT_VIRUS;
+        m_main->DisplayText(production.noInput, m_object, Ui::TT_WARNING);
     }
-
-    if ( m_phase == ACP_WAIT )  return ERR_CONVERT_EMPTY;
     return ERR_OK;
 }
 
@@ -381,7 +384,7 @@ CObject* CAutoConvert::SearchStone()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         if (IsObjectBeingTransported(obj)) continue;
-        for ( auto it: production )
+        for ( auto it: production.objects )
         {
             if ( obj->GetType() != it.input ) continue;
     
@@ -409,7 +412,7 @@ bool CAutoConvert::SearchVehicle()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         bool bSkip = false;
-        for ( auto it: production )
+        for ( auto it: production.objects )
             if (obj->GetType() == it.input) bSkip = true;
 
         if (bSkip) continue;
@@ -434,6 +437,4 @@ void CAutoConvert::CreateMetal(ObjectType type)
     params.team = m_object->GetTeam();
     params.type = type;
     CObjectManager::GetInstancePointer()->CreateObject(params);
-
-    m_main->DisplayError(INFO_CONVERT, m_object);
 }

@@ -28,29 +28,23 @@ class CObject;
 class CLevelParser;
 class CLevelParserLine;
 
+#include <vector>
+
 //////////////////////////////////////////////////////////////////////////////
 // Child structs
 //////////////////////////////////////////////////////////////////////////////
 
-struct CObjectCargoSlottedDetails
+enum SlotType
 {
-    bool         enabled = false;
-
-    int          partNum = 0;
-    Math::Vector position;
+    SLOT_POWER = 0,
+    SLOT_CARGO = 1,
+    SLOT_OTHER = 2,
 };
 
-struct CObjectPowerSlottedDetails
+struct CObjectSlotDetails
 {
-    bool         enabled = false;
-
-    Math::Vector position;
-};
-
-struct CObjectOtherSlottedDetails
-{
-    bool         enabled = false;
-
+    int          category = SLOT_OTHER;
+    int          partNum  = 0;
     Math::Vector position;
 };
 
@@ -62,9 +56,7 @@ struct CObjectSlottedDetails
 {
     bool enabled = false;
 
-    CObjectCargoSlottedDetails cargo;
-    CObjectPowerSlottedDetails power;
-    CObjectOtherSlottedDetails other;
+    std::vector<CObjectSlotDetails> slots;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

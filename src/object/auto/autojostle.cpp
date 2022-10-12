@@ -20,7 +20,7 @@
 
 #include "object/auto/autojostle.h"
 
-#include "object/details/josteable_details.h"
+#include "object/details/jostleable_details.h"
 
 #include "object/old_object.h"
 
@@ -71,7 +71,7 @@ void CAutoJostle::Start(int param, float force)
     m_time = 0.0f;
     m_error = ERR_CONTINUE;
 
-    m_force *= GetObjectJosteableDetails(m_object).factor;
+    m_force *= GetObjectJostleableDetails(m_object).factor;
 }
 
 // Should never be called

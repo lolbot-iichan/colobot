@@ -34,9 +34,9 @@
 #include "math/geometry.h"
 
 #include "object/old_object.h"
-#include "object/object_details.h"
 
 #include "object/details/controllable_details.h"
+#include "object/details/task_executor_details.h"
 
 #include "object/interface/programmable_object.h"
 #include "object/interface/slotted_object.h"
@@ -67,6 +67,7 @@
 #include "ui/controls/target.h"
 #include "ui/controls/window.h"
 
+#include <libintl.h>
 
 namespace Ui
 {
@@ -489,10 +490,10 @@ bool CObjectInterface::EventProcess(const Event &event)
 
         if ( action >= EVENT_OBJECT_BUILD_01 && action <= EVENT_OBJECT_BUILD_MAX )
         {
+            auto buildObjects = GetObjectTaskExecutorDetails(m_object).build.objects;
             size_t index = action - EVENT_OBJECT_BUILD_01;
-            assert(index < GetObjectGlobalDetails().builderMenu.size());
-            auto item = GetObjectGlobalDetails().builderMenu[index];
-            err = m_taskExecutor->StartTaskBuild(item.type);
+            assert(index < buildObjects.size());
+            err = m_taskExecutor->StartTaskBuild(buildObjects[index].output);
         }
 
         if ( action == EVENT_OBJECT_GFLAT )
@@ -754,10 +755,7 @@ void CObjectInterface::ColorFlag(int color)
 
 bool CObjectInterface::CreateInterface(bool bSelect)
 {
-    CObjectOnboardCameraDetails onboardCameraDetails;
-    CObjectControlsDetails controlsDetails;
     CWindow*     pw;
-    CButton*     pb;
     CSlider*     ps;
     CColor*      pc;
     CTarget*     pt;
@@ -798,8 +796,9 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    controlsDetails = GetObjectControllableDetails(m_object).controls;
-    onboardCameraDetails = GetObjectControllableDetails(m_object).camera.onboard;
+    auto controlsDetails = GetObjectControllableDetails(m_object).controls;
+    auto onboardCameraDetails = GetObjectControllableDetails(m_object).camera.onboard;
+    auto taskExecutorDetails = GetObjectTaskExecutorDetails(m_object);
 
     if ( controlsDetails.hasProgramUI )
     {
@@ -840,13 +839,11 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     {
         pos.x = ox+sx*6.4f;
         pos.y = oy+sy*0;
-        pb = pw->CreateButton(pos, dim, 29, EVENT_OBJECT_GASDOWN);
-        pb->SetImmediat(true);
+        pw->CreateButton(pos, dim, 29, EVENT_OBJECT_GASDOWN)->SetImmediat(true);
 
         pos.x = ox+sx*6.4f;
         pos.y = oy+sy*1;
-        pb = pw->CreateButton(pos, dim, 28, EVENT_OBJECT_GASUP);
-        pb->SetImmediat(true);
+        pw->CreateButton(pos, dim, 28, EVENT_OBJECT_GASUP)->SetImmediat(true);
 
         if ( m_object->Implements(ObjectInterfaceType::JetFlying) )
         {
@@ -900,15 +897,18 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ddim.y = dim.y*0.9f;
 
         size_t len = EVENT_OBJECT_BUILD_MAX - EVENT_OBJECT_BUILD_01 + 1;
-        auto builderMenu = GetObjectGlobalDetails().builderMenu;
-        len = builderMenu.size() > len ? len : builderMenu.size();
+        auto buildObjects = taskExecutorDetails.build.objects;
+        len = buildObjects.size() > len ? len : buildObjects.size();
         for (size_t i = 0; i < len; i++)
         {
             pos.x = ox + (i%7)*sx*0.9f;
             pos.y = oy + sy*1.0f - (i/7)*sy*0.9f;
             EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_01 + i);
-            pw->CreateButton(pos, ddim, builderMenu[i].icon, e);
-            DeadInterface(pw, e, m_main->CanBuild(builderMenu[i].type, m_object->GetTeam()));
+
+            CButton* pb = pw->CreateButton(pos, ddim, buildObjects[i].icon, e);
+            if ( buildObjects[i].text.size() )
+                pb->SetTooltip(gettext(buildObjects[i].text.c_str())); // TODO: gettext in separate file
+            DeadInterface(pw, e, m_main->CanBuild(buildObjects[i].output, m_object->GetTeam()));
         }
     }
 
@@ -1140,8 +1140,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
-        pb = pw->CreateButton(pos, dim, 192+4, EVENT_OBJECT_BUILD);
-        pb->SetImmediat(true);
+        pw->CreateButton(pos, dim, 192+4, EVENT_OBJECT_BUILD)->SetImmediat(true);
         DefaultEnter(pw, EVENT_OBJECT_BUILD);
 
         pos.x = 0.0f;
@@ -1154,15 +1153,18 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ddim.y = dim.y*0.9f;
 
         size_t len = EVENT_OBJECT_BUILD_MAX - EVENT_OBJECT_BUILD_01 + 1;
-        auto builderMenu = GetObjectGlobalDetails().builderMenu;
-        len = builderMenu.size() > len ? len : builderMenu.size();
+        auto buildObjects = taskExecutorDetails.build.objects;
+        len = buildObjects.size() > len ? len : buildObjects.size();
         for (size_t i = 0; i < len; i++)
         {
             pos.x = ox + (i%7)*sx*0.9f;
             pos.y = oy + sy*3.6f - (i/7)*sy*0.9f;
             EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_01 + i);
-            pw->CreateButton(pos, ddim, builderMenu[i].icon, e);
-            DeadInterface(pw, e, m_main->CanBuild(builderMenu[i].type, m_object->GetTeam()));
+            
+            CButton* pb = pw->CreateButton(pos, ddim, buildObjects[i].icon, e);
+            if ( buildObjects[i].text.size() )
+                pb->SetTooltip(gettext(buildObjects[i].text.c_str())); // TODO: gettext in separate file
+            DeadInterface(pw, e, m_main->CanBuild(buildObjects[i].output, m_object->GetTeam()));
 
         }
 
@@ -1493,36 +1495,36 @@ void CObjectInterface::UpdateInterface()
         CheckInterface(pw, EVENT_OBJECT_BUILD, m_buildInterface);
 
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_WINDOW3));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
 
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_01));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_02));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_03));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_04));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_05));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_06));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_07));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_08));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_09));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_10));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_11));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_12));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_13));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BUILD_14));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
     }
 
     bFly = bEnable;

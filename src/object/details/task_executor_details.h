@@ -47,6 +47,15 @@ enum TaskExecutionType
     ExecutionAsSniffer = 3,
 };
 
+struct CObjectAimTaskExecutorDetails
+{
+    float minY    = 0.0f;
+    float maxY    = 0.0f;
+    float minZ    = 0.0f;
+    float maxZ    = 0.0f;
+    int   partNum = -1;
+};
+
 struct CObjectFlagTaskExecutorObject
 {
     ObjectType output   = OBJECT_NULL;
@@ -93,6 +102,20 @@ struct CObjectRecycleTaskExecutorDetails
     std::vector<CObjectRecycleTaskExecutorObject> objects;
 };
 
+struct CObjectBuildTaskExecutorObject
+{
+    ObjectType  input   = OBJECT_NULL;
+    ObjectType  output  = OBJECT_NULL;
+    std::string message = "";
+    int         icon    = -1;
+    std::string text    = "";
+};
+
+struct CObjectBuildTaskExecutorDetails
+{
+    std::vector<CObjectBuildTaskExecutorObject> objects;
+};
+
 //////////////////////////////////////////////////////////////////////////////
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
@@ -102,9 +125,11 @@ struct CObjectTaskExecutorDetails
     bool     enabled = true;
     ToolType tool    = ToolType::Other;
 
-    CObjectFlagTaskExecutorDetails  flag;      // for CTaskFlag
-    CObjectSniffTaskExecutorDetails sniff;     // for CTaskDeleteMark, CTaskSearch
-    CObjectRecycleTaskExecutorDetails recycle; // for CTaskRecover
+    CObjectAimTaskExecutorDetails     aim;      // for CTaskGunGoal
+    CObjectBuildTaskExecutorDetails   build;    // for CTaskBuild
+    CObjectFlagTaskExecutorDetails    flag;     // for CTaskFlag
+    CObjectRecycleTaskExecutorDetails recycle;  // for CTaskRecover
+    CObjectSniffTaskExecutorDetails   sniff;    // for CTaskDeleteMark, CTaskSearch
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

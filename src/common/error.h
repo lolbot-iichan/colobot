@@ -63,7 +63,6 @@ enum Error
     ERR_FIRE_ENERGY       = 161,      //!<  not enough energy
     ERR_RECOVER_ENERGY    = 171,      //!<  not enough energy
     ERR_RECOVER_NULL      = 172,      //!<  lack of ruin
-    ERR_CONVERT_EMPTY     = 180,      //!<  no stone was transformed
     ERR_SHIELD_ENERGY     = 191,      //!<  not enough energy
     ERR_MOVE_IMPOSSIBLE   = 200,      //!<  move impossible
     ERR_GOTO_IMPOSSIBLE   = 210,      //!<  goto impossible
@@ -71,7 +70,6 @@ enum Error
     ERR_GOTO_BUSY         = 212,      //!<  goto destination occupied
     ERR_DERRICK_NULL      = 300,      //!<  no ore underground
     ERR_STATION_NULL      = 301,      //!<  no energy underground
-    ERR_TOWER_POWER       = 310,      //!<  no battery
     ERR_TOWER_ENERGY      = 311,      //!<  more energy
     ERR_RESEARCH_POWER    = 320,      //!<  no battery
     ERR_RESEARCH_ENERGY   = 321,      //!<  more energy
@@ -79,15 +77,11 @@ enum Error
     ERR_RESEARCH_ALREADY  = 323,      //!<  research already done
     ERR_ENERGY_NULL       = 330,      //!<  no energy underground
     ERR_ENERGY_LOW        = 331,      //!<  not enough energy
-    ERR_ENERGY_EMPTY      = 332,      //!<  lack of metal
-    ERR_ENERGY_BAD        = 333,      //!<  transforms only the metal
     ERR_BASE_DLOCK        = 340,      //!<  doors locked
     ERR_BASE_DHUMAN       = 341,      //!<  you must be on spaceship
     ERR_LABO_NULL         = 350,      //!<  nothing to analyze
     ERR_LABO_BAD          = 351,      //!<  analyzes only organic ball
     ERR_LABO_ALREADY      = 352,      //!<  analysis already made
-    ERR_NUCLEAR_EMPTY     = 362,      //!<  lack of uranium
-    ERR_NUCLEAR_BAD       = 363,      //!<  transforms only uranium
     ERR_FACTORY_NULL      = 370,      //!<  no metal
     ERR_FACTORY_NEAR      = 371,      //!<  vehicle too close
     ERR_INFO_NULL         = 390,      //!<  no information terminal
@@ -105,8 +99,6 @@ enum Error
     ERR_FLAG_PROXY        = 515,      //!<  too close
     ERR_FLAG_DELETE       = 516,      //!<  nothing to remove
     ERR_MISSION_NOTERM    = 600,      //!<  Mission not completed
-    ERR_DELETEMOBILE      = 700,      //!<  vehicle destroyed
-    ERR_DELETEBUILDING    = 701,      //!<  building destroyed
     ERR_ENEMY_OBJECT      = 703,      //!<  can't control enemy object
     ERR_OBLIGATORYTOKEN   = 800,      //!<  compulsory instruction missing
     ERR_PROHIBITEDTOKEN   = 801,      //!<  instruction prohibited
@@ -115,13 +107,9 @@ enum Error
     ERR_NO_QUICK_SLOT     = 920,      //!<  quicksave slot not found
 
     INFO_FIRST            = 10000,    //! <  first information
-    INFO_BUILD            = 10001,    //! <  construction builded
-    INFO_CONVERT          = 10002,    //! <  metal available
     INFO_RESEARCH         = 10003,    //! <  search ended
     INFO_FACTORY          = 10004,    //! <  vehicle manufactured
     INFO_LABO             = 10005,    //! <  analysis ended
-    INFO_ENERGY           = 10006,    //! <  battery available
-    INFO_NUCLEAR          = 10007,    //! <  nuclear battery available
     INFO_FINDING          = 10008,    //! <  useful object found
     INFO_RESEARCHTANK     = 10030,    //! <  research ended
     INFO_RESEARCHFLY      = 10031,    //! <  research ended
@@ -136,11 +124,6 @@ enum Error
     INFO_LOST             = 10041,    //! <  lost
     INFO_LOSTq            = 10042,    //! <  lost immediately
     INFO_WRITEOK          = 10043,    //! <  record done
-    INFO_DELETEMOTHER     = 10100,    //! <  insect killed
-    INFO_DELETEANT        = 10101,    //! <  insect killed
-    INFO_DELETEBEE        = 10102,    //! <  insect killed
-    INFO_DELETEWORM       = 10103,    //! <  insect killed
-    INFO_DELETESPIDER     = 10104,    //! <  insect killed
     INFO_BEGINSATCOM      = 10105,    //! <  use your SatCom
     INFO_TEAM_FINISH      = 10110,
     INFO_TEAM_DEAD        = 10111,

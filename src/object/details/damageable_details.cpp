@@ -34,30 +34,40 @@ void CObjectDamageableDetails::ReadHardcode(ObjectType type)
     CHardcodeCollection hardcode;
 
     enabled               = hardcode.IsDamageable(type);
+    effect                = hardcode.GetDamageEffect(type);
+
     fire.enabled          = ! hardcode.IsImmuneToFireballs(type);
     organic.enabled       = ! hardcode.IsImmuneToInsects(type);
     phazer.enabled        = ! hardcode.IsImmuneToPhazers(type);
     tower.enabled         = ! hardcode.IsImmuneToTowerRays(type);
     fallingObject.enabled = ! hardcode.IsImmuneToOrgaballs(type);
-    explosive.enabled     = true; // TODO
-    collision.enabled     = true; // TODO
-    lightning.enabled     = hardcode.GetLightningRodHeight(type) == 0.0f;
+    explosive.enabled     = ! hardcode.IsImmuneToExplosive(type);
+    collision.enabled     = ! hardcode.IsImmuneToCollisions(type);
+    lightning.enabled     = ! hardcode.IsImmuneToLightning(type);
+    fall.enabled          = ! hardcode.IsImmuneToFall(type);
     spider.enabled        = ! hardcode.IsImmuneToSpiders(type);
+
+    lightning.lightningRodHeight      = hardcode.GetLightningRodHeight(type);
+    lightning.lightningHitProbability = hardcode.GetLightningHitProbability(type);
 }
 
 bool CObjectDamageableDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectDamageable" );
-    READ_ARG( "enabled", AsBool, enabled);
-    READ_ARG( "fDamage", AsBool, fire.enabled );
-    READ_ARG( "oDamage", AsBool, organic.enabled );
-    READ_ARG( "pDamage", AsBool, phazer.enabled );
-    READ_ARG( "tDamage", AsBool, tower.enabled );
-    READ_ARG( "wDamage", AsBool, fallingObject.enabled );
-    READ_ARG( "eDamage", AsBool, explosive.enabled );
-    READ_ARG( "cDamage", AsBool, collision.enabled );
-    READ_ARG( "lDamage", AsBool, lightning.enabled );
-    READ_ARG( "hDamage", AsBool, fall.enabled );
+    READ_ARG( "enabled",      AsBool,     enabled               );
+    READ_ARG( "effect",       AsPyroType, effect                );
+    READ_ARG( "fDamage",      AsBool,     fire.enabled          );
+    READ_ARG( "oDamage",      AsBool,     organic.enabled       );
+    READ_ARG( "pDamage",      AsBool,     phazer.enabled        );
+    READ_ARG( "tDamage",      AsBool,     tower.enabled         );
+    READ_ARG( "wDamage",      AsBool,     fallingObject.enabled );
+    READ_ARG( "eDamage",      AsBool,     explosive.enabled     );
+    READ_ARG( "cDamage",      AsBool,     collision.enabled     );
+    READ_ARG( "lDamage",      AsBool,     lightning.enabled     );
+    READ_ARG( "hDamage",      AsBool,     fall.enabled          );
+    READ_ARG( "sDamage",      AsBool,     spider.enabled        );
+    READ_ARG( "lRod",         AsFloat,    lightning.lightningRodHeight );
+    READ_ARG( "lProbability", AsFloat,    lightning.lightningHitProbability );
     READ_END();
 
     return false;
@@ -68,16 +78,20 @@ void CObjectDamageableDetails::Write(CLevelParser* parser, ObjectType type)
     CObjectDamageableDetails def;
 
     WRITE_LINE( "SetObjectDamageable" );
-    WRITE_ARG( "enabled", def, enabled );
-    WRITE_ARG( "fDamage", def, fire.enabled );
-    WRITE_ARG( "oDamage", def, organic.enabled );
-    WRITE_ARG( "pDamage", def, phazer.enabled );
-    WRITE_ARG( "tDamage", def, tower.enabled );
-    WRITE_ARG( "wDamage", def, fallingObject.enabled );
-    WRITE_ARG( "eDamage", def, explosive.enabled );
-    WRITE_ARG( "cDamage", def, collision.enabled );
-    WRITE_ARG( "lDamage", def, lightning.enabled );
-    WRITE_ARG( "hDamage", def, fall.enabled );
+    WRITE_ARG( "enabled",      def, enabled               );
+    WRITE_ARG( "effect",       def, effect                );
+    WRITE_ARG( "fDamage",      def, fire.enabled          );
+    WRITE_ARG( "oDamage",      def, organic.enabled       );
+    WRITE_ARG( "pDamage",      def, phazer.enabled        );
+    WRITE_ARG( "tDamage",      def, tower.enabled         );
+    WRITE_ARG( "wDamage",      def, fallingObject.enabled );
+    WRITE_ARG( "eDamage",      def, explosive.enabled     );
+    WRITE_ARG( "cDamage",      def, collision.enabled     );
+    WRITE_ARG( "lDamage",      def, lightning.enabled     );
+    WRITE_ARG( "hDamage",      def, fall.enabled          );
+    WRITE_ARG( "sDamage",      def, spider.enabled        );
+    WRITE_ARG( "lRod",         def, lightning.lightningRodHeight );
+    WRITE_ARG( "lProbability", def, lightning.lightningHitProbability );
     WRITE_END();
 }
 

@@ -230,11 +230,6 @@ CObject* CAutoRepair::SearchVehicle()
 
 Error CAutoRepair::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     return ERR_OK;
 }
 

@@ -31,16 +31,9 @@
 #include "common/event.h"
 #include "common/singleton.h"
 
-#include "graphics/core/color.h"
-
-#include "level/build_type.h"
 #include "level/research_type.h"
 #include "level/parser/parser.h"
 
-#include "math/point.h"
-#include "math/vector.h"
-
-#include "object/crash_sphere.h"
 #include "object/object.h"
 #include "object/object_type.h"
 
@@ -55,7 +48,7 @@
 #include "object/details/fragile_details.h"
 #include "object/details/global_details.h"
 #include "object/details/jet_flying_details.h"
-#include "object/details/josteable_details.h"
+#include "object/details/jostleable_details.h"
 #include "object/details/movable_details.h"
 #include "object/details/naming_details.h"
 #include "object/details/power_container_details.h"
@@ -81,16 +74,9 @@ struct CObjectThumperPhysicsDetails
     float         explosionDamage = 0.0f;
 };
 
-struct CObjectLightningPhysicsDetails
-{
-    float lightningRodHeight = 0.0f;
-};
-
 struct CObjectPhysicsDetails
 {
     CObjectThumperPhysicsDetails   thumper;
-    CObjectLightningPhysicsDetails lightning;
-
 
     float collisionOtherObjectRadiusToIgnore = 0.0f;
     bool  isCollisionDamagable               = false;
@@ -118,7 +104,7 @@ struct CObjectDetail
     CObjectTransportableDetails     transportable;
     CObjectProgrammableDetails      programmable;
     CObjectTaskExecutorDetails      task_executor;
-    CObjectJosteableDetails         josteable;
+    CObjectJostleableDetails         jostleable;
     CObjectMovableDetails           movable;
     CObjectFlyingDetails            flying;
     CObjectJetFlyingDetails         jet_flying;

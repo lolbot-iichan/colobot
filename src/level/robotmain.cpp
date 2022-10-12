@@ -73,6 +73,7 @@
 #include "object/details/assistant_details.h"
 #include "object/details/automation_details.h"
 #include "object/details/controllable_details.h"
+#include "object/details/global_details.h"
 
 #include "object/interface/slotted_object.h"
 
@@ -1746,7 +1747,7 @@ void CRobotMain::StartDisplayVisit(EventType event)
 
     ObjectCreateParams params;
     params.pos = m_displayText->GetVisitGoal(event);
-    params.type = OBJECT_SHOW;
+    params.type = GetObjectGlobalDetails().defaults.arrow;
     params.height = 10.0f;
     m_visitArrow = m_objMan->CreateObject(params);
 
@@ -2641,9 +2642,15 @@ void CRobotMain::ScenePerso()
     {
         obj->SetDrawFront(true);  // draws the interface
 
-        assert(obj->Implements(ObjectInterfaceType::Movable));
-        CMotionHuman* mh = static_cast<CMotionHuman*>(dynamic_cast<CMovableObject&>(*obj).GetMotion());
-        mh->StartDisplayPerso();
+        if (!obj->Implements(ObjectInterfaceType::Movable))
+        {
+            std::unique_ptr<CMotion> simpleMotion = MakeUnique<CMotion>(dynamic_cast<COldObject*>(obj));
+            simpleMotion->Create(Math::Vector(), 0, obj->GetType(), 0, m_oldModelManager);
+            dynamic_cast<COldObject*>(obj)->SetMovable(std::move(simpleMotion), nullptr);
+        }
+        CMotion* motion = dynamic_cast<CMovableObject&>(*obj).GetMotion();
+
+        motion->StartDisplayPerso();
     }
 }
 
@@ -3884,7 +3891,6 @@ void CRobotMain::ChangeColor()
     m_engine->ChangeTextureColor("textures/objects/human.png", colorRef1, colorNew1, colorRef2, colorNew2, 0.30f, 0.01f, ts, ti, exclu);
 
     float tolerance;
-
     int face = GetGamerFace();
     if (face == 0)  // normal?
     {
@@ -5620,11 +5626,14 @@ void CRobotMain::DisplayError(Error err, Math::Vector goal, float height, float 
     m_displayText->DisplayError(err, goal, height, dist, time);
 }
 
-void CRobotMain::DisplayText(std::string text, Math::Vector goal, float height, float dist, float time, Ui::TextType type)
+void CRobotMain::DisplayText(std::string text, CObject* pObj, Ui::TextType type, float height, float dist, float time)
 {
+    if (pObj == nullptr)  return;
+    Math::Vector pos = pObj->GetPosition();
+
     // TODO: move i18n to restext.cpp
     if (text.size() != 0)
-        m_displayText->DisplayText(gettext(text.c_str()), goal, height, dist, time, type);
+        m_displayText->DisplayText(gettext(text.c_str()), pos, height, dist, time, type);
 }
 
 void CRobotMain::UpdateCustomLevelList()
@@ -5835,6 +5844,8 @@ bool CRobotMain::IsBuildingEnabled(BuildType type)
 
 bool CRobotMain::IsBuildingEnabled(ObjectType type)
 {
+    return true;
+
     if(type == OBJECT_DERRICK) return IsBuildingEnabled(BUILD_DERRICK);
     if(type == OBJECT_FACTORY) return IsBuildingEnabled(BUILD_FACTORY);
     if(type == OBJECT_STATION) return IsBuildingEnabled(BUILD_STATION);

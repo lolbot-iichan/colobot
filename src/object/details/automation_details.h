@@ -48,10 +48,18 @@ struct CObjectTargetedAutomationDetails
     bool commentedByAssistant  = false;
 };
 
+struct CObjectProductionAutomation
+{
+    ObjectType  input  = OBJECT_NULL;
+    ObjectType  output = OBJECT_NULL;
+    std::string message;
+};
+
 struct CObjectProductionAutomationDetails
 {
-    ObjectType input  = OBJECT_NULL;
-    ObjectType output = OBJECT_NULL;
+    std::string                              noInput;
+    std::string                              badInput;
+    std::vector<CObjectProductionAutomation> objects;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -64,7 +72,7 @@ struct CObjectAutomationDetails
     CObjectBlockingAutomationDetails blocking;
     CObjectTargetedAutomationDetails targeted;
 
-    std::vector<CObjectProductionAutomationDetails> production;
+    CObjectProductionAutomationDetails production;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

@@ -28,6 +28,8 @@ class CObject;
 class CLevelParser;
 class CLevelParserLine;
 
+#include "graphics/engine/pyro_type.h"
+
 //////////////////////////////////////////////////////////////////////////////
 // Child structs
 //////////////////////////////////////////////////////////////////////////////
@@ -69,7 +71,9 @@ struct CObjectCollisionDamageDetails
 
 struct CObjectLightningDamageDetails
 {
-    bool enabled = true;
+    float lightningRodHeight      = 0.0f;
+    float lightningHitProbability = 0.0f;
+    bool enabled                  = true;
 };
 
 struct CObjectFallDamageDetails
@@ -89,6 +93,8 @@ struct CObjectSpiderDamageDetails
 struct CObjectDamageableDetails
 {
     bool enabled = false;
+
+    Gfx::PyroType                     effect;
 
     CObjectFireDamageDetails          fire;
     CObjectOrganicDamageDetails       organic;

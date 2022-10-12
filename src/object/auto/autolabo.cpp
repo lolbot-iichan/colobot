@@ -452,11 +452,6 @@ bool CAutoLabo::EventProcess(const Event &event)
 
 Error CAutoLabo::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     CObject* obj = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObject(0);
     if (obj == nullptr)  return ERR_LABO_NULL;
     ObjectType type = obj->GetType();

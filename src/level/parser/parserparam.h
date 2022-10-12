@@ -129,6 +129,7 @@ public:
     Ui::WidgetType AsWidgetType(Ui::WidgetType def);
     Gfx::EngineObjectType AsEngineObjectType(Gfx::EngineObjectType def);
     Gfx::EngineShadowType AsEngineShadowType(Gfx::EngineShadowType def);
+    Gfx::ParticleType AsParticleType(Gfx::ParticleType def);
     SoundType AsSoundType(SoundType def);
     TaskExecutionType AsTaskExecutionType(TaskExecutionType def);
     Gfx::TerrainRes AsTerrainRes(Gfx::TerrainRes def);

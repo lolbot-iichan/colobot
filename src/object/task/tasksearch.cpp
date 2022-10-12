@@ -272,8 +272,8 @@ bool CTaskSearch::CreateMark()
     {
         if ( it.soil != res ) continue;
 
-        CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, it.output);
-        m_main->DisplayText(it.message, pos, 5.0f, 50.0f);  // displays the message
+        CObject* mark = CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, it.output);
+        m_main->DisplayText(it.message, mark, Ui::TT_INFO, 5.0f, 50.0f);  // displays the message
 
         return true;
     }

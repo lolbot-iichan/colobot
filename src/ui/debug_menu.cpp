@@ -166,7 +166,7 @@ void CDebugMenu::CreateSpawnInterface()
         }
 
         EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
-        pw->CreateButton(pos, dim, debugMenu[i].icon, ev);
+        pw->CreateButton(pos, dim, debugMenu[i].icon, ev)->SetTooltip(debugMenu[i].text);
         pos.x += dim.x;
         n++;
     }

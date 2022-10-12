@@ -244,12 +244,6 @@ CObject* CAutoPowerStation::SearchVehicle()
 Error CAutoPowerStation::GetError()
 {
     Gfx::TerrainRes  res;
-
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     res = m_terrain->GetResource(m_object->GetPosition());
     if ( res != Gfx::TR_POWER )  return ERR_STATION_NULL;
 

@@ -158,8 +158,6 @@ public:
     float       GetMotorSpeedY();
     float       GetMotorSpeedZ();
 
-    Error       GetError();
-
     float       GetFallingHeight();
 
     void        SetMinFallingHeight(float value);

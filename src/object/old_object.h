@@ -94,6 +94,7 @@ class COldObject : public CObject,
 {
     friend class CObjectFactory;
     friend class CObjectManager;
+    friend class CRobotMain;
 
 protected:
     void        DeleteObject(bool bAll=false);
@@ -296,8 +297,6 @@ public:
     float GetSlotAcceptanceAngle(int slotNum) override;
     CObject *GetSlotContainedObject(int slotNum) override;
     void SetSlotContainedObject(int slotNum, CObject *object) override;
-    // Helper for CSlottedObject initialization
-    void SetPowerPosition(const Math::Vector& powerPosition);
 
     // CThumpableObject
     void SetFixed(bool fixed) override;
@@ -351,9 +350,9 @@ protected:
     Math::Vector    m_linVibration;         // linear vibration
     Math::Vector    m_cirVibration;         // circular vibration
     Math::Vector    m_tilt;          // tilt
-    CObject*    m_power;            // battery used by the vehicle
-    Math::Vector m_powerPosition;
-    CObject*    m_cargo;             // object transported
+    CObject*    m_powerSlot;        // battery used by the vehicle
+    CObject*    m_cargoSlot;        // object transported
+    CObject*    m_otherSlot;        // other slot type
     CObject*    m_transporter;            // object with the latter
     int     m_transporterLink;            // part
     float       m_lastEnergy;
@@ -387,7 +386,7 @@ protected:
     int         m_totalPart;
     ObjectPart  m_objectPart[OBJECTMAXPART];
 
-    int         m_partiSel[4];
+    std::vector<int> m_partiSel;
 
     EventType   m_buttonAxe;
 
@@ -401,9 +400,6 @@ protected:
     float       m_traceWidth;
 
     bool        m_bulletWall = false;
-
-    bool        m_hasCargoSlot;
-    bool        m_hasPowerSlot;
 
     bool m_fixed;
 };

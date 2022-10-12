@@ -34,7 +34,8 @@ class CLevelParserLine;
 
 struct CObjectShieldedDetails
 {
-    bool enabled = false;
+    bool enabled    = false;
+    bool repairable = true;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

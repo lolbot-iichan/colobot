@@ -179,7 +179,7 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
             if ( cargo != nullptr )
             {
                 bool found = false;
-                for ( auto it: GetObjectAutomationDetails(m_object).production )
+                for ( auto it: GetObjectAutomationDetails(m_object).production.objects )
                 {
                     if ( cargo->GetType() == it.input ) found = true;
                 }
@@ -196,14 +196,18 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
 
             if ( bGO )
             {
-                for ( auto it : GetObjectAutomationDetails(m_object).production )
-                {
-                    if ( cargo->GetType() != it.input ) continue;
+                cargo->SetLock(true);  // usable metal
 
-                    cargo->SetLock(true);  // usable metal
-                    CreatePower(it.output);  // creates the battery
-                    break;
+                std::vector<CObjectProductionAutomation> matched;
+                for ( auto it : GetObjectAutomationDetails(m_object).production.objects )
+                {
+                    if ( cargo->GetType() == it.input )
+                        matched.push_back(it);
                 }
+
+                CObjectProductionAutomation matchedFinal = matched[ std::rand() % matched.size() ];
+                CreatePower(matchedFinal.output);  // creates the battery
+                m_onCompleted = matchedFinal.message;
 
                 SetBusy(true);
                 InitProgressTotal(POWERPLANT_DELAY);
@@ -271,7 +275,7 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
             if ( cargo != nullptr )
             {
                 bool found = false;
-                for ( auto it: GetObjectAutomationDetails(m_object).production )
+                for ( auto it: GetObjectAutomationDetails(m_object).production.objects )
                 {
                     if ( cargo->GetType() == it.input ) found = true;
                 }
@@ -350,7 +354,7 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
                 cargo->SetPosition(Math::Vector(0.0f, 3.0f, 0.0f));
                 m_object->SetSlotContainedObject(0, cargo);
 
-                m_main->DisplayError(INFO_ENERGY, m_object);
+                m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
             }
 
             SetBusy(false);
@@ -405,7 +409,7 @@ CObject* CAutoPowerPlant::SearchMetal()
     CObject* obj = m_object->GetSlotContainedObject(0);
     if ( obj == nullptr )  return nullptr;
 
-    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    for ( auto it : GetObjectAutomationDetails(m_object).production.objects )
     {
         if ( obj->GetType() == it.input ) return obj;
     }
@@ -459,7 +463,7 @@ CObject* CAutoPowerPlant::SearchPower()
     {
         if ( !obj->GetLock() )  continue;
 
-        for ( auto it : GetObjectAutomationDetails(m_object).production )
+        for ( auto it : GetObjectAutomationDetails(m_object).production.objects )
         {
             if ( obj->GetType() != it.output ) continue;
     
@@ -480,10 +484,7 @@ CObject* CAutoPowerPlant::SearchPower()
 
 Error CAutoPowerPlant::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
+    auto production = GetObjectAutomationDetails(m_object).production;
 
     if ( m_phase != AENP_WAIT  &&
          m_phase != AENP_BLITZ )  return ERR_OK;
@@ -494,14 +495,20 @@ Error CAutoPowerPlant::GetError()
     if ( m_object->GetEnergy() < POWERPLANT_POWER )  return ERR_ENERGY_LOW;
 
     CObject* obj = m_object->GetSlotContainedObject(0);
-    if (obj == nullptr)  return ERR_ENERGY_EMPTY;
+    if ( obj == nullptr )
+    {
+        m_main->DisplayText(production.noInput, m_object, Ui::TT_WARNING);
+        return ERR_OK;
+    }
+    if ( obj->GetLock() )  return ERR_OK;
 
-    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    for ( auto it : production.objects )
     {
         if ( obj->GetType() == it.input )  return ERR_OK;
         if ( obj->GetType() == it.output  )  return ERR_OK;
     }
-    return ERR_ENERGY_BAD;
+    m_main->DisplayText(production.badInput, m_object, Ui::TT_WARNING);
+    return ERR_OK;
 }
 
 

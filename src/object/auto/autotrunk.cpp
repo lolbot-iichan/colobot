@@ -25,8 +25,6 @@
 
 #include "object/old_object.h"
 
-#include "sound/sound.h"
-
 #include <stdio.h>
 
 
@@ -34,7 +32,6 @@
 
 CAutoTrunk::CAutoTrunk(COldObject* object) : CAuto(object)
 {
-    m_soundChannel = -1;
     Init();
 }
 
@@ -42,12 +39,6 @@ CAutoTrunk::CAutoTrunk(COldObject* object) : CAuto(object)
 
 CAutoTrunk::~CAutoTrunk()
 {
-    if ( m_soundChannel != -1 )
-    {
-        m_sound->FlushEnvelope(m_soundChannel);
-        m_sound->AddEnvelope(m_soundChannel, 0.0f, 1.0f, 1.0f, SOPER_STOP);
-        m_soundChannel = -1;
-    }
 }
 
 
@@ -70,26 +61,6 @@ void CAutoTrunk::Init()
 bool CAutoTrunk::EventProcess(const Event &event)
 {
     CAuto::EventProcess(event);
-
-    if ( m_soundChannel != -1 )
-    {
-        if ( m_engine->GetPause() )
-        {
-            if ( !m_silent )
-            {
-                m_sound->AddEnvelope(m_soundChannel, 0.0f, 0.5f, 0.1f, SOPER_CONTINUE);
-                m_silent = true;
-            }
-        }
-        else
-        {
-            if ( m_silent )
-            {
-                m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.5f, 0.1f, SOPER_CONTINUE);
-                m_silent = false;
-            }
-        }
-    }
 
     if ( m_engine->GetPause() )  return true;
     if ( event.type != EVENT_FRAME )  return true;

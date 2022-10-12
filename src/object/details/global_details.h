@@ -31,7 +31,7 @@ class CLevelParserLine;
 // Children structs
 //////////////////////////////////////////////////////////////////////////////
 
-struct CObjectButton
+struct CObjectDebugButton
 {
     ObjectType  type = OBJECT_NULL;
     int         icon = -1;
@@ -43,6 +43,7 @@ struct CGlobalDefaultObjects
     ObjectType player           = OBJECT_NULL;
     ObjectType base             = OBJECT_NULL;
     ObjectType assistant        = OBJECT_NULL;
+    ObjectType arrow            = OBJECT_NULL;
     ObjectType destroyPerformer = OBJECT_NULL;
     ObjectType factoryPerformer = OBJECT_NULL;
     ObjectType takeoffPerformer = OBJECT_NULL;
@@ -57,8 +58,7 @@ struct CObjectGlobalDetails
 {
     CGlobalDefaultObjects      defaults;
 
-    std::vector<CObjectButton> builderMenu;
-    std::vector<CObjectButton> debugMenu;
+    std::vector<CObjectDebugButton> debugMenu;
 
     void ReadHardcode();
     bool Read(CLevelParserLine* line);

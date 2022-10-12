@@ -31,6 +31,9 @@ class CLevelParserLine;
 #include <vector>
 
 #include "graphics/engine/camera.h"
+#include "graphics/engine/particle.h"
+
+#include "object/details/creation_details.h"
 
 #include "ui/widget.h"
 
@@ -61,11 +64,11 @@ struct CObjectFixCameraDetails
 
 struct CObjectOnboardCameraDetails
 {
-// remove on-board camera robotic corners 
-    bool disableCorners = false;
+    bool         disableCorners = false;
+    bool         hasCrosshair   = false;
+    int          partNum        = 0;
 
-// has shooting crosshair 
-    bool hasCrosshair   = false;
+    Math::Vector position;
 };
 
 struct CObjectVisitCameraDetails
@@ -135,6 +138,19 @@ struct CObjectShortcutDetails
 };
 
 //////////////////////////////////////////////////////////////////////////////
+// Controls child struct
+//////////////////////////////////////////////////////////////////////////////
+
+struct CObjectControlLightsDetails
+{
+    Gfx::ParticleType color          = static_cast<Gfx::ParticleType>(0);
+    Math::Vector      position       = Math::Vector();
+    int               partNum        = 0;
+    float             zoom           = 1.0f;
+    int               trainerMatcher = -1;
+};
+
+//////////////////////////////////////////////////////////////////////////////
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
 
@@ -143,10 +159,12 @@ struct CObjectControllableDetails
     bool  enabled    = false;
 
     bool  selectable = true;
+    bool  infectable = false;
 
-    CObjectCameraDetails   camera;
-    CObjectControlsDetails controls;
-    CObjectShortcutDetails shortcut;
+    CObjectCameraDetails                     camera;
+    CObjectControlsDetails                   controls;
+    CObjectShortcutDetails                   shortcut;
+    std::vector<CObjectControlLightsDetails> lights;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

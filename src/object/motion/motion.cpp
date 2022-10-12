@@ -62,6 +62,8 @@ CMotion::CMotion(COldObject* object)
     m_linVibration  = Math::Vector(0.0f, 0.0f, 0.0f);
     m_cirVibration  = Math::Vector(0.0f, 0.0f, 0.0f);
     m_inclinaison   = Math::Vector(0.0f, 0.0f, 0.0f);
+
+    m_bDisplayPerso = false;
 }
 
 // Object's destructor.
@@ -120,6 +122,11 @@ bool CMotion::EventProcess(const Event &event)
     dir.y = Math::Smooth(dir.y, m_inclinaison.y, time);
     dir.z = Math::Smooth(dir.z, m_inclinaison.z, time);
     m_object->SetTilt(dir);
+
+    if ( m_bDisplayPerso )
+    {
+        m_object->SetCirVibration(Math::Vector(0.0f, m_main->GetPersoAngle()+0.2f, 0.0f));
+    }
 
     return true;
 }
@@ -264,4 +271,17 @@ void CMotion::Create(Math::Vector pos, float angle, ObjectType type,
     m_physics->SetCirMotion(MO_MOTSPEED, movable.cirMotion.motorSpeed  );
     m_physics->SetCirMotion(MO_CURSPEED, movable.cirMotion.currentSpeed);
     m_physics->SetCirMotion(MO_REASPEED, movable.cirMotion.realSpeed   );
+}
+
+
+// Management of the display mode when customizing the personal.
+
+void CMotion::StartDisplayPerso()
+{
+    m_bDisplayPerso = true;
+}
+
+void CMotion::StopDisplayPerso()
+{
+    m_bDisplayPerso = false;
 }

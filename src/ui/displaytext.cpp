@@ -148,8 +148,6 @@ void CDisplayText::DisplayError(Error err, Math::Vector goal, float height,
     }
     if ( err == ERR_BAT_VIRUS      ||
          err == ERR_VEH_VIRUS      ||
-         err == ERR_DELETEMOBILE   ||
-         err == ERR_DELETEBUILDING ||
          err == INFO_LOST          )
     {
         type = TT_ERROR;

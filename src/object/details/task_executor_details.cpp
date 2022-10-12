@@ -36,6 +36,8 @@ void CObjectTaskExecutorDetails::ReadHardcode(ObjectType type)
     enabled = hardcode.IsTaskExecutor(type);
     tool = hardcode.GetToolType(type);
     
+    aim           = hardcode.GetAimTaskExecutionDetails(type);
+
     flag          = hardcode.GetFlagTaskExecutionDetails(type);
     flag.objects  = hardcode.GetFlagTaskExecutionObjects(type);
 
@@ -44,6 +46,8 @@ void CObjectTaskExecutorDetails::ReadHardcode(ObjectType type)
 
 //TODO    recycle         = hardcode.GetRecycleTaskExecutionDetails(type);
     recycle.objects = hardcode.GetRecycleTaskExecutionObjects(type);
+
+    build.objects = hardcode.GetBuilderMenuButtons(type);
 }
 
 bool CObjectTaskExecutorDetails::Read(CLevelParserLine* line)
@@ -51,6 +55,14 @@ bool CObjectTaskExecutorDetails::Read(CLevelParserLine* line)
     READ_LINE( "SetObjectTaskExecutor" );
     READ_ARG( "enabled", AsBool,              enabled        );
     READ_ARG( "tool",    AsToolType,          tool           );
+    READ_END();
+
+    READ_LINE( "SetObjectTaskAim" );
+    READ_ARG( "partNum", AsInt,   aim.partNum );
+    READ_ARG( "minY",    AsFloat, aim.minY    );
+    READ_ARG( "maxY",    AsFloat, aim.maxY    );
+    READ_ARG( "minZ",    AsFloat, aim.minZ    );
+    READ_ARG( "maxZ",    AsFloat, aim.maxZ    );
     READ_END();
 
     READ_LINE( "SetObjectTaskFlag" );
@@ -79,9 +91,27 @@ bool CObjectTaskExecutorDetails::Read(CLevelParserLine* line)
     READ_END();
 
     READ_LINE( "AddObjectTaskRecycleObject" );
-    READ_NEW( id,                      recycle.objects             );
+    READ_NEW( id,                      recycle.objects            );
     READ_ARG( "input",   AsObjectType, recycle.objects[id].input  );
-    READ_ARG( "output",  AsObjectType, recycle.objects[id].output  );
+    READ_ARG( "output",  AsObjectType, recycle.objects[id].output );
+    READ_END();
+
+    READ_LINE( "AddObjectTaskBuildObject" );
+    READ_NEW( id,                      build.objects             )
+    READ_ARG( "input",   AsObjectType, build.objects[id].input   );
+    READ_ARG( "output",  AsObjectType, build.objects[id].output  );
+    READ_ARG( "message", AsString,     build.objects[id].message );
+    READ_ARG( "icon",    AsInt,        build.objects[id].icon    );
+    READ_ARG( "text",    AsString,     build.objects[id].text    );
+    READ_END();
+
+    READ_LINE( "UpdObjectTaskBuildObject" );
+    READ_IDX( id );
+    READ_ARG( "input",   AsObjectType, build.objects[id].input   );
+    READ_ARG( "output",  AsObjectType, build.objects[id].output  );
+    READ_ARG( "message", AsString,     build.objects[id].message );
+    READ_ARG( "icon",    AsInt,        build.objects[id].icon    );
+    READ_ARG( "text",    AsString,     build.objects[id].text    );
     READ_END();
 
     READ_LINE( "ClrObjectTaskFlagObject" );
@@ -96,6 +126,10 @@ bool CObjectTaskExecutorDetails::Read(CLevelParserLine* line)
     sniff.objects.clear();
     READ_END();
 
+    READ_LINE( "ClrObjectTaskBuildObject" );
+    build.objects.clear();
+    READ_END();
+
     return false;
 }
 
@@ -104,8 +138,16 @@ void CObjectTaskExecutorDetails::Write(CLevelParser* parser, ObjectType type)
     CObjectTaskExecutorDetails def;
 
     WRITE_LINE( "SetObjectTaskExecutor" );
-    WRITE_ARG( "enabled", def, enabled        );
-    WRITE_ARG( "tool",    def, tool           );
+    WRITE_ARG( "enabled", def, enabled );
+    WRITE_ARG( "tool",    def, tool    );
+    WRITE_END();
+
+    WRITE_LINE( "SetObjectTaskAim" );
+    WRITE_ARG( "partNum", def, aim.partNum );
+    WRITE_ARG( "minY",    def, aim.minY    );
+    WRITE_ARG( "maxY",    def, aim.maxY    );
+    WRITE_ARG( "minZ",    def, aim.minZ    );
+    WRITE_ARG( "maxZ",    def, aim.maxZ    );
     WRITE_END();
 
     WRITE_LINE( "SetObjectTaskFlag" );
@@ -146,6 +188,18 @@ void CObjectTaskExecutorDetails::Write(CLevelParser* parser, ObjectType type)
         WRITE_IT( "input",  defR, input  );
         WRITE_IT( "output", defR, output );
         WRITE_END();    
+    }
+
+    CObjectBuildTaskExecutorObject defB;
+    for ( auto it : build.objects )
+    {
+        WRITE_LINE( "AddObjectTaskBuildObject" );
+        WRITE_IT( "input",   defB, input   );
+        WRITE_IT( "output",  defB, output  );
+        WRITE_IT( "message", defB, message );
+        WRITE_IT( "icon",    defB, icon    );
+        WRITE_IT( "text",    defB, text    );
+        WRITE_END();
     }
 }
 

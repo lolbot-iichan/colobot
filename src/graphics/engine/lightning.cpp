@@ -33,10 +33,11 @@
 #include "math/geometry.h"
 
 #include "object/object.h"
-#include "object/object_details.h"
 #include "object/object_manager.h"
 
 #include "object/auto/autopowercaptor.h"
+
+#include "object/details/damageable_details.h"
 
 #include "object/interface/destroyable_object.h"
 #include "object/interface/transportable_object.h"
@@ -115,7 +116,7 @@ bool CLightning::EventFrame(const Event &event)
                 m_pos = obj->GetPosition();
                 m_terrain->AdjustToFloor(m_pos, true);
 
-                float lightningRodHeight = GetObjectPhysicsDetails(obj).lightning.lightningRodHeight;
+                float lightningRodHeight = GetObjectDamageableDetails(obj).lightning.lightningRodHeight;
                 if (lightningRodHeight > 0)
                 {
                     // TODO: CLightningConductorObject
@@ -309,7 +310,7 @@ CObject* CLightning::SearchObject(Math::Vector pos)
 
         if (IsObjectBeingTransported(obj)) continue;
 
-        if ( GetObjectPhysicsDetails(obj).lightning.lightningRodHeight > 0 )  // building a lightning effect?
+        if ( GetObjectDamageableDetails(obj).lightning.lightningRodHeight > 0 )  // building a lightning effect?
         {
             paraObj.push_back(obj);
             paraObjPos.push_back(obj->GetPosition());

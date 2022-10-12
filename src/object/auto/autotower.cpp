@@ -310,18 +310,7 @@ CObject* CAutoTower::SearchTarget(Math::Vector &impact)
 
 Error CAutoTower::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    CPowerContainerObject *power = GetObjectPowerCell(m_object);
-    if ( power == nullptr )
-    {
-        return ERR_TOWER_POWER;  // no battery
-    }
-
-    if ( power->GetEnergy() < ENERGY_FIRE )
+    if (GetObjectEnergyLevel(m_object) < ENERGY_FIRE )
     {
         return ERR_TOWER_ENERGY;  // not enough energy
     }

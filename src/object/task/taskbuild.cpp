@@ -36,6 +36,8 @@
 
 #include "object/auto/auto.h"
 
+#include "object/details/task_executor_details.h"
+
 #include "object/interface/transportable_object.h"
 
 #include "object/motion/motionhuman.h"
@@ -52,7 +54,7 @@ CTaskBuild::CTaskBuild(COldObject* object) : CForegroundTask(object)
 {
     int     i;
 
-    m_type = OBJECT_DERRICK;
+    m_type = OBJECT_NULL;
     m_time = 0.0f;
     m_soundChannel = -1;
 
@@ -565,7 +567,7 @@ Error CTaskBuild::IsEnded()
         m_building->SetCirVibration(Math::Vector(0.0f, 0.0f, 0.0f));
         m_building->SetLock(false);  // building usable
         m_main->CreateShortcuts();
-        m_main->DisplayError(INFO_BUILD, m_buildingPos, 10.0f, 50.0f);
+        m_main->DisplayText(m_onCompleted, m_building, Ui::TT_INFO, 10.0f, 50.0f);
 
         automat = m_building->GetAuto();
         if ( automat != nullptr )
@@ -808,9 +810,10 @@ CObject* CTaskBuild::SearchMetalObject(float &angle, float dMin, float dMax,
 {
     CObject     *pBest;
     Math::Vector    iPos, oPos;
-    ObjectType  type;
     float       min, iAngle, a, aa, aBest, distance, magic;
     bool        bMetal;
+
+    auto buildDetails = GetObjectTaskExecutorDetails(m_object).build;
 
     iPos   = m_object->GetPosition();
     iAngle = m_object->GetRotationY();
@@ -824,8 +827,16 @@ CObject* CTaskBuild::SearchMetalObject(float &angle, float dMin, float dMax,
         if ( !pObj->GetActive() )  continue;  // objet inactive?
         if (IsObjectBeingTransported(pObj))  continue;
 
-        type = pObj->GetType();
-        if ( type != OBJECT_METAL )  continue;
+        bool bMatched = false;
+        for ( auto it: buildDetails.objects )
+        {
+            if (pObj->GetType() == it.input && m_type == it.output)
+            {
+                m_onCompleted = it.message;
+                bMatched = true;
+            }
+        }
+        if ( !bMatched )  continue;
 
         bMetal = true;  // metal exists
 

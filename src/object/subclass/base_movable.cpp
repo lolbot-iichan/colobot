@@ -28,6 +28,8 @@
 
 #include "object/object_create_params.h"
 
+#include "object/auto/autoworm.h"
+
 #include "object/motion/motionant.h"
 #include "object/motion/motionbee.h"
 #include "object/motion/motionhuman.h"
@@ -79,6 +81,13 @@ std::unique_ptr<CBaseMovable> CBaseMovable::Create(
     }
 
     obj->SetToy(params.toy);
+
+    if ( params.type == OBJECT_WORM )
+    {
+        std::unique_ptr<CAuto> objAuto = MakeUnique<CAutoWorm>(obj.get());
+        objAuto->Init();
+        obj->SetAuto(std::move(objAuto));
+    }
 
     std::unique_ptr<CMotion> motion;
 

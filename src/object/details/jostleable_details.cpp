@@ -18,8 +18,8 @@
  */
 
 /**
- * \file object/details/josteable_details.cpp
- * \brief CObjectJosteableDetails - set of tweaks for Josteable objects
+ * \file object/details/jostleable_details.cpp
+ * \brief CObjectJostleableDetails - set of tweaks for Jostleable objects
  */
 
 #include "level/parser/parser.h"
@@ -27,9 +27,9 @@
 #include "object/details/details_provider.h"
 #include "object/details/hardcode.h"
 #include "object/details/macro.h"
-#include "object/details/josteable_details.h"
+#include "object/details/jostleable_details.h"
 
-void CObjectJosteableDetails::ReadHardcode(ObjectType type)
+void CObjectJostleableDetails::ReadHardcode(ObjectType type)
 {
     CHardcodeCollection hardcode;
 
@@ -38,9 +38,9 @@ void CObjectJosteableDetails::ReadHardcode(ObjectType type)
     sphere  = hardcode.GetJostlingSphere(type);
 }
 
-bool CObjectJosteableDetails::Read(CLevelParserLine* line)
+bool CObjectJostleableDetails::Read(CLevelParserLine* line)
 {
-    READ_LINE( "SetObjectJosteable" );
+    READ_LINE( "SetObjectJostleable" );
     READ_ARG( "enabled",  AsBool,  enabled       );
     READ_ARG( "factor",   AsFloat, factor        );
     READ_ARG( "radius",   AsFloat, sphere.radius );
@@ -50,11 +50,11 @@ bool CObjectJosteableDetails::Read(CLevelParserLine* line)
     return false;
 }
 
-void CObjectJosteableDetails::Write(CLevelParser* parser, ObjectType type)
+void CObjectJostleableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectJosteableDetails def;
+    CObjectJostleableDetails def;
 
-    WRITE_LINE( "SetObjectJosteable" );
+    WRITE_LINE( "SetObjectJostleable" );
     WRITE_ARG( "enabled",  def, enabled       );
     WRITE_ARG( "factor",   def, factor        );
     WRITE_ARG( "radius",   def, sphere.radius );
@@ -62,7 +62,7 @@ void CObjectJosteableDetails::Write(CLevelParser* parser, ObjectType type)
     WRITE_END();
 }
 
-CObjectJosteableDetails GetObjectJosteableDetails(CObject* obj)
+CObjectJostleableDetails GetObjectJostleableDetails(CObject* obj)
 {
-    return CObjectDetails::GetInstance().GetObjectDetails(obj).josteable;
+    return CObjectDetails::GetInstance().GetObjectDetails(obj).jostleable;
 }

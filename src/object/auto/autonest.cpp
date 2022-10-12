@@ -100,7 +100,9 @@ bool CAutoNest::EventProcess(const Event &event)
     {
         if ( m_progress >= 1.0f )
         {
-            if ( !SearchFree(m_cargoPos) )
+            auto production = GetObjectAutomationDetails(m_object).production;
+
+            if ( !SearchFree(m_cargoPos) || production.objects.size() == 0 )
             {
                 m_phase    = ANP_WAIT;
                 m_progress = 0.0f;
@@ -108,12 +110,9 @@ bool CAutoNest::EventProcess(const Event &event)
             }
             else
             {
-                auto production = GetObjectAutomationDetails(m_object).production;
-                if ( auto len = production.size() )
-                {
-                    auto it = production[ std::rand() % len ];
-                    CreateCargo(m_cargoPos, 0.0f, it.output);
-                }
+                auto it = production.objects[ std::rand() % production.objects.size() ];
+                CreateCargo(m_cargoPos, 0.0f, it.output);
+
                 m_phase    = ANP_BIRTH;
                 m_progress = 0.0f;
                 m_speed    = 1.0f/5.0f;
@@ -191,7 +190,7 @@ CObject* CAutoNest::SearchCargo()
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         if ( !obj->GetLock() )  continue;
-        for ( auto it: production )
+        for ( auto it: production.objects )
         {
             if ( obj->GetType() != it.output ) continue;
 

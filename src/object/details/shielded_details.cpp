@@ -34,12 +34,14 @@ void CObjectShieldedDetails::ReadHardcode(ObjectType type)
     CHardcodeCollection hardcode;
 
     enabled = hardcode.IsShielded(type);
+    repairable = hardcode.IsRepairable(type);
 }
 
 bool CObjectShieldedDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectShielded" );
-    READ_ARG( "enabled", AsBool, enabled );
+    READ_ARG( "enabled",    AsBool, enabled    );
+    READ_ARG( "repairable", AsBool, repairable );
     READ_END();
 
     return false;
@@ -50,7 +52,8 @@ void CObjectShieldedDetails::Write(CLevelParser* parser, ObjectType type)
     CObjectShieldedDetails def;
 
     WRITE_LINE( "SetObjectShielded" );
-    WRITE_ARG( "enabled", def, enabled );
+    WRITE_ARG( "enabled",    def, enabled    );
+    WRITE_ARG( "repairable", def, repairable );
     WRITE_END();
 }
 

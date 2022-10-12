@@ -66,7 +66,6 @@ CMotionHuman::CMotionHuman(COldObject* object)
     m_lastSoundHhh = 0.0f;
     m_time = 0.0f;
     m_tired = 0.0f;
-    m_bDisplayPerso = false;
     m_glassesRank = -1;
 }
 
@@ -588,10 +587,6 @@ bool CMotionHuman::EventFrame(const Event &event)
         m_object->SetLinVibration(Math::Vector(0.0f, -0.55f, 0.0f));
         m_object->SetCirVibration(Math::Vector(0.0f, m_main->GetPersoAngle(), 0.0f));
         return true;
-    }
-    if ( m_bDisplayPerso )
-    {
-        m_object->SetCirVibration(Math::Vector(0.0f, m_main->GetPersoAngle()+0.2f, 0.0f));
     }
 
     if ( m_glassesRank != -1 )
@@ -1569,17 +1564,4 @@ bool CMotionHuman::EventFrame(const Event &event)
     }
 
     return true;
-}
-
-
-// Management of the display mode when customizing the personal.
-
-void CMotionHuman::StartDisplayPerso()
-{
-    m_bDisplayPerso = true;
-}
-
-void CMotionHuman::StopDisplayPerso()
-{
-    m_bDisplayPerso = false;
 }

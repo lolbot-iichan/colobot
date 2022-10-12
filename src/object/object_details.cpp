@@ -21,6 +21,8 @@
 #include "object/details/hardcode.h"
 #include "object/details/macro.h"
 
+
+
 CObjectDetails::CObjectDetails()
 {
     Clear();
@@ -57,7 +59,7 @@ void CObjectDetails::LoadHardcode()
         m_objects[type].transportable.ReadHardcode(type);
         m_objects[type].programmable.ReadHardcode(type);
         m_objects[type].task_executor.ReadHardcode(type);
-        m_objects[type].josteable.ReadHardcode(type);
+        m_objects[type].jostleable.ReadHardcode(type);
         m_objects[type].movable.ReadHardcode(type);
         m_objects[type].flying.ReadHardcode(type);
         m_objects[type].jet_flying.ReadHardcode(type);
@@ -120,7 +122,7 @@ void CObjectDetails::Load(const char* fname)
                 m_objects[type].transportable.Read(line.get()) ||
                 m_objects[type].programmable.Read(line.get()) ||
                 m_objects[type].task_executor.Read(line.get()) ||
-                m_objects[type].josteable.Read(line.get()) ||
+                m_objects[type].jostleable.Read(line.get()) ||
                 m_objects[type].movable.Read(line.get()) ||
                 m_objects[type].flying.Read(line.get()) ||
                 m_objects[type].jet_flying.Read(line.get()) ||
@@ -140,6 +142,7 @@ void CObjectDetails::Load(const char* fname)
         }
 
         if ( m_globals.Read(line.get()) ) continue;
+        else UnusedCmd(line.get());
     }
 }
 
@@ -164,7 +167,7 @@ void CObjectDetails::Dump(const char* fname)
         m_objects[type].transportable.Write(&parser, type);
         m_objects[type].programmable.Write(&parser, type);
         m_objects[type].task_executor.Write(&parser, type);
-        m_objects[type].josteable.Write(&parser, type);
+        m_objects[type].jostleable.Write(&parser, type);
         m_objects[type].movable.Write(&parser, type);
         m_objects[type].flying.Write(&parser, type);
         m_objects[type].jet_flying.Write(&parser, type);
@@ -209,8 +212,6 @@ CObjectPhysicsDetails CObjectDetails::GetObjectPhysicsDetailsHardcode(ObjectType
     result.thumper.safeRadius                 = hardcode.GetThumperSafeRadius(type);
     result.thumper.effect                     = hardcode.GetThumperPyroType(type);
     result.thumper.explosionDamage            = hardcode.GetThumperExplosionDamage(type);
-
-    result.lightning.lightningRodHeight       = hardcode.GetLightningRodHeight(type);
 
     result.collisionOtherObjectRadiusToIgnore = hardcode.GetCollisionOtherObjectRadiusToIgnore(type);
     result.isCollisionDamagable               = hardcode.IsCollisionDamagable(type);

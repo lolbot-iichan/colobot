@@ -114,16 +114,16 @@ Error CAutoResearch::StartAction(int param)
         return ERR_RESEARCH_ALREADY;
     }
 
-    if (m_object->GetSlotContainedObject(0) == nullptr || !m_object->GetSlotContainedObject(0)->Implements(ObjectInterfaceType::PowerContainer))
+    CPowerContainerObject* power = GetObjectPowerCell(m_object);
+    if ( power == nullptr )
     {
         return ERR_RESEARCH_POWER;
     }
-    CPowerContainerObject* power = dynamic_cast<CPowerContainerObject*>(m_object->GetSlotContainedObject(0));
-    if ( power->GetCapacity() > 1.0f )
+    if ( power != nullptr && power->GetCapacity() > 1.0f )
     {
         return ERR_RESEARCH_TYPE;
     }
-    if ( power->GetEnergy() < 1.0f )
+    if ( GetObjectEnergyLevel(m_object) < 1.0f )
     {
         return ERR_RESEARCH_ENERGY;
     }
@@ -299,21 +299,16 @@ Error CAutoResearch::GetError()
         return ERR_OK;
     }
 
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    if (m_object->GetSlotContainedObject(0) == nullptr || !m_object->GetSlotContainedObject(0)->Implements(ObjectInterfaceType::PowerContainer))
+    CPowerContainerObject* power = GetObjectPowerCell(m_object);
+    if ( power == nullptr )
     {
         return ERR_RESEARCH_POWER;
     }
-    CPowerContainerObject* power = dynamic_cast<CPowerContainerObject*>(m_object->GetSlotContainedObject(0));
-    if ( power->GetCapacity() > 1.0f )
+    if ( power != nullptr && power->GetCapacity() > 1.0f )
     {
         return ERR_RESEARCH_TYPE;
     }
-    if ( power->GetEnergy() < 1.0f )
+    if ( GetObjectEnergyLevel(m_object) < 1.0f )
     {
         return ERR_RESEARCH_ENERGY;
     }

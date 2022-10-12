@@ -1055,7 +1055,6 @@ void CMotionVehicle::Create(Math::Vector pos, float angle, ObjectType type,
         m_object->CreateShadowLight(50.0f, color);
     }
 
-    CreatePhysics(type);
     m_object->SetFloorHeight(0.0f);
 
     if (power > 0.0f            &&
@@ -1087,19 +1086,6 @@ void CMotionVehicle::Create(Math::Vector pos, float angle, ObjectType type,
 
     m_engine->LoadAllTextures();
 }
-
-// Creates the physics of the object.
-
-void CMotionVehicle::CreatePhysics(ObjectType type)
-{
-    auto slotted = GetObjectSlottedDetails(m_object);
-
-    if (slotted.power.enabled)
-    {
-        m_object->SetPowerPosition(slotted.power.position);
-    }
-}
-
 
 // Management of an event.
 

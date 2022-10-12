@@ -36,6 +36,4 @@ protected:
     float       m_speed = 0.0f;
     float       m_progress = 0.0f;
     float       m_lastParticle = 0.0f;
-    int         m_soundChannel = 0;
-    bool        m_silent = false;
 };

@@ -437,11 +437,9 @@ CObject* CAutoDerrick::SearchCargo()
     Math::Vector cargoPos = GetCargoPos();
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_DERRICK )  continue;
+        if (obj == m_object) continue;
 
-            Math::Vector oPos = obj->GetPosition();
-
+        Math::Vector oPos = obj->GetPosition();
         if ( oPos.x == cargoPos.x &&
              oPos.z == cargoPos.z )  return obj;
     }
@@ -455,8 +453,7 @@ bool CAutoDerrick::SearchFree(Math::Vector pos)
 {
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_DERRICK )  continue;
+        if (obj == m_object) continue;
 
         for (const auto& crashSphere : obj->GetAllCrashSpheres())
         {
@@ -502,11 +499,6 @@ bool CAutoDerrick::ExistKey()
 
 Error CAutoDerrick::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     if ( m_phase == ADP_WAIT )  return ERR_DERRICK_NULL;
     return ERR_OK;
 }

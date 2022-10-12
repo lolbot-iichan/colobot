@@ -64,4 +64,5 @@ protected:
     float               m_lastParticle = 0.0f;
     Math::Vector        m_pos;
     int                 m_channelSound = 0;
+    std::string         m_onCompleted;
 };

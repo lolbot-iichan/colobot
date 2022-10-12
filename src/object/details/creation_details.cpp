@@ -88,6 +88,8 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_ARG( "modFile",   AsString,           model[id].modFile   );
     READ_ARG( "position",  AsPoint,            model[id].position  );
     READ_ARG( "rotation",  AsPoint,            model[id].rotation  );
+    READ_ARG( "zoom",      AsPoint,            model[id].zoom      );
+    READ_ARG( "mirrored",  AsBool,             model[id].mirrored  );
     READ_ARG( "copyModel", AsBool,             model[id].copyModel );
     READ_END();
 
@@ -158,6 +160,8 @@ void CObjectCreationDetails::Write(CLevelParser* parser, ObjectType type)
         WRITE_IT( "modFile",  defM, modFile   );
         WRITE_IT( "position", defM, position  );
         WRITE_IT( "rotation", defM, rotation  );
+        WRITE_IT( "zoom",     defM, zoom      );
+        WRITE_IT( "mirrored", defM, mirrored  );
         WRITE_IT( "copyModel",defM, copyModel );
         WRITE_END();
     }

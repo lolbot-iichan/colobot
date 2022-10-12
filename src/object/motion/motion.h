@@ -71,6 +71,9 @@ public:
     virtual void            SetTilt(Math::Vector dir);
     virtual Math::Vector    GetTilt();
 
+    void StartDisplayPerso();
+    void StopDisplayPerso();
+
 protected:
     CApplication*       m_app;
     Gfx::CEngine*       m_engine;
@@ -90,4 +93,6 @@ protected:
     Math::Vector        m_linVibration;     // linear vibration
     Math::Vector        m_cirVibration;     // circular vibration
     Math::Vector        m_inclinaison;      // tilt
+
+    bool                m_bDisplayPerso;
 };

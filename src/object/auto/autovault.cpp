@@ -313,10 +313,6 @@ bool CAutoVault::EventProcess(const Event &event)
 
 Error CAutoVault::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
     return ERR_OK;
 }
 

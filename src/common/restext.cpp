@@ -530,10 +530,8 @@ void InitializeRestext()
     stringsErr[ERR_GOTO_ITER]       = TR("Goto: inaccessible destination");
     stringsErr[ERR_GOTO_BUSY]       = TR("Goto: destination occupied");
     stringsErr[ERR_FIRE_ENERGY]     = TR("Not enough energy");
-    stringsErr[ERR_CONVERT_EMPTY]   = TR("No titanium ore to convert");
     stringsErr[ERR_DERRICK_NULL]    = TR("No ore in the subsoil");
     stringsErr[ERR_STATION_NULL]    = TR("No energy in the subsoil");
-    stringsErr[ERR_TOWER_POWER]     = TR("No power cell");
     stringsErr[ERR_TOWER_ENERGY]    = TR("No more energy");
     stringsErr[ERR_RESEARCH_POWER]  = TR("No power cell");
     stringsErr[ERR_RESEARCH_ENERGY] = TR("Not enough energy");
@@ -541,15 +539,11 @@ void InitializeRestext()
     stringsErr[ERR_RESEARCH_ALREADY]= TR("Research program already performed");
     stringsErr[ERR_ENERGY_NULL]     = TR("No energy in the subsoil");
     stringsErr[ERR_ENERGY_LOW]      = TR("Not enough energy yet");
-    stringsErr[ERR_ENERGY_EMPTY]    = TR("No titanium to transform");
-    stringsErr[ERR_ENERGY_BAD]      = TR("Transforms only titanium");
     stringsErr[ERR_BASE_DLOCK]      = TR("Doors blocked by a robot or another object");
     stringsErr[ERR_BASE_DHUMAN]     = TR("You must get on the spaceship to take off");
     stringsErr[ERR_LABO_NULL]       = TR("Nothing to analyze");
     stringsErr[ERR_LABO_BAD]        = TR("Inappropriate sample");
     stringsErr[ERR_LABO_ALREADY]    = TR("Analysis already performed");
-    stringsErr[ERR_NUCLEAR_EMPTY]   = TR("No uranium to transform");
-    stringsErr[ERR_NUCLEAR_BAD]     = TR("Transforms only uranium");
     stringsErr[ERR_FACTORY_NULL]    = TR("No titanium");
     stringsErr[ERR_FACTORY_NEAR]    = TR("Object too close");
     stringsErr[ERR_INFO_NULL]       = TR("No information exchange post within range");
@@ -567,14 +561,10 @@ void InitializeRestext()
     stringsErr[ERR_DESTROY_NOTFOUND]= TR("Not found anything to destroy");
     stringsErr[ERR_WRONG_OBJ]       = TR("Inappropriate object");
     stringsErr[ERR_MISSION_NOTERM]  = TR("The mission is not accomplished yet (press \\key help; for more details)");
-    stringsErr[ERR_DELETEMOBILE]    = TR("Bot destroyed");
-    stringsErr[ERR_DELETEBUILDING]  = TR("Building destroyed");
     stringsErr[ERR_ENEMY_OBJECT]    = TR("Unable to control enemy objects");
     stringsErr[ERR_WRONG_BOT]       = TR("Inappropriate bot");
     stringsErr[ERR_NO_QUICK_SLOT]   = TR("Quicksave slot not found");
 
-    stringsErr[INFO_BUILD]          = TR("Building completed");
-    stringsErr[INFO_CONVERT]        = TR("Titanium available");
     stringsErr[INFO_RESEARCH]       = TR("Research program completed");
     stringsErr[INFO_RESEARCHTANK]   = TR("Plans for tracked robots available");
     stringsErr[INFO_RESEARCHFLY]    = TR("You can fly with the keys (\\key gup;) and (\\key gdown;)");
@@ -587,18 +577,11 @@ void InitializeRestext()
     stringsErr[INFO_RESEARCHBUILDER]= TR("Plans for builder available");
     stringsErr[INFO_FACTORY]        = TR("New bot available");
     stringsErr[INFO_LABO]           = TR("Analysis performed");
-    stringsErr[INFO_ENERGY]         = TR("Power cell available");
-    stringsErr[INFO_NUCLEAR]        = TR("Nuclear power cell available");
     stringsErr[INFO_FINDING]        = TR("You found a usable object");
     stringsErr[INFO_WIN]            = TR("<<< Well done; mission accomplished >>>");
     stringsErr[INFO_LOST]           = TR("<<< Sorry; mission failed >>>");
     stringsErr[INFO_LOSTq]          = TR("<<< Sorry; mission failed >>>");
     stringsErr[INFO_WRITEOK]        = TR("Current mission saved");
-    stringsErr[INFO_DELETEMOTHER]   = TR("Alien Queen killed");
-    stringsErr[INFO_DELETEANT]      = TR("Ant fatally wounded");
-    stringsErr[INFO_DELETEBEE]      = TR("Wasp fatally wounded");
-    stringsErr[INFO_DELETEWORM]     = TR("Worm fatally wounded");
-    stringsErr[INFO_DELETESPIDER]   = TR("Spider fatally wounded");
     stringsErr[INFO_BEGINSATCOM]    = TR("Press \\key help; to read instructions on your SatCom");
     stringsErr[INFO_TEAM_FINISH]    = TR("<<< Team %s finished! >>>");
     stringsErr[INFO_TEAM_DEAD]      = TR("<<< Team %s lost! >>>");
@@ -782,22 +765,6 @@ bool GetResource(ResType type, unsigned int num, std::string& text)
         assert(num < OBJECT_MAX);
         ObjectType oType = static_cast<ObjectType>(num);
         auto textStr = GetObjectCreationDetails(oType).displayedName;
-        text = textStr.size() ? gettext(textStr.c_str()) : "";
-    }
-    else if(type == RES_EVENT && num >= EVENT_OBJECT_BUILD_01 && num <= EVENT_OBJECT_BUILD_MAX )
-    {
-        size_t index = num - EVENT_OBJECT_BUILD_01;
-        auto menu = GetObjectGlobalDetails().builderMenu;
-        assert(index < menu.size());
-        auto textStr = menu[index].text;
-        text = textStr.size() ? gettext(textStr.c_str()) : "";
-    }
-    else if(type == RES_EVENT && num >= EVENT_DBG_SPAWN_01 && num <= EVENT_DBG_SPAWN_MAX )
-    {
-        size_t index = num - EVENT_DBG_SPAWN_01;
-        auto menu = GetObjectGlobalDetails().debugMenu;
-        assert(index < menu.size());
-        auto textStr = menu[index].text;
         text = textStr.size() ? gettext(textStr.c_str()) : "";
     }
     else if(type != RES_KEY)

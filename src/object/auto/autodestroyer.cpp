@@ -293,11 +293,6 @@ CObject* CAutoDestroyer::SearchPlastic()
 
 Error CAutoDestroyer::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     return ERR_OK;
 }
 

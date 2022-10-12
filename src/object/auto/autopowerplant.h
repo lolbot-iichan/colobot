@@ -70,4 +70,5 @@ protected:
     float               m_lastUpdateTime = 0.0f;
     float               m_lastParticle = 0.0f;
     int                 m_partiSphere = 0;
+    std::string         m_onCompleted;
 };

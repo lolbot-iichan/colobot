@@ -42,7 +42,6 @@ class CLevelParserLine;
 enum BaseClass
 {
     BASE_CLASS_SIMPLE,
-    BASE_CLASS_BUILDING,
     BASE_CLASS_INFO,
     BASE_CLASS_MOVABLE,
     BASE_CLASS_SHIELDER,
@@ -50,14 +49,43 @@ enum BaseClass
 
 enum AutoClass
 {
-    AUTO_CLASS_NONE,
-    AUTO_CLASS_EGG,
-    AUTO_CLASS_ROOT,
-    AUTO_CLASS_MUSHROOM,
+    AUTO_CLASS_NONE = 0,
+
     AUTO_CLASS_FLAG,
-    AUTO_CLASS_TRUNK,
-    AUTO_CLASS_BOAT,
-    AUTO_CLASS_FAN,
+
+    AUTO_CLASS_EGG,
+    AUTO_CLASS_MUSHROOM,
+    AUTO_CLASS_ROOT,
+
+    AUTO_CLASS_BASE,
+    AUTO_CLASS_CONVERT,
+    AUTO_CLASS_DERRICK,
+    AUTO_CLASS_DESTROYER,
+    AUTO_CLASS_FACTORY,
+    AUTO_CLASS_HUSTON,
+    AUTO_CLASS_LABO,
+    AUTO_CLASS_NEST,
+    AUTO_CLASS_NUCLEARPLANT,
+    AUTO_CLASS_PORTICO,
+    AUTO_CLASS_POWERCAPTOR,
+    AUTO_CLASS_POWERPLANT,
+    AUTO_CLASS_POWERSTATION,
+    AUTO_CLASS_RADAR,
+    AUTO_CLASS_REPAIR,
+    AUTO_CLASS_RESEARCH,
+    AUTO_CLASS_TOWER,
+    AUTO_CLASS_VAULT,
+
+    AUTO_CLASS_TEEN_BOAT,
+    AUTO_CLASS_TEEN_FAN,
+    AUTO_CLASS_TEEN_TRUNK,
+};
+
+enum TrainerMatcher
+{
+    TRAINER_ANY   = -1,
+    TRAINER_FALSE = 0,
+    TRAINER_TRUE  = 1,   
 };
 
 struct CObjectCreationModelNode
@@ -68,6 +96,8 @@ struct CObjectCreationModelNode
     std::string           modFile   = "";
     Math::Vector          position  = Math::Vector();
     Math::Vector          rotation  = Math::Vector();
+    Math::Vector          zoom      = Math::Vector(1.0f, 1.0f, 1.0f);
+    bool                  mirrored  = false;
     bool                  copyModel = false;
 };
 

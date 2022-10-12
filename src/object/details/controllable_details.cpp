@@ -35,6 +35,8 @@ void CObjectControllableDetails::ReadHardcode(ObjectType type)
 
     enabled    = hardcode.IsControllable(type);
     selectable = hardcode.IsSelectableByDefault(type);
+    infectable = hardcode.IsInfectable(type);
+    
     shortcut.icon                               = hardcode.GetShortcutIcon(type);
     shortcut.isBuilding                         = hardcode.IsShortcutBuilding(type);
     shortcut.isMovable                          = hardcode.IsShortcutMovable(type);
@@ -55,6 +57,8 @@ void CObjectControllableDetails::ReadHardcode(ObjectType type)
     camera.fixed.disableCollisions              = hardcode.DisableCollisionsOnFixCamera(type);
     camera.onboard.disableCorners               = hardcode.DisableOnboardCameraCorners(type);
     camera.onboard.hasCrosshair                 = hardcode.HasOnboardCameraCrosshair(type);
+    camera.onboard.partNum                      = 0;
+    camera.onboard.position                     = hardcode.GetOnboardCameraPosition(type);
     camera.back.distance                        = hardcode.GetBackCameraDistance(type);
     camera.back.distanceMin                     = hardcode.GetBackCameraDistanceMin(type);
     camera.back.height                          = hardcode.GetBackCameraHeight(type);
@@ -63,6 +67,8 @@ void CObjectControllableDetails::ReadHardcode(ObjectType type)
     camera.back.disableOtherObjectsTransparency = hardcode.DisableBackCameraCanForceTransparency(type);
     camera.back.disableObjectTransparency       = hardcode.DisableBackCameraCanViewAsTransparent(type);
     camera.back.hasGateTransparency             = hardcode.HasGateTransparencyOnBackCamera(type);
+
+    lights = hardcode.GetControlLights(type);
 }
 
 bool CObjectControllableDetails::Read(CLevelParserLine* line)
@@ -70,6 +76,7 @@ bool CObjectControllableDetails::Read(CLevelParserLine* line)
     READ_LINE( "SetObjectControllable" );
     READ_ARG( "enabled",        AsBool, enabled                          );
     READ_ARG( "selectable",     AsBool, selectable                       );
+    READ_ARG( "infectable",     AsBool, infectable                       );
     READ_ARG( "icon",           AsInt,  shortcut.icon                    );
     READ_ARG( "isBuilding",     AsBool, shortcut.isBuilding              );
     READ_ARG( "isMovable",      AsBool, shortcut.isMovable               );
@@ -91,6 +98,8 @@ bool CObjectControllableDetails::Read(CLevelParserLine* line)
     READ_ARG( "fixedNoCollision",          AsBool,       camera.fixed.disableCollisions              );
     READ_ARG( "onboardNoCorners",          AsBool,       camera.onboard.disableCorners               );
     READ_ARG( "onboardCrosshair",          AsBool,       camera.onboard.hasCrosshair                 );
+    READ_ARG( "partNum",                   AsInt,        camera.onboard.partNum                      );
+    READ_ARG( "position",                  AsPoint,      camera.onboard.position                     );
     READ_ARG( "backDistance",              AsFloat,      camera.back.distance                        );
     READ_ARG( "backMinimum",               AsFloat,      camera.back.distanceMin                     );
     READ_ARG( "backHeight",                AsFloat,      camera.back.height                          );
@@ -119,6 +128,15 @@ bool CObjectControllableDetails::Read(CLevelParserLine* line)
     READ_ARG( "onResearchDone",         AsResearchFlag, controls.widgets[id].onResearchDone         );
     READ_END();
 
+    READ_LINE( "AddObjectControllableLight" );
+    READ_NEW( id,                         lights                    );
+    READ_ARG( "color",    AsParticleType, lights[id].color          );
+    READ_ARG( "position", AsPoint,        lights[id].position       );
+    READ_ARG( "partNum",  AsInt,          lights[id].partNum        );
+    READ_ARG( "zoom",     AsFloat,        lights[id].zoom           );
+    READ_ARG( "trainer",  AsInt,          lights[id].trainerMatcher );
+    READ_END();
+
     return false;
 }
 
@@ -129,6 +147,7 @@ void CObjectControllableDetails::Write(CLevelParser* parser, ObjectType type)
     WRITE_LINE( "SetObjectControllable" );
     WRITE_ARG( "enabled",        def, enabled                          );
     WRITE_ARG( "selectable",     def, selectable                       );
+    WRITE_ARG( "infectable",     def, infectable                       );
     WRITE_ARG( "icon",           def, shortcut.icon                    );
     WRITE_ARG( "isBuilding",     def, shortcut.isBuilding              );
     WRITE_ARG( "isMovable",      def, shortcut.isMovable               );
@@ -150,6 +169,8 @@ void CObjectControllableDetails::Write(CLevelParser* parser, ObjectType type)
     WRITE_ARG( "fixedNoCollision",          def, camera.fixed.disableCollisions              );
     WRITE_ARG( "onboardNoCorners",          def, camera.onboard.disableCorners               );
     WRITE_ARG( "onboardCrosshair",          def, camera.onboard.hasCrosshair                 );
+    WRITE_ARG( "partNum",                   def, camera.onboard.partNum                      );
+    WRITE_ARG( "position",                  def, camera.onboard.position                     );
     WRITE_ARG( "backDistance",              def, camera.back.distance                        );
     WRITE_ARG( "backMinimum",               def, camera.back.distanceMin                     );
     WRITE_ARG( "backHeight",                def, camera.back.height                          );
@@ -179,6 +200,18 @@ void CObjectControllableDetails::Write(CLevelParser* parser, ObjectType type)
         WRITE_IT( "disabledByPlusExplorer", defW, disabledByPlusExplorer );
         WRITE_IT( "onBuildingEnabled",      defW, onBuildingEnabled      );
         WRITE_IT( "onResearchDone",         defW, onResearchDone         );
+        WRITE_END();
+    }
+
+    for ( auto it: lights )
+    {
+        CObjectControlLightsDetails defL;
+        WRITE_LINE( "AddObjectControllableLight" );
+        WRITE_IT( "color",    defL, color          );
+        WRITE_IT( "position", defL, position       );
+        WRITE_IT( "partNum",  defL, partNum        );
+        WRITE_IT( "zoom",     defL, zoom           );
+        WRITE_IT( "trainer",  defL, trainerMatcher );
         WRITE_END();
     }
 }

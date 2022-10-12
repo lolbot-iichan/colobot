@@ -132,12 +132,6 @@ inline float GetObjectEnergyLevel(CObject* object)
     return 0.0f;
 }
 
-inline bool ObjectHasPowerCell(CObject* object)
-{
-    // XXX: not GetObjectPowerCell? We count e.g. titanium cubes as power cells in this function?
-    return GetObjectInPowerCellSlot(object) != nullptr;
-}
-
 inline bool IsObjectCarryingCargo(CObject* object)
 {
     if (object->Implements(ObjectInterfaceType::Slotted))

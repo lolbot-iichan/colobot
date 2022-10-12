@@ -33,27 +33,21 @@ void CObjectSlottedDetails::ReadHardcode(ObjectType type)
 {
     CHardcodeCollection hardcode;
 
-    enabled         = hardcode.IsSloted(type);
-    cargo.enabled   = hardcode.HasCargoSlot(type);
-    cargo.partNum   = hardcode.GetCargoSlotPartNumber(type);
-    cargo.position  = hardcode.GetCargoSlotPosition(type);
-    power.enabled   = hardcode.HasPowerSlot(type);
-    power.position  = hardcode.GetPowerSlotPosition(type);
-    other.enabled   = hardcode.HasOtherSlot(type);
-    other.position  = hardcode.GetOtherSlotPosition(type);
+    enabled = hardcode.IsSloted(type);
+    slots   = hardcode.GetSlots(type);
 }
 
 bool CObjectSlottedDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectSlotted" );
     READ_ARG( "enabled", AsBool,  enabled );
-    READ_ARG( "cSlot",   AsBool,  cargo.enabled );
-    READ_ARG( "cPart",   AsInt,   cargo.partNum );
-    READ_ARG( "cPos",    AsPoint, cargo.position );
-    READ_ARG( "pSlot",   AsBool,  power.enabled );
-    READ_ARG( "pPos",    AsPoint, power.position );
-    READ_ARG( "oSlot",   AsBool,  other.enabled );
-    READ_ARG( "oPos",    AsPoint, other.position );
+    READ_END();
+
+    READ_LINE( "AddObjectSlot" );
+    READ_NEW( id,                  slots              );
+    READ_ARG( "category", AsInt,   slots[id].category );
+    READ_ARG( "partNum",  AsInt,   slots[id].partNum  );
+    READ_ARG( "pos",      AsPoint, slots[id].position );
     READ_END();
 
     return false;
@@ -65,14 +59,17 @@ void CObjectSlottedDetails::Write(CLevelParser* parser, ObjectType type)
 
     WRITE_LINE( "SetObjectSlotted" );
     WRITE_ARG( "enabled", def, enabled );
-    WRITE_ARG( "cSlot",   def, cargo.enabled );
-    WRITE_ARG( "cPart",   def, cargo.partNum );
-    WRITE_ARG( "cPos",    def, cargo.position );
-    WRITE_ARG( "pSlot",   def, power.enabled );
-    WRITE_ARG( "pPos",    def, power.position );
-    WRITE_ARG( "oSlot",   def, other.enabled );
-    WRITE_ARG( "oPos",    def, other.position );
     WRITE_END();
+
+    CObjectSlotDetails defS;
+    for ( auto it : slots )
+    {
+        WRITE_LINE( "AddObjectSlot" );
+        WRITE_IT( "category", defS, category );
+        WRITE_IT( "partNum",  defS, partNum  );
+        WRITE_IT( "pos",      defS, position );
+        WRITE_END();
+    }
 }
 
 CObjectSlottedDetails GetObjectSlottedDetails(CObject* obj)

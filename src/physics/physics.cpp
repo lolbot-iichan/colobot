@@ -3591,46 +3591,6 @@ void CPhysics::WheelParticle(TraceColor color, float width)
     }
 }
 
-
-// Returns an error related to the general state.
-
-Error CPhysics::GetError()
-{
-    ObjectType type = m_object->GetType();
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_TECH     ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_APOLLO2  ||
-         type == OBJECT_MOBILEdr )  return ERR_OK;
-
-    if (m_object->Implements(ObjectInterfaceType::ProgramStorage))
-    {
-        if ( dynamic_cast<CProgramStorageObject&>(*m_object).GetActiveVirus() )
-        {
-            return ERR_VEH_VIRUS;
-        }
-    }
-
-    if (HasPowerCellSlot(m_object))
-    {
-        CPowerContainerObject* power = GetObjectPowerCell(m_object);  // searches for the object battery used
-        if (power == nullptr)
-        {
-            return ERR_VEH_POWER;
-        }
-        else
-        {
-            if ( power->GetEnergy() == 0.0f )  return ERR_VEH_ENERGY;
-        }
-    }
-
-    return ERR_OK;
-}
-
 void CPhysics::SetFalling()
 {
     if (m_fallingHeight == 0.0f && m_floorHeight >= m_minFallingHeight)

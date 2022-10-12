@@ -49,6 +49,7 @@
 #include "object/details/movable_details.h"
 #include "object/details/task_executor_details.h"
 #include "object/details/trace_drawing_details.h"
+#include "object/details/slotted_details.h"
 
 
 class CHardcodeCollection
@@ -156,10 +157,12 @@ ToolType GetToolType(ObjectType type);
 
 bool IsProgrammable(ObjectType type);
 bool IsTaskExecutor(ObjectType type);
+CObjectAimTaskExecutorDetails GetAimTaskExecutionDetails(ObjectType type);
 CObjectFlagTaskExecutorDetails GetFlagTaskExecutionDetails(ObjectType type);
 CObjectSniffTaskExecutorDetails GetSniffTaskExecutionDetails(ObjectType type);
 std::vector<CObjectFlagTaskExecutorObject>  GetFlagTaskExecutionObjects(ObjectType type);
 std::vector<CObjectSniffTaskExecutorObject> GetSniffTaskExecutionObjects(ObjectType type);
+std::vector<CObjectBuildTaskExecutorObject> GetBuilderMenuButtons(ObjectType type);
 
 bool IsTransportable(ObjectType type);
 bool IsDropZoneShownOnPut(ObjectType type);
@@ -178,6 +181,8 @@ bool IsJetFlying(ObjectType type);
 
 bool IsControllable(ObjectType type);
 bool IsSelectableByDefault(ObjectType type);
+bool IsInfectable(ObjectType type);
+std::vector<CObjectControlLightsDetails> GetControlLights(ObjectType type);
 
 bool IsPowerContainer(ObjectType type);
 
@@ -189,24 +194,23 @@ float GetRangedRadius(ObjectType type);
 
 // [damageble] implements interface (default is false)
 bool IsDamageable(ObjectType type);
-
-// [damageble/immunity] true, if immune to fireballs of Shooters (default is false)
+Gfx::PyroType GetDamageEffect(ObjectType type);
 bool IsImmuneToFireballs(ObjectType type);
-// [damageble/immunity] true, if immune to particle of Ants (default is false)
 bool IsImmuneToInsects(ObjectType type);
-// [damageble/immunity] true, if immune to fireballs (default is false)
 bool IsImmuneToSpiders(ObjectType type);
-// [damageble/immunity] true, if immune to fireballs (default is false)
 bool IsImmuneToOrgaballs(ObjectType type);
-// [damageble/immunity] true, if immune to fireballs (default is false)
 bool IsImmuneToPhazers(ObjectType type);
-// [damagable/immunity] true, if immune to tower rays (default is true)
 bool IsImmuneToTowerRays(ObjectType type);
+bool IsImmuneToExplosive(ObjectType type);
+bool IsImmuneToCollisions(ObjectType type);
+bool IsImmuneToLightning(ObjectType type);
+bool IsImmuneToFall(ObjectType type);
 
 // [destroyable] implements interface (default is false)
 bool IsDestroyable(ObjectType type);
 bool IsExplodesInWater(ObjectType type);
 bool IsSquashedByHeavy(ObjectType type);
+std::string GetDestroyMessage(ObjectType type);
 
 // [destroyable/pyro]
 bool IsDestructionRemoveBuildingLevel(ObjectType type);
@@ -226,18 +230,14 @@ bool IsFragileBurnable(ObjectType type);
 
 // [shielded] implements interface (default is false)
 bool IsShielded(ObjectType type);
+bool IsRepairable(ObjectType type);
+
 bool IsShieldAutoregen(ObjectType type);
 float GetShieldAutoregenTime(ObjectType type);
 
 // [sloted] implements interface (default is false)
 bool IsSloted(ObjectType type);
-bool HasCargoSlot(ObjectType type);
-bool HasPowerSlot(ObjectType type);
-bool HasOtherSlot(ObjectType type);
-int GetCargoSlotPartNumber(ObjectType type);
-Math::Vector GetCargoSlotPosition(ObjectType type);
-Math::Vector GetPowerSlotPosition(ObjectType type);
-Math::Vector GetOtherSlotPosition(ObjectType type);
+std::vector<CObjectSlotDetails> GetSlots(ObjectType type);
 
 bool IsThumpable(ObjectType type);
 
@@ -286,6 +286,7 @@ bool DisableOnboardCameraCorners(ObjectType type);
 // [camera/onboard] on-board camera has crosshair to target (default is false) 
 bool HasOnboardCameraCrosshair(ObjectType type);
 
+Math::Vector GetOnboardCameraPosition(ObjectType type);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -353,6 +354,8 @@ float GetWaterSplashForce(ObjectType type);
 // >0 for objects that have a lightning rod on some height
 float GetLightningRodHeight(ObjectType type);
 
+float GetLightningHitProbability(ObjectType type);
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -376,7 +379,7 @@ bool IsAutoBlockingNuclearPlant(ObjectType type);
 // [auto] required to walk back from factory to operate (default is false)
 bool IsAutoBlockingFactory(ObjectType type);
 
-std::vector<CObjectProductionAutomationDetails> GetProduction(ObjectType type);
+CObjectProductionAutomationDetails GetProduction(ObjectType type);
 std::vector<CObjectRecycleTaskExecutorObject> GetRecycleTaskExecutionObjects(ObjectType type);
 
 
@@ -444,10 +447,10 @@ bool HasUserInterfaceDisableFlyWhileGrabbing(ObjectType type);
 ObjectType GetPlayerType();
 ObjectType GetBaseType();
 ObjectType GetAssistantType();
+ObjectType GetArrowType();
 ObjectType GetFunctionDestroyPerformerObject();
 ObjectType GetFunctionFactoryPerformerObject();
 ObjectType GetFunctionTakeOffPerformerObject();
 ObjectType GetFunctionReceivePerformerObject();
-std::vector<CObjectButton> GetBuilderMenuButtons();
-std::vector<CObjectButton> GetDebugMenuButtons();
+std::vector<CObjectDebugButton> GetDebugMenuButtons();
 };

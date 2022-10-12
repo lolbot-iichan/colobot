@@ -35,6 +35,8 @@ void CObjectDestroyableDetails::ReadHardcode(ObjectType type)
 
     enabled = hardcode.IsDestroyable(type);
     removeBuildingLevel = hardcode.IsDestructionRemoveBuildingLevel(type);
+    message = hardcode.GetDestroyMessage(type);
+
     explosion.effect = hardcode.GetDestructionByExplosion(type);
     water.effect = hardcode.GetDestructionByWater(type);
     water.enabled = hardcode.IsExplodesInWater(type);
@@ -51,28 +53,29 @@ void CObjectDestroyableDetails::ReadHardcode(ObjectType type)
 bool CObjectDestroyableDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectDestroyable" );
-    READ_ARG( "enabled",             AsBool,       enabled);
-    READ_ARG( "removeBuildingLevel", AsBool,       removeBuildingLevel);
-    READ_ARG( "eEffect",             AsPyroType,   explosion.effect );
-    READ_ARG( "wEffect",             AsPyroType,   water.effect );
-    READ_ARG( "wDestroy",            AsBool,       water.enabled );
-    READ_ARG( "bEffect",             AsPyroType,   burning.effect );
+    READ_ARG( "enabled",             AsBool,       enabled                   );
+    READ_ARG( "removeBuildingLevel", AsBool,       removeBuildingLevel       );
+    READ_ARG( "message",             AsString,     message                   );
+    READ_ARG( "eEffect",             AsPyroType,   explosion.effect          );
+    READ_ARG( "wEffect",             AsPyroType,   water.effect              );
+    READ_ARG( "wDestroy",            AsBool,       water.enabled             );
+    READ_ARG( "bEffect",             AsPyroType,   burning.effect            );
     READ_ARG( "bKills",              AsBool,       burning.isKilledByBurning );
-    READ_ARG( "wreck",               AsObjectType, burning.ruins );
-    READ_ARG( "dEffect",             AsPyroType,   drowned.effect );
-    READ_ARG( "xEffect",             AsPyroType,   win.effect );
-    READ_ARG( "sEffect",             AsPyroType,   squash.effect );
-    READ_ARG( "sDestroy",            AsBool,       squash.enabled );
+    READ_ARG( "wreck",               AsObjectType, burning.ruins             );
+    READ_ARG( "dEffect",             AsPyroType,   drowned.effect            );
+    READ_ARG( "xEffect",             AsPyroType,   win.effect                );
+    READ_ARG( "sEffect",             AsPyroType,   squash.effect             );
+    READ_ARG( "sDestroy",            AsBool,       squash.enabled            );
     READ_END();
 
     READ_LINE( "AddObjectBurningPart" );
-    READ_NEW( id,                     burning.parts                );
-    READ_ARG( "partNum",     AsInt,   burning.parts[id].partNum    );
-    READ_ARG( "pos",         AsPoint, burning.parts[id].pos        );
-    READ_ARG( "posRandom",   AsPoint, burning.parts[id].posRandom  );
-    READ_ARG( "angle",       AsPoint, burning.parts[id].angle      );
-    READ_ARG( "angleRandom", AsPoint, burning.parts[id].angleRandom);
-    READ_ARG( "keep",        AsBool,  burning.parts[id].keep);
+    READ_NEW( id,                     burning.parts                 );
+    READ_ARG( "partNum",     AsInt,   burning.parts[id].partNum     );
+    READ_ARG( "pos",         AsPoint, burning.parts[id].pos         );
+    READ_ARG( "posRandom",   AsPoint, burning.parts[id].posRandom   );
+    READ_ARG( "angle",       AsPoint, burning.parts[id].angle       );
+    READ_ARG( "angleRandom", AsPoint, burning.parts[id].angleRandom );
+    READ_ARG( "keep",        AsBool,  burning.parts[id].keep        );
     READ_END();
 
     return false;
@@ -83,18 +86,19 @@ void CObjectDestroyableDetails::Write(CLevelParser* parser, ObjectType type)
     CObjectDestroyableDetails def;
 
     WRITE_LINE( "SetObjectDestroyable" );
-    WRITE_ARG( "enabled",             def, enabled );
-    WRITE_ARG( "removeBuildingLevel", def, removeBuildingLevel );
-    WRITE_ARG( "eEffect",             def, explosion.effect );
-    WRITE_ARG( "wEffect",             def, water.effect );
-    WRITE_ARG( "wDestroy",            def, water.enabled );
-    WRITE_ARG( "bEffect",             def, burning.effect );
+    WRITE_ARG( "enabled",             def, enabled                   );
+    WRITE_ARG( "removeBuildingLevel", def, removeBuildingLevel       );
+    WRITE_ARG( "message",             def, message                   );
+    WRITE_ARG( "eEffect",             def, explosion.effect          );
+    WRITE_ARG( "wEffect",             def, water.effect              );
+    WRITE_ARG( "wDestroy",            def, water.enabled             );
+    WRITE_ARG( "bEffect",             def, burning.effect            );
     WRITE_ARG( "bKills",              def, burning.isKilledByBurning );
-    WRITE_ARG( "wreck",               def, burning.ruins );
-    WRITE_ARG( "dEffect",             def, drowned.effect );
-    WRITE_ARG( "xEffect",             def, win.effect );
-    WRITE_ARG( "sEffect",             def, squash.effect );
-    WRITE_ARG( "sDestroy",            def, squash.enabled );
+    WRITE_ARG( "wreck",               def, burning.ruins             );
+    WRITE_ARG( "dEffect",             def, drowned.effect            );
+    WRITE_ARG( "xEffect",             def, win.effect                );
+    WRITE_ARG( "sEffect",             def, squash.effect             );
+    WRITE_ARG( "sDestroy",            def, squash.enabled            );
     WRITE_END();
 
     CPyroBurnPartDetails defB;

@@ -91,8 +91,6 @@ public:
     Error       IsEnded() override;
 
 protected:
-    CObject*    WormSearch(Math::Vector &impact);
-    void        WormFrame(float rTime);
     CObject*    SearchTarget(Math::Vector pos, float margin);
     bool        AdjustTarget(CObject* pObj, Math::Vector &pos, float &distance);
     bool        AdjustBuilding(Math::Vector &pos, float margin, float &distance);
@@ -132,10 +130,8 @@ protected:
     bool            m_bTake = false;
     float           m_stopLength = 0.0f;   // braking distance
     float           m_time = 0.0f;
-    Math::Vector        m_pos;
-    bool            m_bWorm = false;
+    Math::Vector    m_pos;
     bool            m_bApprox = false;
-    float           m_wormLastTime = 0.0f;
     float           m_lastDistance = 0.0f;
 
     bool            m_bmChanged = true;

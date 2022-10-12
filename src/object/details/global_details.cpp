@@ -36,60 +36,43 @@ void CObjectGlobalDetails::ReadHardcode()
     defaults.player           = hardcode.GetPlayerType();
     defaults.base             = hardcode.GetBaseType();
     defaults.assistant        = hardcode.GetAssistantType();
+    defaults.arrow            = hardcode.GetArrowType();
     defaults.destroyPerformer = hardcode.GetFunctionDestroyPerformerObject();
     defaults.factoryPerformer = hardcode.GetFunctionFactoryPerformerObject();
     defaults.takeoffPerformer = hardcode.GetFunctionTakeOffPerformerObject();
     defaults.receivePerformer = hardcode.GetFunctionReceivePerformerObject();
     
-    builderMenu = hardcode.GetBuilderMenuButtons();
     debugMenu   = hardcode.GetDebugMenuButtons();
 }
 
 bool CObjectGlobalDetails::Read(CLevelParserLine* line)
 {
-    READ_LINE( "SetGlobals" );
+    READ_LINE( "SetGlobal" );
     READ_ARG( "player",    AsObjectType, defaults.player           );
     READ_ARG( "base",      AsObjectType, defaults.base             );
     READ_ARG( "assistant", AsObjectType, defaults.assistant        );
+    READ_ARG( "arrow",     AsObjectType, defaults.arrow            );
     READ_ARG( "destroy",   AsObjectType, defaults.destroyPerformer );
     READ_ARG( "factory",   AsObjectType, defaults.factoryPerformer );
     READ_ARG( "takeoff",   AsObjectType, defaults.takeoffPerformer );
     READ_ARG( "receive",   AsObjectType, defaults.receivePerformer );
     READ_END();
 
-    READ_LINE( "AddBuilderMenuItem" );
-    READ_NEW( id,                     builderMenu          )
-    READ_ARG( "object", AsObjectType, builderMenu[id].type );
-    READ_ARG( "icon",   AsInt,        builderMenu[id].icon );
-    READ_ARG( "text",   AsString,     builderMenu[id].text );
-    READ_END();
-
-    READ_LINE( "AddDebugMenuItem" );
+    READ_LINE( "AddGlobalDebugMenuItem" );
     READ_NEW( id,                     debugMenu          )
     READ_ARG( "object", AsObjectType, debugMenu[id].type );
     READ_ARG( "icon",   AsInt,        debugMenu[id].icon );
     READ_ARG( "text",   AsString,     debugMenu[id].text );
     READ_END();
 
-    READ_LINE( "UpdBuilderMenuItem" );
-    READ_IDX( id );
-    READ_ARG( "object", AsObjectType, builderMenu[id].type );
-    READ_ARG( "icon",   AsInt,        builderMenu[id].icon );
-    READ_ARG( "text",   AsString,     builderMenu[id].text );
-    READ_END();
-
-    READ_LINE( "UpdDebugMenuItem" );
+    READ_LINE( "UpdGlobalDebugMenuItem" );
     READ_IDX( id );
     READ_ARG( "object", AsObjectType, debugMenu[id].type );
     READ_ARG( "icon",   AsInt,        debugMenu[id].icon );
     READ_ARG( "text",   AsString,     debugMenu[id].text );
     READ_END();
 
-    READ_LINE( "ClrBuilderMenuItems" );
-    builderMenu.clear();
-    READ_END();
-
-    READ_LINE( "ClrDebugMenuItems" );
+    READ_LINE( "ClrGlobalDebugMenuItems" );
     debugMenu.clear();
     READ_END();
 
@@ -100,28 +83,21 @@ void CObjectGlobalDetails::Write(CLevelParser* parser)
 {
     CObjectGlobalDetails def;
 
-    WRITE_GLOB( "SetGlobals" );
+    WRITE_GLOB( "SetGlobal" );
     WRITE_ARG( "player",    def, defaults.player           );
     WRITE_ARG( "base",      def, defaults.base             );
     WRITE_ARG( "assistant", def, defaults.assistant        );
+    WRITE_ARG( "arrow",     def, defaults.arrow            );
     WRITE_ARG( "destroy",   def, defaults.destroyPerformer );
     WRITE_ARG( "factory",   def, defaults.factoryPerformer );
     WRITE_ARG( "takeoff",   def, defaults.takeoffPerformer );
     WRITE_ARG( "receive",   def, defaults.receivePerformer );
     WRITE_END();
 
-    CObjectButton defB;
-    for ( auto it : builderMenu )
-    {
-        WRITE_GLOB( "AddBuilderMenuItem" );
-        WRITE_IT( "object", defB, type );
-        WRITE_IT( "icon",   defB, icon );
-        WRITE_IT( "text",   defB, text );
-        WRITE_END();
-    }
+    CObjectDebugButton defB;
     for ( auto it : debugMenu )
     {
-        WRITE_GLOB( "AddDebugMenuItem" );
+        WRITE_GLOB( "AddGlobalDebugMenuItem" );
         WRITE_IT( "object", defB, type );
         WRITE_IT( "icon",   defB, icon );
         WRITE_IT( "text",   defB, text );

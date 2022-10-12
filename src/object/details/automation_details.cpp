@@ -62,16 +62,23 @@ bool CObjectAutomationDetails::Read(CLevelParserLine* line)
     READ_ARG( "byAssistant",    AsBool, targeted.commentedByAssistant  );
     READ_END();
 
+    READ_LINE( "AddObjectAutomationProductionMsg" );
+    READ_ARG( "noInput",  AsString, production.noInput );
+    READ_ARG( "badInput", AsString, production.badInput );
+    READ_END();
+
     READ_LINE( "AddObjectAutomationProduction" );
-    READ_NEW( id,                     production            );
-    READ_ARG( "input",  AsObjectType, production[id].input  );
-    READ_ARG( "output", AsObjectType, production[id].output );
+    READ_NEW( id,                      production.objects             );
+    READ_ARG( "input",   AsObjectType, production.objects[id].input   );
+    READ_ARG( "output",  AsObjectType, production.objects[id].output  );
+    READ_ARG( "message", AsString,     production.objects[id].message );
     READ_END();
 
     READ_LINE( "UpdObjectAutomationProduction" );
     READ_IDX( id );
-    READ_ARG( "input",  AsObjectType, production[id].input  );
-    READ_ARG( "output", AsObjectType, production[id].output );
+    READ_ARG( "input",   AsObjectType, production.objects[id].input   );
+    READ_ARG( "output",  AsObjectType, production.objects[id].output  );
+    READ_ARG( "message", AsString,     production.objects[id].message );
     READ_END();
 
     return false;
@@ -95,12 +102,18 @@ void CObjectAutomationDetails::Write(CLevelParser* parser, ObjectType type)
     WRITE_ARG( "byAssistant",    def, targeted.commentedByAssistant  );
     WRITE_END();
 
-    CObjectProductionAutomationDetails defP;
-    for ( auto it : production )
+    WRITE_LINE( "AddObjectAutomationProductionMsg" );
+    WRITE_ARG( "noInput",  def, production.noInput );
+    WRITE_ARG( "badInput", def, production.badInput );
+    WRITE_END();
+
+    CObjectProductionAutomation defP;
+    for ( auto it : production.objects )
     {
         WRITE_LINE( "AddObjectAutomationProduction" );
-        WRITE_IT( "input",  defP, input  );
-        WRITE_IT( "output", defP, output );
+        WRITE_IT( "input",   defP, input   );
+        WRITE_IT( "output",  defP, output  );
+        WRITE_IT( "message", defP, message );
         WRITE_END();
     }
 }

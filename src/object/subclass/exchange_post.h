@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "object/subclass/base_building.h"
+#include "object/old_object.h"
 
 #include "object/auto/auto.h"
 
@@ -43,10 +43,10 @@ class COldModelManager;
 class CEngine;
 }
 
-class CExchangePost : public CBaseBuilding
+class CExchangePost : public COldObject
 {
 public:
-    CExchangePost(int id);
+    CExchangePost(int id, ObjectType type);
 
     static std::unique_ptr<CExchangePost> Create(
         const ObjectCreateParams& params,

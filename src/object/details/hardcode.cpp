@@ -21,6 +21,8 @@
 
 #include "graphics/engine/lightning.h"
 
+#include "math/geometry.h"
+
 #include "object/details/hardcode.h"
 
 /* Macro to mark which texts are translatable by gettext
@@ -549,7 +551,72 @@ float CHardcodeCollection::GetLightningRodHeight(ObjectType type)
     return 0.0f; 
 }
 
-
+float CHardcodeCollection::GetLightningHitProbability(ObjectType type)
+{
+    if ( type == OBJECT_BASE     ||
+         type == OBJECT_DERRICK  ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_SAFE     ||
+         type == OBJECT_HUSTON   )  // building?
+    {
+        return 1.0f;
+    }
+    if ( type == OBJECT_METAL    ||
+         type == OBJECT_POWER    ||
+         type == OBJECT_ATOMIC   ) // resource?
+    {
+        return 0.3f;
+    }
+    if ( type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_MOBILEtg ||
+         type == OBJECT_MOBILEdr )  // robot?
+    {
+        return 0.5f;
+    }
+    return 0.0f;
+}
 
 
 
@@ -1531,7 +1598,7 @@ BaseClass CHardcodeCollection::GetCreationBaseClass(ObjectType type)
         case OBJECT_TARGET2:
         case OBJECT_START:
         case OBJECT_END:
-            return BASE_CLASS_BUILDING;
+            return BASE_CLASS_SIMPLE;
 
         case OBJECT_INFO:
             return BASE_CLASS_INFO;
@@ -1753,18 +1820,38 @@ BaseClass CHardcodeCollection::GetCreationBaseClass(ObjectType type)
 
 AutoClass CHardcodeCollection::GetCreationAutoClass(ObjectType type)
 {
+    if ( type == OBJECT_FLAGb     ) return AUTO_CLASS_FLAG;
+    if ( type == OBJECT_FLAGr     ) return AUTO_CLASS_FLAG;
+    if ( type == OBJECT_FLAGg     ) return AUTO_CLASS_FLAG;
+    if ( type == OBJECT_FLAGy     ) return AUTO_CLASS_FLAG;
+    if ( type == OBJECT_FLAGv     ) return AUTO_CLASS_FLAG;
 
-    if ( type == OBJECT_EGG )       return AUTO_CLASS_EGG;
-    if ( type == OBJECT_ROOT5 )     return AUTO_CLASS_ROOT;
+    if ( type == OBJECT_EGG       ) return AUTO_CLASS_EGG;
+    if ( type == OBJECT_ROOT5     ) return AUTO_CLASS_ROOT;
     if ( type == OBJECT_MUSHROOM2 ) return AUTO_CLASS_MUSHROOM;
-    if ( type == OBJECT_FLAGb ||
-         type == OBJECT_FLAGr ||
-         type == OBJECT_FLAGg ||
-         type == OBJECT_FLAGy ||
-         type == OBJECT_FLAGv )     return AUTO_CLASS_FLAG;
-    if ( type == OBJECT_TEEN36 )    return AUTO_CLASS_TRUNK;   // trunk?
-    if ( type == OBJECT_TEEN37 )    return AUTO_CLASS_BOAT;    // boat?
-    if ( type == OBJECT_TEEN38 )    return AUTO_CLASS_FAN;     // fan?
+
+    if ( type == OBJECT_BASE      ) return AUTO_CLASS_BASE;
+    if ( type == OBJECT_CONVERT   ) return AUTO_CLASS_CONVERT;
+    if ( type == OBJECT_DERRICK   ) return AUTO_CLASS_DERRICK;
+    if ( type == OBJECT_DESTROYER ) return AUTO_CLASS_DESTROYER;
+    if ( type == OBJECT_FACTORY   ) return AUTO_CLASS_FACTORY;
+    if ( type == OBJECT_HUSTON    ) return AUTO_CLASS_HUSTON;
+    if ( type == OBJECT_LABO      ) return AUTO_CLASS_LABO;
+    if ( type == OBJECT_NEST      ) return AUTO_CLASS_NEST;
+    if ( type == OBJECT_NUCLEAR   ) return AUTO_CLASS_NUCLEARPLANT;
+    if ( type == OBJECT_PORTICO   ) return AUTO_CLASS_PORTICO;
+    if ( type == OBJECT_PARA      ) return AUTO_CLASS_POWERCAPTOR;
+    if ( type == OBJECT_ENERGY    ) return AUTO_CLASS_POWERPLANT;
+    if ( type == OBJECT_STATION   ) return AUTO_CLASS_POWERSTATION;
+    if ( type == OBJECT_RADAR     ) return AUTO_CLASS_RADAR;
+    if ( type == OBJECT_REPAIR    ) return AUTO_CLASS_REPAIR;
+    if ( type == OBJECT_RESEARCH  ) return AUTO_CLASS_RESEARCH;
+    if ( type == OBJECT_TOWER     ) return AUTO_CLASS_TOWER;
+    if ( type == OBJECT_SAFE      ) return AUTO_CLASS_VAULT;
+
+    if ( type == OBJECT_TEEN36    ) return AUTO_CLASS_TEEN_TRUNK;   // trunk?
+    if ( type == OBJECT_TEEN37    ) return AUTO_CLASS_TEEN_BOAT;    // boat?
+    if ( type == OBJECT_TEEN38    ) return AUTO_CLASS_TEEN_FAN;     // fan?
 
     return AUTO_CLASS_NONE;
 }
@@ -1813,7 +1900,7 @@ std::vector<CObjectCreationModelNode> CHardcodeCollection::GetCreationModel(Obje
     if ( type == OBJECT_ATOMIC      )  name = "atomic.mod";
     if ( name.size() > 0 )
     {
-        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name, Math::Vector(), Math::Vector(), true});
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX, name, Math::Vector(), Math::Vector(), Math::Vector(1.0f, 1.0f, 1.0f), false, true});
         return result;
     }
 
@@ -2104,6 +2191,187 @@ std::vector<CObjectCreationModelNode> CHardcodeCollection::GetCreationModel(Obje
     if ( type == OBJECT_CONTROLLER )
     {
         result.push_back({0, -1, Gfx::ENG_OBJTYPE_VEHICLE}); // No model!
+        return result;
+    }
+
+    if ( type == OBJECT_PORTICO )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "portico1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "portico2.mod", Math::Vector(0.0f, 67.0f, 0.0f)});
+        result.push_back({2,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "portico3.mod", Math::Vector(0.0f, 0.0f, -33.0f), Math::Vector(0.0f,  45.0f*Math::PI/180.0f, 0.0f)});
+        result.push_back({3,  2, Gfx::ENG_OBJTYPE_DESCENDANT, "portico4.mod", Math::Vector(50.0f, 0.0f, 0.0f),  Math::Vector(0.0f, -60.0f*Math::PI/180.0f, 0.0f)});
+        result.push_back({4,  3, Gfx::ENG_OBJTYPE_DESCENDANT, "portico5.mod", Math::Vector(35.0f, 0.0f, 0.0f),  Math::Vector(0.0f, -55.0f*Math::PI/180.0f, 0.0f)});
+        result.push_back({5,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "portico3.mod", Math::Vector(0.0f, 0.0f, 33.0f),  Math::Vector(0.0f, -45.0f*Math::PI/180.0f, 0.0f)});
+        result.push_back({6,  5, Gfx::ENG_OBJTYPE_DESCENDANT, "portico4.mod", Math::Vector(50.0f, 0.0f, 0.0f),  Math::Vector(0.0f,  60.0f*Math::PI/180.0f, 0.0f)});
+        result.push_back({7,  6, Gfx::ENG_OBJTYPE_DESCENDANT, "portico5.mod", Math::Vector(35.0f, 0.0f, 0.0f),  Math::Vector(0.0f,  55.0f*Math::PI/180.0f, 0.0f)});
+        result.push_back({8,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "portico6.mod", Math::Vector(-35.0f, 50.0f, -35.0f), Math::Vector(0.0f, -Math::PI/2.0f, 0.0f), Math::Vector(2.0f, 2.0f, 2.0f)});
+        result.push_back({9,  8, Gfx::ENG_OBJTYPE_DESCENDANT, "portico7.mod", Math::Vector(0.0f, 4.5f, 1.9f)});
+        result.push_back({10, 0, Gfx::ENG_OBJTYPE_DESCENDANT, "portico6.mod", Math::Vector(-35.0f, 50.0f,  35.0f), Math::Vector(0.0f, -Math::PI/2.0f, 0.0f), Math::Vector(2.0f, 2.0f, 2.0f)});
+        result.push_back({11,10, Gfx::ENG_OBJTYPE_DESCENDANT, "portico7.mod", Math::Vector(0.0f, 4.5f, 1.9f)});
+        return result;
+    }
+
+    if ( type == OBJECT_BASE )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "base1.mod"});
+        for (int i=0 ; i<8 ; i++ )
+        {
+            Math::Point p = Math::RotatePoint(-Math::PI/4.0f*i, 27.8f);
+            result.push_back({1+i,   0, Gfx::ENG_OBJTYPE_DESCENDANT, "base2.mod", Math::Vector(p.x, 30.0f, p.y), Math::Vector(0, Math::PI/4.0f*i, Math::PI/2.0f)});
+            result.push_back({10+i,1+i, Gfx::ENG_OBJTYPE_DESCENDANT, "base4.mod", Math::Vector(23.5f, 0.0f,  7.0f), Math::Vector(), Math::Vector(1.0f, 1.0f, 1.0f), false});
+            result.push_back({18+i,1+i, Gfx::ENG_OBJTYPE_DESCENDANT, "base4.mod", Math::Vector(23.5f, 0.0f, -7.0f), Math::Vector(), Math::Vector(1.0f, 1.0f, 1.0f), true});
+        }
+        result.push_back({9,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "base3.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_DERRICK )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "derrick1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "derrick2.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_RESEARCH )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "search1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "search2.mod", Math::Vector(0.0f, 13.0f, 0.0f)});
+        result.push_back({2,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "search3.mod", Math::Vector(0.0f, 4.0f, 0.0f), Math::Vector(0.0f, 0.0f, 35.0f*Math::PI/180.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_RADAR )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "radar1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "radar2.mod", Math::Vector(0.0f, 5.0f, 0.0f)});
+        result.push_back({2,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "radar3.mod", Math::Vector(0.0f, 11.0f, 0.0f), Math::Vector(0.0f, -Math::PI/2.0f, 0.0f)});
+        result.push_back({3,  2, Gfx::ENG_OBJTYPE_DESCENDANT, "radar4.mod", Math::Vector(0.0f, 4.5f, 1.9f)});
+        return result;
+    }
+
+    if ( type == OBJECT_ENERGY )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "energy.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_LABO )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "labo1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "labo2.mod", Math::Vector(-9.0f, 3.0f, 0.0f), Math::Vector(0.0f, 0.0f, Math::PI/2.0f)});
+        result.push_back({2,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "labo3.mod", Math::Vector(9.0f, -1.0f, 0.0f)});
+        result.push_back({3,  2, Gfx::ENG_OBJTYPE_DESCENDANT, "labo4.mod", Math::Vector(), Math::Vector(0.0f,                0.0f, 80.0f*Math::PI/180.0f)});
+        result.push_back({4,  2, Gfx::ENG_OBJTYPE_DESCENDANT, "labo4.mod", Math::Vector(), Math::Vector(0.0f,  Math::PI*2.0f/3.0f, 80.0f*Math::PI/180.0f)});
+        result.push_back({5,  2, Gfx::ENG_OBJTYPE_DESCENDANT, "labo4.mod", Math::Vector(), Math::Vector(0.0f, -Math::PI*2.0f/3.0f, 80.0f*Math::PI/180.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_FACTORY )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "factory1.mod"});
+
+        for (int i=0 ; i<9 ; i++ )
+        {
+            result.push_back({ 1+i, 0, Gfx::ENG_OBJTYPE_DESCENDANT, "factory2.mod", Math::Vector(10.0f, 2.0f*i,  10.0f), Math::Vector(0.0f,     0.0f,  Math::PI/2.0f), Math::Vector(1.0f, 1.0f, 0.30f)});
+            result.push_back({10+i, 0, Gfx::ENG_OBJTYPE_DESCENDANT, "factory2.mod", Math::Vector(10.0f, 2.0f*i, -10.0f), Math::Vector(0.0f, Math::PI, -Math::PI/2.0f), Math::Vector(1.0f, 1.0f, 0.30f)});
+        }
+
+        return result;
+    }
+
+    if ( type == OBJECT_REPAIR )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "repair1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "repair2.mod", Math::Vector(-11.0f, 13.5f, 0.0f), Math::Vector(0.0f, 0.0f, Math::PI/2.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_DESTROYER )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "destroy1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "destroy2.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_STATION )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "station.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_CONVERT )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "convert1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "convert2.mod", Math::Vector(0.0f, 14.0f, 0.0f)});
+        result.push_back({2,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "convert3.mod", Math::Vector(0.0f, 11.5f, 0.0f), Math::Vector(-Math::PI*0.35f, 0.0f, 0.0f)});
+        result.push_back({3,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "convert3.mod", Math::Vector(0.0f, 11.5f, 0.0f), Math::Vector(-Math::PI*0.35f, Math::PI, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_TOWER )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "tower.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "roller2c.mod", Math::Vector(0.0f, 20.0f, 0.0f), Math::Vector(0.0f, 0.0f, Math::PI/2.0f)});
+        result.push_back({2,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "roller3c.mod", Math::Vector(4.5f, 0.0f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_NUCLEAR )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "nuclear1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "nuclear2.mod", Math::Vector(20.0f, 10.0f, 0.0f), Math::Vector(0.0f, 0.0f, 135.0f*Math::PI/180.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_PARA )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "para.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_SAFE )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "safe1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "safe2.mod", Math::Vector(), Math::Vector(), Math::Vector(1.05f, 1.05f, 1.05f)});
+        result.push_back({2,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "safe3.mod", Math::Vector(), Math::Vector(), Math::Vector(1.05f, 1.05f, 1.05f)});
+        return result;
+    }
+
+    if ( type == OBJECT_HUSTON )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "huston1.mod"});
+        result.push_back({1,  0, Gfx::ENG_OBJTYPE_DESCENDANT, "huston2.mod", Math::Vector(0.0f, 39.0f, 30.0f), Math::Vector(0.0f, -Math::PI/2.0f, 0.0f), Math::Vector(3.0f, 3.0f, 3.0f)});
+        result.push_back({2,  1, Gfx::ENG_OBJTYPE_DESCENDANT, "huston3.mod", Math::Vector(0.0f,  4.5f,  1.9f)});
+        return result;
+    }
+
+    if ( type == OBJECT_TARGET1 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "target1.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_TARGET2 )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "target2.mod", Math::Vector(0.0f, 50.0f*1.5f, 0.0f)});
+        return result;
+    }
+
+    if ( type == OBJECT_NEST )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "nest.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_START )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "start.mod"});
+        return result;
+    }
+
+    if ( type == OBJECT_END )
+    {
+        result.push_back({0, -1, Gfx::ENG_OBJTYPE_FIX,        "end.mod"});
         return result;
     }
 
@@ -2796,6 +3064,211 @@ std::vector<CrashSphere> CHardcodeCollection::GetCreationCrashSpheres(ObjectType
         result.push_back(CrashSphere(Math::Vector(0.0f, 4.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.35f));
     }
 
+    if ( type == OBJECT_PORTICO )
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 28.0f,   0.0f), 45.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 27.0f, 10.0f, -42.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 10.0f, -42.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-27.0f, 10.0f, -42.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 27.0f, 10.0f,  42.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 10.0f,  42.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-27.0f, 10.0f,  42.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-32.0f, 45.0f, -32.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-32.0f, 45.0f,  32.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 32.0f, 45.0f, -32.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 32.0f, 45.0f,  32.0f), 10.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_BASE )
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 33.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 39.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 45.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 51.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 57.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 63.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 69.0f,   0.0f),  2.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 82.0f,   0.0f),  8.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 18.0f, 94.0f,   0.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-18.0f, 94.0f,   0.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 94.0f,  18.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 94.0f, -18.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 13.0f, 94.0f,  13.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-13.0f, 94.0f,  13.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 13.0f, 94.0f, -13.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-13.0f, 94.0f, -13.0f), 10.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f,104.0f,   0.0f), 14.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_DERRICK )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f,  0.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 10.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 17.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 26.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(7.0f, 17.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RESEARCH )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f,  0.0f, 0.0f), 9.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f,  6.0f, 0.0f), 9.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 14.0f, 0.0f), 7.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_RADAR )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f,  3.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 11.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_ENERGY )
+    {
+        result.push_back(CrashSphere(Math::Vector(-2.0f, 13.0f, 0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-7.0f,  3.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  1.0f, 0.0f), 1.5f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_LABO )
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f,  1.0f,  0.0f), 1.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 11.0f,  0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 10.0f,  0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f,  3.0f,  3.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f,  3.0f, -3.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_FACTORY )
+    {
+        for (int i=0 ; i<2 ; i++ )
+        {
+            float s = static_cast<float>(i*2-1);
+            result.push_back(CrashSphere(Math::Vector(-10.0f,  2.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( -3.0f,  2.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(  3.0f,  2.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( 10.0f,  2.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(-10.0f,  9.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( -3.0f,  9.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(  3.0f,  9.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( 10.0f,  9.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(-10.0f, 16.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( -3.0f, 16.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(  3.0f, 16.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( 10.0f, 16.0f, 11.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(-10.0f, 16.0f,  4.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( -3.0f, 16.0f,  4.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(  3.0f, 16.0f,  4.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector( 10.0f, 16.0f,  4.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(-10.0f,  2.0f,  4.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+            result.push_back(CrashSphere(Math::Vector(-10.0f,  9.0f,  4.0f*s), 4.0f, SOUND_BOUMm, 0.45f));
+        }
+        result.push_back(CrashSphere(Math::Vector(-10.0f, 21.0f, -4.0f), 3.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_REPAIR )
+    {
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  0.0f,  4.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  0.0f,  0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f,  0.0f, -4.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f, 10.0f,  0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_DESTROYER )
+    {
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 0.0f, -13.5f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 0.0f, -13.5f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-3.5f, 0.0f,  13.5f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 3.5f, 0.0f,  13.5f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_STATION )
+    {
+        result.push_back(CrashSphere(Math::Vector(-15.0f, 2.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f, 6.0f, 0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_CONVERT )
+    {
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  2.0f,  4.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  2.0f, -4.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-10.0f,  9.0f,  0.0f), 6.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 14.0f,  0.0f), 1.5f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TOWER )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f,  0.0f, 0.0f), 6.5f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f,  8.0f, 0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 15.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 24.0f, 0.0f), 5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_NUCLEAR )
+    {
+        result.push_back(CrashSphere(Math::Vector( 0.0f,  0.0f, 0.0f), 19.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 0.0f, 24.0f, 0.0f), 15.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(22.0f,  1.0f, 0.0f),  1.5f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_PARA )
+    {
+        result.push_back(CrashSphere(Math::Vector( 13.0f,  3.0f,  13.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 11.0f, 15.0f,  11.0f),  2.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-13.0f,  3.0f,  13.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f, 15.0f, -11.0f),  2.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 13.0f,  3.0f, -13.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 11.0f, 15.0f, -11.0f),  2.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-13.0f,  3.0f, -13.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-11.0f, 15.0f, -11.0f),  2.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 26.0f,   0.0f),  9.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 54.0f,   0.0f), 14.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_SAFE )
+    {
+        result.push_back(CrashSphere(Math::Vector(0.0f, 1.0f, 0.0f), 13.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_HUSTON )
+    {
+        result.push_back(CrashSphere(Math::Vector( 15.0f,  6.0f, -53.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f,  6.0f, -53.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 15.0f,  6.0f, -26.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f,  6.0f, -26.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 15.0f,  6.0f,   0.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f,  6.0f,   0.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 15.0f,  6.0f,  26.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f,  6.0f,  26.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 15.0f,  6.0f,  53.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-15.0f,  6.0f,  53.0f), 16.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 27.0f,  30.0f), 12.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 45.0f,  30.0f), 14.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 26.0f,  4.0f, -61.0f),  5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-26.0f,  4.0f, -61.0f),  5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 26.0f,  4.0f,  61.0f),  5.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-26.0f,  4.0f,  61.0f),  5.0f, SOUND_BOUMm, 0.45f));
+    }
+
+    if ( type == OBJECT_TARGET1 )
+    {
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 50.0f+14.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -7.0f, 50.0f+12.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  7.0f, 50.0f+12.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 50.0f+ 7.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 12.0f, 50.0f+ 7.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-14.0f, 50.0f+ 0.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 14.0f, 50.0f+ 0.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(-12.0f, 50.0f- 7.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( 12.0f, 50.0f- 7.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector( -7.0f, 50.0f-12.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  7.0f, 50.0f-12.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(  0.0f, 50.0f-14.0f, 0.0f),  3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 30.0f, 0.0f), 2.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 24.0f, 0.0f), 3.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f, 16.0f, 0.0f), 4.0f, SOUND_BOUMm, 0.45f));
+        result.push_back(CrashSphere(Math::Vector(0.0f,  4.0f, 0.0f), 8.0f, SOUND_BOUMm, 0.45f));
+    }
+
     return result;
 }
 
@@ -3078,6 +3551,82 @@ Math::Sphere CHardcodeCollection::GetCreationCameraCollisionSphere(ObjectType ty
         return (Math::Sphere(Math::Vector(0.0f, 4.0f, 0.0f), 9.0f));
     }
 
+
+    if ( type == OBJECT_PORTICO )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 35.0f, 0.0f), 50.0f));
+    }
+
+    if ( type == OBJECT_BASE )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 45.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_DERRICK )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 10.0f));
+    }
+
+    if ( type == OBJECT_RESEARCH )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 8.0f, 0.0f), 12.0f));
+    }
+
+    if ( type == OBJECT_RADAR )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 7.0f, 0.0f), 7.0f));
+    }
+
+    if ( type == OBJECT_ENERGY )
+    {
+        return (Math::Sphere(Math::Vector(-7.0f, 5.0f, 0.0f), 5.0f));
+    }
+
+    if ( type == OBJECT_LABO )
+    {
+        return (Math::Sphere(Math::Vector(-10.0f, 5.0f, 0.0f), 7.0f));
+    }
+
+    if ( type == OBJECT_FACTORY )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 18.0f));
+    }
+
+    if ( type == OBJECT_REPAIR )
+    {
+        return (Math::Sphere(Math::Vector(-11.0f, 13.0f, 0.0f), 15.0f));
+    }
+
+    if ( type == OBJECT_STATION )
+    {
+        return (Math::Sphere(Math::Vector(-15.0f, 5.0f, 0.0f), 6.0f));
+    }
+
+    if ( type == OBJECT_CONVERT )
+    {
+        return (Math::Sphere(Math::Vector(-3.0f, 8.0f, 0.0f), 14.0f));
+    }
+
+    if ( type == OBJECT_TOWER )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 5.0f, 0.0f), 7.0f));
+    }
+
+    if ( type == OBJECT_NUCLEAR )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 17.0f, 0.0f), 26.0f));
+    }
+
+    if ( type == OBJECT_PARA )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 10.0f, 0.0f), 20.0f));
+    }
+
+    if ( type == OBJECT_SAFE )
+    {
+        return (Math::Sphere(Math::Vector(0.0f, 1.0f, 0.0f), 13.0f));
+    }
+
     return Math::Sphere();
 }
 
@@ -3207,6 +3756,47 @@ std::vector<CObjectCreationBuildingLevel> CHardcodeCollection::GetCreationBuildi
     if ( type == OBJECT_APOLLO1 )  // LEM ?
     {
 //       result.push_back({10.0f, 13.0f, 12.0f, 0.0f});
+    }
+
+    if ( type == OBJECT_BASE )
+    {
+        result.push_back({28.6f, 73.4f, 30.0f, 0.4f});
+    }
+    if ( type == OBJECT_REPAIR )
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_DESTROYER )
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_STATION )
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_CONVERT )
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_PARA )
+    {
+        result.push_back({16.0f, 18.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_SAFE )
+    {
+        result.push_back({18.0f, 20.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_NEST )
+    {
+        result.push_back({3.0f, 5.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_START )
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
+    }
+    if ( type == OBJECT_END )
+    {
+        result.push_back({7.0f, 9.0f, 1.0f, 0.5f});
     }
 
     return result;
@@ -3684,6 +4274,81 @@ CObjectCreationShadowCircle CHardcodeCollection::GetCreationShadowCircle(ObjectT
         return {3.0f, 0.7f};
     }
 
+    if ( type == OBJECT_PORTICO )
+    {
+        return {50.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_BASE )
+    {
+        return {60.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_DERRICK )
+    {
+        return {10.0f, 0.4f};
+    }
+
+    if ( type == OBJECT_RESEARCH )
+    {
+        return {12.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_RADAR )
+    {
+        return {8.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_ENERGY )
+    {
+        return {6.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_LABO )
+    {
+        return {7.0f, 0.5f};
+    }
+
+    if ( type == OBJECT_FACTORY )
+    {
+        return {24.0f, 0.3f};
+    }
+
+    if ( type == OBJECT_DESTROYER )
+    {
+        return {19.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_TOWER )
+    {
+        return {6.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_NUCLEAR )
+    {
+        return {21.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_PARA )
+    {
+        return {21.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_SAFE )
+    {
+        return {23.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_TARGET1 )
+    {
+        return {15.0f, 1.0f};
+    }
+
+    if ( type == OBJECT_NEST )
+    {
+        return {4.0f, 1.0f};
+    }
+
     return CObjectCreationShadowCircle();
 }
 
@@ -3698,6 +4363,7 @@ float CHardcodeCollection::GetCreationScale(ObjectType type)
     if ( type == OBJECT_ROOT5 ) return 2.0f;
     if ( type == OBJECT_HOME1 ) return 1.3f;
     if ( type == OBJECT_APOLLO1 ) return 1.2f;
+    if ( type == OBJECT_TARGET1 ) return 1.5f;
     return 1.0f;
 }
 
@@ -3730,6 +4396,30 @@ bool CHardcodeCollection::IsCreationForceLoadTextures(ObjectType type)
         case OBJECT_MARKKEYc:
         case OBJECT_MARKKEYd:
         case OBJECT_EGG:
+            return true;
+
+        case OBJECT_PORTICO:
+        case OBJECT_BASE:
+        case OBJECT_DERRICK:
+        case OBJECT_FACTORY:
+        case OBJECT_STATION:
+        case OBJECT_CONVERT:
+        case OBJECT_REPAIR:
+        case OBJECT_DESTROYER:
+        case OBJECT_TOWER:
+        case OBJECT_NEST:
+        case OBJECT_RESEARCH:
+        case OBJECT_RADAR:
+        case OBJECT_ENERGY:
+        case OBJECT_LABO:
+        case OBJECT_NUCLEAR:
+        case OBJECT_PARA:
+        case OBJECT_SAFE:
+        case OBJECT_HUSTON:
+        case OBJECT_TARGET1:
+        case OBJECT_TARGET2:
+        case OBJECT_START:
+        case OBJECT_END:
             return true;
 
         case OBJECT_FLAGb:
@@ -3911,6 +4601,30 @@ bool CHardcodeCollection::IsCreationSetFloorHeight(ObjectType type)
         case OBJECT_APOLLO5:
             return false;
 
+        case OBJECT_PORTICO:
+        case OBJECT_BASE:
+        case OBJECT_DERRICK:
+        case OBJECT_FACTORY:
+        case OBJECT_STATION:
+        case OBJECT_CONVERT:
+        case OBJECT_REPAIR:
+        case OBJECT_DESTROYER:
+        case OBJECT_TOWER:
+        case OBJECT_NEST:
+        case OBJECT_RESEARCH:
+        case OBJECT_RADAR:
+        case OBJECT_ENERGY:
+        case OBJECT_LABO:
+        case OBJECT_NUCLEAR:
+        case OBJECT_PARA:
+        case OBJECT_SAFE:
+        case OBJECT_HUSTON:
+        case OBJECT_TARGET1:
+        case OBJECT_TARGET2:
+        case OBJECT_START:
+        case OBJECT_END:
+            return true;
+
         default:
             return false;
     }
@@ -4053,6 +4767,30 @@ bool CHardcodeCollection::IsCreationFloorAdjust(ObjectType type)
         case OBJECT_APOLLO5:
             return false;
 
+        case OBJECT_PORTICO:
+        case OBJECT_BASE:
+        case OBJECT_DERRICK:
+        case OBJECT_FACTORY:
+        case OBJECT_STATION:
+        case OBJECT_CONVERT:
+        case OBJECT_REPAIR:
+        case OBJECT_DESTROYER:
+        case OBJECT_TOWER:
+        case OBJECT_NEST:
+        case OBJECT_RESEARCH:
+        case OBJECT_RADAR:
+        case OBJECT_ENERGY:
+        case OBJECT_LABO:
+        case OBJECT_NUCLEAR:
+        case OBJECT_PARA:
+        case OBJECT_SAFE:
+        case OBJECT_HUSTON:
+        case OBJECT_TARGET1:
+        case OBJECT_TARGET2:
+        case OBJECT_START:
+        case OBJECT_END:
+            return false;
+
         default:
             return false;
     }
@@ -4183,6 +4921,34 @@ bool CHardcodeCollection::IsDropZoneShownOnPut(ObjectType type)
     return type == OBJECT_METAL;
 }
 
+CObjectAimTaskExecutorDetails CHardcodeCollection::GetAimTaskExecutionDetails(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib)  // fireball?
+    {
+        return {-40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 10.0f*Math::PI/180.0f, 1};
+    }
+    else if ( type == OBJECT_MOBILEfi ||
+              type == OBJECT_MOBILEti ||
+              type == OBJECT_MOBILEwi ||
+              type == OBJECT_MOBILEii )  // orgaball?
+    {
+        return {-40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 20.0f*Math::PI/180.0f, 1};
+    }
+    else if ( type == OBJECT_MOBILErc )  // phazer?
+    {
+        return {-40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 45.0f*Math::PI/180.0f, 2};
+    }
+
+    return CObjectAimTaskExecutorDetails();
+}
+
 CObjectFlagTaskExecutorDetails CHardcodeCollection::GetFlagTaskExecutionDetails(ObjectType type)
 {
     switch(type)
@@ -4267,6 +5033,34 @@ std::vector<CObjectRecycleTaskExecutorObject> CHardcodeCollection::GetRecycleTas
         result.push_back({OBJECT_RUINmobiler2, OBJECT_METAL});
     }
 
+    return result;
+}
+
+std::vector<CObjectBuildTaskExecutorObject> CHardcodeCollection::GetBuilderMenuButtons(ObjectType type)
+{
+    std::vector<CObjectBuildTaskExecutorObject> result;
+
+    if (type == OBJECT_HUMAN    ||
+        type == OBJECT_MOBILEwb ||
+        type == OBJECT_MOBILEfb ||
+        type == OBJECT_MOBILEib ||
+        type == OBJECT_MOBILEtb  )
+    {
+        result.push_back({ OBJECT_METAL, OBJECT_RESEARCH, TR("Building completed"), 128+35, TR("Build a research center") });
+        result.push_back({ OBJECT_METAL, OBJECT_FACTORY,  TR("Building completed"), 128+32, TR("Build a bot factory") });
+        result.push_back({ OBJECT_METAL, OBJECT_CONVERT,  TR("Building completed"), 128+34, TR("Build a converter") });
+        result.push_back({ OBJECT_METAL, OBJECT_STATION,  TR("Building completed"), 128+36, TR("Build a power station") });
+        result.push_back({ OBJECT_METAL, OBJECT_RADAR,    TR("Building completed"), 128+40, TR("Build a radar station") });
+        result.push_back({ OBJECT_METAL, OBJECT_REPAIR,   TR("Building completed"), 128+41, TR("Build a repair center") });
+        result.push_back({ OBJECT_METAL, OBJECT_INFO,     TR("Building completed"), 128+44, TR("Build a exchange post") });
+        result.push_back({ OBJECT_METAL, OBJECT_TOWER,    TR("Building completed"), 128+37, TR("Build a defense tower") });
+        result.push_back({ OBJECT_METAL, OBJECT_ENERGY,   TR("Building completed"), 128+39, TR("Build a power cell factory") });
+        result.push_back({ OBJECT_METAL, OBJECT_DERRICK,  TR("Building completed"), 128+33, TR("Build a derrick") });
+        result.push_back({ OBJECT_METAL, OBJECT_NUCLEAR,  TR("Building completed"), 128+42, TR("Build a nuclear power plant") });
+        result.push_back({ OBJECT_METAL, OBJECT_LABO,     TR("Building completed"), 128+38, TR("Build an autolab") });
+        result.push_back({ OBJECT_METAL, OBJECT_PARA,     TR("Building completed"), 128+46, TR("Build a lightning conductor") });
+        result.push_back({ OBJECT_METAL, OBJECT_SAFE,     TR("Building completed"), 128+47, TR("Build a vault") });
+    }
     return result;
 }
 
@@ -4368,9 +5162,289 @@ bool CHardcodeCollection::IsProgrammable(ObjectType type)
     return false;
 }
 
+struct CPhysicsMock
+{
+    Motion      m_linMotion;        // linear motion
+    Motion      m_cirMotion;        // circular motion
+    
+    void SetLinMotion(PhysicsMode mode, Math::Vector value)
+    {
+        if ( mode == MO_ADVACCEL )  m_linMotion.advanceAccel  = value;
+        if ( mode == MO_RECACCEL )  m_linMotion.recedeAccel   = value;
+        if ( mode == MO_STOACCEL )  m_linMotion.stopAccel     = value;
+        if ( mode == MO_TERSPEED )  m_linMotion.terrainSpeed  = value;
+        if ( mode == MO_TERSLIDE )  m_linMotion.terrainSlide  = value;
+        if ( mode == MO_MOTACCEL )  m_linMotion.motorAccel    = value;
+        if ( mode == MO_TERFORCE )  m_linMotion.terrainForce  = value;
+        if ( mode == MO_ADVSPEED )  m_linMotion.advanceSpeed  = value;
+        if ( mode == MO_RECSPEED )  m_linMotion.recedeSpeed   = value;
+        if ( mode == MO_MOTSPEED )  m_linMotion.motorSpeed    = value;
+        if ( mode == MO_CURSPEED )  m_linMotion.currentSpeed  = value;
+        if ( mode == MO_REASPEED )  m_linMotion.realSpeed     = value;
+    }
+    
+    Math::Vector GetLinMotion(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_linMotion.advanceAccel;
+        if ( mode == MO_RECACCEL )  return m_linMotion.recedeAccel;
+        if ( mode == MO_STOACCEL )  return m_linMotion.stopAccel;
+        if ( mode == MO_TERSPEED )  return m_linMotion.terrainSpeed;
+        if ( mode == MO_TERSLIDE )  return m_linMotion.terrainSlide;
+        if ( mode == MO_MOTACCEL )  return m_linMotion.motorAccel;
+        if ( mode == MO_TERFORCE )  return m_linMotion.terrainForce;
+        if ( mode == MO_ADVSPEED )  return m_linMotion.advanceSpeed;
+        if ( mode == MO_RECSPEED )  return m_linMotion.recedeSpeed;
+        if ( mode == MO_MOTSPEED )  return m_linMotion.motorSpeed;
+        if ( mode == MO_CURSPEED )  return m_linMotion.currentSpeed;
+        if ( mode == MO_REASPEED )  return m_linMotion.realSpeed;
+        return Math::Vector(0.0f, 0.0f, 0.0f);
+    }
+    
+    void SetLinMotionX(PhysicsMode mode, float value)
+    {
+        if ( mode == MO_ADVACCEL )  m_linMotion.advanceAccel.x  = value;
+        if ( mode == MO_RECACCEL )  m_linMotion.recedeAccel.x   = value;
+        if ( mode == MO_STOACCEL )  m_linMotion.stopAccel.x     = value;
+        if ( mode == MO_TERSPEED )  m_linMotion.terrainSpeed.x  = value;
+        if ( mode == MO_TERSLIDE )  m_linMotion.terrainSlide.x  = value;
+        if ( mode == MO_MOTACCEL )  m_linMotion.motorAccel.x    = value;
+        if ( mode == MO_TERFORCE )  m_linMotion.terrainForce.x  = value;
+        if ( mode == MO_ADVSPEED )  m_linMotion.advanceSpeed.x  = value;
+        if ( mode == MO_RECSPEED )  m_linMotion.recedeSpeed.x   = value;
+        if ( mode == MO_MOTSPEED )  m_linMotion.motorSpeed.x    = value;
+        if ( mode == MO_CURSPEED )  m_linMotion.currentSpeed.x  = value;
+        if ( mode == MO_REASPEED )  m_linMotion.realSpeed.x     = value;
+    }
+    
+    float GetLinMotionX(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_linMotion.advanceAccel.x;
+        if ( mode == MO_RECACCEL )  return m_linMotion.recedeAccel.x;
+        if ( mode == MO_STOACCEL )  return m_linMotion.stopAccel.x;
+        if ( mode == MO_TERSPEED )  return m_linMotion.terrainSpeed.x;
+        if ( mode == MO_TERSLIDE )  return m_linMotion.terrainSlide.x;
+        if ( mode == MO_MOTACCEL )  return m_linMotion.motorAccel.x;
+        if ( mode == MO_TERFORCE )  return m_linMotion.terrainForce.x;
+        if ( mode == MO_ADVSPEED )  return m_linMotion.advanceSpeed.x;
+        if ( mode == MO_RECSPEED )  return m_linMotion.recedeSpeed.x;
+        if ( mode == MO_MOTSPEED )  return m_linMotion.motorSpeed.x;
+        if ( mode == MO_CURSPEED )  return m_linMotion.currentSpeed.x;
+        if ( mode == MO_REASPEED )  return m_linMotion.realSpeed.x;
+        return 0.0f;
+    }
+    
+    // Specifies the speed of elevation.
+    
+    void SetLinMotionY(PhysicsMode mode, float value)
+    {
+        if ( mode == MO_ADVACCEL )  m_linMotion.advanceAccel.y  = value;
+        if ( mode == MO_RECACCEL )  m_linMotion.recedeAccel.y   = value;
+        if ( mode == MO_STOACCEL )  m_linMotion.stopAccel.y     = value;
+        if ( mode == MO_TERSPEED )  m_linMotion.terrainSpeed.y  = value;
+        if ( mode == MO_TERSLIDE )  m_linMotion.terrainSlide.y  = value;
+        if ( mode == MO_MOTACCEL )  m_linMotion.motorAccel.y    = value;
+        if ( mode == MO_TERFORCE )  m_linMotion.terrainForce.y  = value;
+        if ( mode == MO_ADVSPEED )  m_linMotion.advanceSpeed.y  = value;
+        if ( mode == MO_RECSPEED )  m_linMotion.recedeSpeed.y   = value;
+        if ( mode == MO_MOTSPEED )  m_linMotion.motorSpeed.y    = value;
+        if ( mode == MO_CURSPEED )  m_linMotion.currentSpeed.y  = value;
+        if ( mode == MO_REASPEED )  m_linMotion.realSpeed.y     = value;
+    }
+    
+    float GetLinMotionY(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_linMotion.advanceAccel.y;
+        if ( mode == MO_RECACCEL )  return m_linMotion.recedeAccel.y;
+        if ( mode == MO_STOACCEL )  return m_linMotion.stopAccel.y;
+        if ( mode == MO_TERSPEED )  return m_linMotion.terrainSpeed.y;
+        if ( mode == MO_TERSLIDE )  return m_linMotion.terrainSlide.y;
+        if ( mode == MO_MOTACCEL )  return m_linMotion.motorAccel.y;
+        if ( mode == MO_TERFORCE )  return m_linMotion.terrainForce.y;
+        if ( mode == MO_ADVSPEED )  return m_linMotion.advanceSpeed.y;
+        if ( mode == MO_RECSPEED )  return m_linMotion.recedeSpeed.y;
+        if ( mode == MO_MOTSPEED )  return m_linMotion.motorSpeed.y;
+        if ( mode == MO_CURSPEED )  return m_linMotion.currentSpeed.y;
+        if ( mode == MO_REASPEED )  return m_linMotion.realSpeed.y;
+        return 0.0f;
+    }
+    
+    // Specifies the velocity perpendicular to the direction of travel.
+    
+    void SetLinMotionZ(PhysicsMode mode, float value)
+    {
+        if ( mode == MO_ADVACCEL )  m_linMotion.advanceAccel.z  = value;
+        if ( mode == MO_RECACCEL )  m_linMotion.recedeAccel.z   = value;
+        if ( mode == MO_STOACCEL )  m_linMotion.stopAccel.z     = value;
+        if ( mode == MO_TERSPEED )  m_linMotion.terrainSpeed.z  = value;
+        if ( mode == MO_TERSLIDE )  m_linMotion.terrainSlide.z  = value;
+        if ( mode == MO_MOTACCEL )  m_linMotion.motorAccel.z    = value;
+        if ( mode == MO_TERFORCE )  m_linMotion.terrainForce.z  = value;
+        if ( mode == MO_ADVSPEED )  m_linMotion.advanceSpeed.z  = value;
+        if ( mode == MO_RECSPEED )  m_linMotion.recedeSpeed.z   = value;
+        if ( mode == MO_MOTSPEED )  m_linMotion.motorSpeed.z    = value;
+        if ( mode == MO_CURSPEED )  m_linMotion.currentSpeed.z  = value;
+        if ( mode == MO_REASPEED )  m_linMotion.realSpeed.z     = value;
+    }
+    
+    float GetLinMotionZ(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_linMotion.advanceAccel.z;
+        if ( mode == MO_RECACCEL )  return m_linMotion.recedeAccel.z;
+        if ( mode == MO_STOACCEL )  return m_linMotion.stopAccel.z;
+        if ( mode == MO_TERSPEED )  return m_linMotion.terrainSpeed.z;
+        if ( mode == MO_TERSLIDE )  return m_linMotion.terrainSlide.z;
+        if ( mode == MO_MOTACCEL )  return m_linMotion.motorAccel.z;
+        if ( mode == MO_TERFORCE )  return m_linMotion.terrainForce.z;
+        if ( mode == MO_ADVSPEED )  return m_linMotion.advanceSpeed.z;
+        if ( mode == MO_RECSPEED )  return m_linMotion.recedeSpeed.z;
+        if ( mode == MO_MOTSPEED )  return m_linMotion.motorSpeed.z;
+        if ( mode == MO_CURSPEED )  return m_linMotion.currentSpeed.z;
+        if ( mode == MO_REASPEED )  return m_linMotion.realSpeed.z;
+        return 0.0f;
+    }
+    
+    // Specifies the rotation around the axis of walk.
+    
+    void SetCirMotion(PhysicsMode mode, Math::Vector value)
+    {
+        if ( mode == MO_ADVACCEL )  m_cirMotion.advanceAccel  = value;
+        if ( mode == MO_RECACCEL )  m_cirMotion.recedeAccel   = value;
+        if ( mode == MO_STOACCEL )  m_cirMotion.stopAccel     = value;
+        if ( mode == MO_TERSPEED )  m_cirMotion.terrainSpeed  = value;
+        if ( mode == MO_TERSLIDE )  m_cirMotion.terrainSlide  = value;
+        if ( mode == MO_MOTACCEL )  m_cirMotion.motorAccel    = value;
+        if ( mode == MO_TERFORCE )  m_cirMotion.terrainForce  = value;
+        if ( mode == MO_ADVSPEED )  m_cirMotion.advanceSpeed  = value;
+        if ( mode == MO_RECSPEED )  m_cirMotion.recedeSpeed   = value;
+        if ( mode == MO_MOTSPEED )  m_cirMotion.motorSpeed    = value;
+        if ( mode == MO_CURSPEED )  m_cirMotion.currentSpeed  = value;
+        if ( mode == MO_REASPEED )  m_cirMotion.realSpeed     = value;
+    }
+    
+    Math::Vector GetCirMotion(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_cirMotion.advanceAccel;
+        if ( mode == MO_RECACCEL )  return m_cirMotion.recedeAccel;
+        if ( mode == MO_STOACCEL )  return m_cirMotion.stopAccel;
+        if ( mode == MO_TERSPEED )  return m_cirMotion.terrainSpeed;
+        if ( mode == MO_TERSLIDE )  return m_cirMotion.terrainSlide;
+        if ( mode == MO_MOTACCEL )  return m_cirMotion.motorAccel;
+        if ( mode == MO_TERFORCE )  return m_cirMotion.terrainForce;
+        if ( mode == MO_ADVSPEED )  return m_cirMotion.advanceSpeed;
+        if ( mode == MO_RECSPEED )  return m_cirMotion.recedeSpeed;
+        if ( mode == MO_MOTSPEED )  return m_cirMotion.motorSpeed;
+        if ( mode == MO_CURSPEED )  return m_cirMotion.currentSpeed;
+        if ( mode == MO_REASPEED )  return m_cirMotion.realSpeed;
+        return Math::Vector(0.0f, 0.0f, 0.0f);
+    }
+    
+    void SetCirMotionX(PhysicsMode mode, float value)
+    {
+        if ( mode == MO_ADVACCEL )  m_cirMotion.advanceAccel.x  = value;
+        if ( mode == MO_RECACCEL )  m_cirMotion.recedeAccel.x   = value;
+        if ( mode == MO_STOACCEL )  m_cirMotion.stopAccel.x     = value;
+        if ( mode == MO_TERSPEED )  m_cirMotion.terrainSpeed.x  = value;
+        if ( mode == MO_TERSLIDE )  m_cirMotion.terrainSlide.x  = value;
+        if ( mode == MO_MOTACCEL )  m_cirMotion.motorAccel.x    = value;
+        if ( mode == MO_TERFORCE )  m_cirMotion.terrainForce.x  = value;
+        if ( mode == MO_ADVSPEED )  m_cirMotion.advanceSpeed.x  = value;
+        if ( mode == MO_RECSPEED )  m_cirMotion.recedeSpeed.x   = value;
+        if ( mode == MO_MOTSPEED )  m_cirMotion.motorSpeed.x    = value;
+        if ( mode == MO_CURSPEED )  m_cirMotion.currentSpeed.x  = value;
+        if ( mode == MO_REASPEED )  m_cirMotion.realSpeed.x     = value;
+    }
+    
+    float GetCirMotionX(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_cirMotion.advanceAccel.x;
+        if ( mode == MO_RECACCEL )  return m_cirMotion.recedeAccel.x;
+        if ( mode == MO_STOACCEL )  return m_cirMotion.stopAccel.x;
+        if ( mode == MO_TERSPEED )  return m_cirMotion.terrainSpeed.x;
+        if ( mode == MO_TERSLIDE )  return m_cirMotion.terrainSlide.x;
+        if ( mode == MO_MOTACCEL )  return m_cirMotion.motorAccel.x;
+        if ( mode == MO_TERFORCE )  return m_cirMotion.terrainForce.x;
+        if ( mode == MO_ADVSPEED )  return m_cirMotion.advanceSpeed.x;
+        if ( mode == MO_RECSPEED )  return m_cirMotion.recedeSpeed.x;
+        if ( mode == MO_MOTSPEED )  return m_cirMotion.motorSpeed.x;
+        if ( mode == MO_CURSPEED )  return m_cirMotion.currentSpeed.x;
+        if ( mode == MO_REASPEED )  return m_cirMotion.realSpeed.x;
+        return 0.0f;
+    }
+    
+    // Specifies the rotation direction.
+    
+    void SetCirMotionY(PhysicsMode mode, float value)
+    {
+        if ( mode == MO_ADVACCEL )  m_cirMotion.advanceAccel.y  = value;
+        if ( mode == MO_RECACCEL )  m_cirMotion.recedeAccel.y   = value;
+        if ( mode == MO_STOACCEL )  m_cirMotion.stopAccel.y     = value;
+        if ( mode == MO_TERSPEED )  m_cirMotion.terrainSpeed.y  = value;
+        if ( mode == MO_TERSLIDE )  m_cirMotion.terrainSlide.y  = value;
+        if ( mode == MO_MOTACCEL )  m_cirMotion.motorAccel.y    = value;
+        if ( mode == MO_TERFORCE )  m_cirMotion.terrainForce.y  = value;
+        if ( mode == MO_ADVSPEED )  m_cirMotion.advanceSpeed.y  = value;
+        if ( mode == MO_RECSPEED )  m_cirMotion.recedeSpeed.y   = value;
+        if ( mode == MO_MOTSPEED )  m_cirMotion.motorSpeed.y    = value;
+        if ( mode == MO_CURSPEED )  m_cirMotion.currentSpeed.y  = value;
+        if ( mode == MO_REASPEED )  m_cirMotion.realSpeed.y     = value;
+    }
+    
+    float GetCirMotionY(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_cirMotion.advanceAccel.y;
+        if ( mode == MO_RECACCEL )  return m_cirMotion.recedeAccel.y;
+        if ( mode == MO_STOACCEL )  return m_cirMotion.stopAccel.y;
+        if ( mode == MO_TERSPEED )  return m_cirMotion.terrainSpeed.y;
+        if ( mode == MO_TERSLIDE )  return m_cirMotion.terrainSlide.y;
+        if ( mode == MO_MOTACCEL )  return m_cirMotion.motorAccel.y;
+        if ( mode == MO_TERFORCE )  return m_cirMotion.terrainForce.y;
+        if ( mode == MO_ADVSPEED )  return m_cirMotion.advanceSpeed.y;
+        if ( mode == MO_RECSPEED )  return m_cirMotion.recedeSpeed.y;
+        if ( mode == MO_MOTSPEED )  return m_cirMotion.motorSpeed.y;
+        if ( mode == MO_CURSPEED )  return m_cirMotion.currentSpeed.y;
+        if ( mode == MO_REASPEED )  return m_cirMotion.realSpeed.y;
+        return 0.0f;
+    }
+    
+    // Specifies the rotation up/down.
+    
+    void SetCirMotionZ(PhysicsMode mode, float value)
+    {
+        if ( mode == MO_ADVACCEL )  m_cirMotion.advanceAccel.z  = value;
+        if ( mode == MO_RECACCEL )  m_cirMotion.recedeAccel.z   = value;
+        if ( mode == MO_STOACCEL )  m_cirMotion.stopAccel.z     = value;
+        if ( mode == MO_TERSPEED )  m_cirMotion.terrainSpeed.z  = value;
+        if ( mode == MO_TERSLIDE )  m_cirMotion.terrainSlide.z  = value;
+        if ( mode == MO_MOTACCEL )  m_cirMotion.motorAccel.z    = value;
+        if ( mode == MO_TERFORCE )  m_cirMotion.terrainForce.z  = value;
+        if ( mode == MO_ADVSPEED )  m_cirMotion.advanceSpeed.z  = value;
+        if ( mode == MO_RECSPEED )  m_cirMotion.recedeSpeed.z   = value;
+        if ( mode == MO_MOTSPEED )  m_cirMotion.motorSpeed.z    = value;
+        if ( mode == MO_CURSPEED )  m_cirMotion.currentSpeed.z  = value;
+        if ( mode == MO_REASPEED )  m_cirMotion.realSpeed.z     = value;
+    }
+    
+    float GetCirMotionZ(PhysicsMode mode)
+    {
+        if ( mode == MO_ADVACCEL )  return m_cirMotion.advanceAccel.z;
+        if ( mode == MO_RECACCEL )  return m_cirMotion.recedeAccel.z;
+        if ( mode == MO_STOACCEL )  return m_cirMotion.stopAccel.z;
+        if ( mode == MO_TERSPEED )  return m_cirMotion.terrainSpeed.z;
+        if ( mode == MO_TERSLIDE )  return m_cirMotion.terrainSlide.z;
+        if ( mode == MO_MOTACCEL )  return m_cirMotion.motorAccel.z;
+        if ( mode == MO_TERFORCE )  return m_cirMotion.terrainForce.z;
+        if ( mode == MO_ADVSPEED )  return m_cirMotion.advanceSpeed.z;
+        if ( mode == MO_RECSPEED )  return m_cirMotion.recedeSpeed.z;
+        if ( mode == MO_MOTSPEED )  return m_cirMotion.motorSpeed.z;
+        if ( mode == MO_CURSPEED )  return m_cirMotion.currentSpeed.z;
+        if ( mode == MO_REASPEED )  return m_cirMotion.realSpeed.z;
+        return 0.0f;
+    }
+};
+
 Motion CHardcodeCollection::GetLinMotion(ObjectType type)
 {
-    CPhysics physics(nullptr);
+    CPhysicsMock physics;
 
     if ( type == OBJECT_MOTHER )
     {
@@ -4667,7 +5741,7 @@ Motion CHardcodeCollection::GetLinMotion(ObjectType type)
 
 Motion CHardcodeCollection::GetCirMotion(ObjectType type)
 {
-    CPhysics physics(nullptr);
+    CPhysicsMock physics;
 
     if ( type == OBJECT_MOTHER )
     {
@@ -5051,6 +6125,60 @@ bool CHardcodeCollection::IsSelectableByDefault(ObjectType type)
     return true;
 }
 
+bool CHardcodeCollection::IsInfectable(ObjectType type)
+{
+    if ( type != OBJECT_MOBILEfa &&
+         type != OBJECT_MOBILEta &&
+         type != OBJECT_MOBILEwa &&
+         type != OBJECT_MOBILEia &&
+         type != OBJECT_MOBILEfb &&
+         type != OBJECT_MOBILEtb &&
+         type != OBJECT_MOBILEwb &&
+         type != OBJECT_MOBILEib &&
+         type != OBJECT_MOBILEfc &&
+         type != OBJECT_MOBILEtc &&
+         type != OBJECT_MOBILEwc &&
+         type != OBJECT_MOBILEic &&
+         type != OBJECT_MOBILEfi &&
+         type != OBJECT_MOBILEti &&
+         type != OBJECT_MOBILEwi &&
+         type != OBJECT_MOBILEii &&
+         type != OBJECT_MOBILEfs &&
+         type != OBJECT_MOBILEts &&
+         type != OBJECT_MOBILEws &&
+         type != OBJECT_MOBILEis &&
+         type != OBJECT_MOBILErt &&
+         type != OBJECT_MOBILErc &&
+         type != OBJECT_MOBILErr &&
+         type != OBJECT_MOBILErs &&
+         type != OBJECT_MOBILEsa &&
+         type != OBJECT_MOBILEtg &&
+         type != OBJECT_MOBILEft &&
+         type != OBJECT_MOBILEtt &&
+         type != OBJECT_MOBILEwt &&
+         type != OBJECT_MOBILEit &&
+         type != OBJECT_MOBILErp &&
+         type != OBJECT_MOBILEst &&
+         type != OBJECT_MOBILEdr &&
+         type != OBJECT_DERRICK  &&
+         type != OBJECT_STATION  &&
+         type != OBJECT_FACTORY  &&
+         type != OBJECT_REPAIR   &&
+         type != OBJECT_DESTROYER &&
+         type != OBJECT_CONVERT  &&
+         type != OBJECT_TOWER    &&
+         type != OBJECT_RESEARCH &&
+         type != OBJECT_RADAR    &&
+         type != OBJECT_INFO     &&
+         type != OBJECT_ENERGY   &&
+         type != OBJECT_LABO     &&
+         type != OBJECT_NUCLEAR  &&
+         type != OBJECT_PARA     &&
+         type != OBJECT_SAFE     &&
+         type != OBJECT_HUSTON   )  return false;
+
+    return true;
+}
 
 bool CHardcodeCollection::IsControllable(ObjectType type)
 {
@@ -5116,6 +6244,157 @@ bool CHardcodeCollection::IsControllable(ObjectType type)
         type == OBJECT_MOTHER   ||
         type == OBJECT_CONTROLLER) return true;
     return false;
+}
+
+std::vector<CObjectControlLightsDetails> CHardcodeCollection::GetControlLights(ObjectType type)
+{
+    std::vector<CObjectControlLightsDetails> result;
+
+    if ( type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILErp )  // large caterpillars?
+    {
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.8f,  1.5f), 0, 1.5f});
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.8f, -1.5f), 0, 1.5f});
+    }
+    else if ( type == OBJECT_MOBILEsa ||
+              type == OBJECT_MOBILEst )  // submarine?
+    {
+        result.push_back({Gfx::PARTISELY, Math::Vector( 3.6f, 4.0f,  2.0f), 0, 1.0f});
+        result.push_back({Gfx::PARTISELY, Math::Vector( 3.6f, 4.0f, -2.0f), 0, 1.0f});
+    }
+    else if ( type == OBJECT_MOBILEtg )  // target?
+    {
+        result.push_back({Gfx::PARTISELY, Math::Vector( 3.4f, 6.5f,  2.0f), 0, 1.0f});
+        result.push_back({Gfx::PARTISELY, Math::Vector( 3.4f, 6.5f, -2.0f), 0, 1.0f});
+    }
+    else if ( type == OBJECT_MOBILEdr )  // designer?
+    {
+        result.push_back({Gfx::PARTISELY, Math::Vector( 4.9f, 3.5f,  2.5f), 0, 1.0f});
+        result.push_back({Gfx::PARTISELY, Math::Vector( 4.9f, 3.5f, -2.5f), 0, 1.0f});
+    }
+    else if ( type == OBJECT_MOBILEwt ||
+              type == OBJECT_MOBILEtt ||
+              type == OBJECT_MOBILEft ||
+              type == OBJECT_MOBILEit)                // trainer ?
+    {
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.5f,  1.2f), 0, 1.5f});
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.5f, -1.2f), 0, 1.5f});
+    }
+    else if ( type == OBJECT_MOBILEfa ||
+              type == OBJECT_MOBILEta ||
+              type == OBJECT_MOBILEwa ||
+              type == OBJECT_MOBILEia ||
+              type == OBJECT_MOBILEfb ||
+              type == OBJECT_MOBILEtb ||
+              type == OBJECT_MOBILEwb ||
+              type == OBJECT_MOBILEib ||
+              type == OBJECT_MOBILEfc ||
+              type == OBJECT_MOBILEtc ||
+              type == OBJECT_MOBILEwc ||
+              type == OBJECT_MOBILEic ||
+              type == OBJECT_MOBILEfi ||
+              type == OBJECT_MOBILEti ||
+              type == OBJECT_MOBILEwi ||
+              type == OBJECT_MOBILEii ||
+              type == OBJECT_MOBILEfs ||
+              type == OBJECT_MOBILEts ||
+              type == OBJECT_MOBILEws ||
+              type == OBJECT_MOBILEis )
+    {
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.5f,  1.5f), 0, 1.0f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.5f, -1.5f), 0, 1.0f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.5f,  1.2f), 0, 1.5f, TRAINER_TRUE});
+        result.push_back({Gfx::PARTISELY, Math::Vector(4.2f, 2.5f, -1.2f), 0, 1.5f, TRAINER_TRUE});
+    }
+
+    if ( type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEst )  // submarine?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-3.6f, 4.0f,  2.0f), 0, 1.2f});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-3.6f, 4.0f, -2.0f), 0, 1.2f});
+    }
+    else if ( type == OBJECT_MOBILEtg )  // target?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-2.4f, 6.5f,  2.0f), 0, 1.2f});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-2.4f, 6.5f, -2.0f), 0, 1.2f});
+    }
+    else if ( type == OBJECT_MOBILEdr )  // designer?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-5.3f, 2.7f,  1.8f), 0, 1.2f});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-5.3f, 2.7f, -1.8f), 0, 1.2f});
+    }
+    else if ( type == OBJECT_MOBILEwt ||
+              type == OBJECT_MOBILEtt ||
+              type == OBJECT_MOBILEft ||
+              type == OBJECT_MOBILEit )  // trainer?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f,  2.2f), 0, 1.2f});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f, -2.2f), 0, 1.2f});
+    }
+    else if ( type == OBJECT_MOBILErp )  // trainer?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.6f, 5.2f,  2.6f), 0, 1.2f});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.6f, 5.2f, -2.6f), 0, 1.2f});
+    }
+    else if ( type == OBJECT_MOBILErt ||
+              type == OBJECT_MOBILErc ||
+              type == OBJECT_MOBILErr ||
+              type == OBJECT_MOBILErs )  // large caterpillars?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-5.0f, 5.2f,  2.5f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-5.0f, 5.2f, -2.5f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.6f, 5.2f,  2.6f), 0, 1.2f, TRAINER_TRUE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.6f, 5.2f, -2.6f), 0, 1.2f, TRAINER_TRUE});
+    }
+    else if ( type == OBJECT_MOBILEfa ||
+              type == OBJECT_MOBILEfb ||
+              type == OBJECT_MOBILEfc ||
+              type == OBJECT_MOBILEfi ||
+              type == OBJECT_MOBILEfs )  // flying?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 3.1f,  4.5f), 0, 0.6f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 3.1f, -4.5f), 0, 0.6f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f,  2.2f), 0, 1.2f, TRAINER_TRUE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f, -2.2f), 0, 1.2f, TRAINER_TRUE});
+    }
+    else if ( type == OBJECT_MOBILEwa ||
+              type == OBJECT_MOBILEwb ||
+              type == OBJECT_MOBILEwc ||
+              type == OBJECT_MOBILEwi ||
+              type == OBJECT_MOBILEws )  // wheels?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.5f, 2.7f,  2.8f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.5f, 2.7f, -2.8f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f,  2.2f), 0, 1.2f, TRAINER_TRUE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f, -2.2f), 0, 1.2f, TRAINER_TRUE});
+    }
+    else if ( type == OBJECT_MOBILEia ||
+              type == OBJECT_MOBILEib ||
+              type == OBJECT_MOBILEic ||
+              type == OBJECT_MOBILEii ||
+              type == OBJECT_MOBILEis )  // legs?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.5f, 2.7f,  2.8f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.5f, 2.7f, -2.8f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f,  2.2f), 0, 1.2f, TRAINER_TRUE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f, -2.2f), 0, 1.2f, TRAINER_TRUE});
+    }
+    else if ( type == OBJECT_MOBILEta ||
+              type == OBJECT_MOBILEtb ||
+              type == OBJECT_MOBILEtc ||
+              type == OBJECT_MOBILEti ||
+              type == OBJECT_MOBILEts )  // caterpillars?
+    {
+        result.push_back({Gfx::PARTISELR, Math::Vector(-3.6f, 4.2f,  3.0f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-3.6f, 4.2f, -3.0f), 0, 1.2f, TRAINER_FALSE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f,  2.2f), 0, 1.2f, TRAINER_TRUE});
+        result.push_back({Gfx::PARTISELR, Math::Vector(-4.0f, 2.5f, -2.2f), 0, 1.2f, TRAINER_TRUE});
+    }
+
+    return result;
 }
 
 bool CHardcodeCollection::IsPowerContainer(ObjectType type)
@@ -5365,6 +6644,75 @@ bool CHardcodeCollection::IsDestroyable(ObjectType type)
     return false;
 }
 
+std::string CHardcodeCollection::GetDestroyMessage(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return TR("Alien Queen killed");
+    if ( type == OBJECT_ANT    )  return TR("Ant fatally wounded");
+    if ( type == OBJECT_BEE    )  return TR("Wasp fatally wounded");
+    if ( type == OBJECT_WORM   )  return TR("Worm fatally wounded");
+    if ( type == OBJECT_SPIDER )  return TR("Spider fatally wounded");
+
+    if ( type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_MOBILEdr )
+    {
+        return TR("Bot destroyed");
+    }
+
+    if ( type == OBJECT_DERRICK  ||
+         type == OBJECT_FACTORY  ||
+         type == OBJECT_STATION  ||
+         type == OBJECT_CONVERT  ||
+         type == OBJECT_REPAIR   ||
+         type == OBJECT_DESTROYER||
+         type == OBJECT_TOWER    ||
+         type == OBJECT_RESEARCH ||
+         type == OBJECT_RADAR    ||
+         type == OBJECT_INFO     ||
+         type == OBJECT_ENERGY   ||
+         type == OBJECT_LABO     ||
+         type == OBJECT_NUCLEAR  ||
+         type == OBJECT_PARA     ||
+         type == OBJECT_SAFE     ||
+         type == OBJECT_HUSTON   ||
+         type == OBJECT_START    ||
+         type == OBJECT_END      )
+    {
+        return TR("Building destroyed");
+    }
+
+    return "";
+}
+
 bool CHardcodeCollection::IsFragile(ObjectType type)
 {
     // TODO: Hacking some more
@@ -5587,53 +6935,108 @@ bool CHardcodeCollection::IsShielded(ObjectType type)
     return false;
 }
 
+Gfx::PyroType CHardcodeCollection::GetDamageEffect(ObjectType type)
+{
+    if ( type == OBJECT_HUMAN )
+    {
+        return Gfx::PT_SHOTH;
+    }
+    else if ( type == OBJECT_MOTHER )
+    {
+        return Gfx::PT_SHOTM;
+    }
+
+    return Gfx::PT_SHOTT;
+}
+
 bool CHardcodeCollection::IsImmuneToFireballs(ObjectType type)
 {
-    if (type == OBJECT_MOTHER)  return true;
+    if ( type == OBJECT_MOTHER  ) return true; // AlienQueen can be destroyed only by PhazerShooter
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    if ( type == OBJECT_URANIUM ) return true; // UraniumOre is not destroyable by shooting or aliens (see #777)
+    if ( type == OBJECT_STONE   ) return true; // TitaniumOre is not destroyable either
+
     return false;
 }
 
 bool CHardcodeCollection::IsImmuneToInsects(ObjectType type)
 {
-    return ( type == OBJECT_ANT      ||
-             type == OBJECT_SPIDER   ||
-             type == OBJECT_BEE      ||
-             type == OBJECT_WORM     ||
-             type == OBJECT_MOTHER   ||
-             type == OBJECT_NEST     ||
-             type == OBJECT_BULLET   ||
-             type == OBJECT_EGG      ||
-             type == OBJECT_TEEN28   ||
-             type == OBJECT_TEEN31   );
-}
+    if ( type == OBJECT_MOTHER  ) return true; // AlienQueen can be destroyed only by PhazerShooter
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
 
-bool CHardcodeCollection::IsImmuneToSpiders(ObjectType type)
-{
-    return ( type == OBJECT_ANT      ||
-             type == OBJECT_SPIDER   ||
-             type == OBJECT_BEE      ||
-             type == OBJECT_WORM     ||
-             type == OBJECT_MOTHER   ||
-             type == OBJECT_NEST     ||
-             type == OBJECT_BULLET   ||
-             type == OBJECT_EGG      ||
-             type == OBJECT_TEEN28   ||
-             type == OBJECT_TEEN31   );
-}
+    if ( type == OBJECT_ANT    ||
+         type == OBJECT_SPIDER ||
+         type == OBJECT_BEE    ||
+         type == OBJECT_WORM   ||
+         type == OBJECT_NEST   ||
+         type == OBJECT_BULLET ||
+         type == OBJECT_EGG    ||
+         type == OBJECT_TEEN28 ||
+         type == OBJECT_TEEN31  ) return true;
 
-bool CHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
-{
-    if (type == OBJECT_MOTHER)  return true;
+    if ( type == OBJECT_URANIUM ) return true; // UraniumOre is not destroyable by shooting or aliens (see #777)
+    if ( type == OBJECT_STONE   ) return true; // TitaniumOre is not destroyable either
+
     return false;
 }
 
 bool CHardcodeCollection::IsImmuneToPhazers(ObjectType type)
 {
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
     return false;
 }
 
 bool CHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
 {
+    if ( type == OBJECT_MOTHER  ) return true; // AlienQueen can be destroyed only by PhazerShooter
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
     if (type == OBJECT_MOBILEtg ||
      type == OBJECT_TEEN28   ||
      type == OBJECT_TEEN31   ||
@@ -5641,15 +7044,148 @@ bool CHardcodeCollection::IsImmuneToTowerRays(ObjectType type)
      type == OBJECT_SPIDER   ||
      type == OBJECT_BEE      ||
      type == OBJECT_WORM     ||
-     type == OBJECT_MOTHER   ||
      type == OBJECT_NEST) return false;
 
      return true;
 }
 
+bool CHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return true; // AlienQueen can be destroyed only by PhazerShooter
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    return false;
+}
+
+bool CHardcodeCollection::IsImmuneToExplosive(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return true; // AlienQueen can be destroyed only by PhazerShooter
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    return false;
+}
+
+bool CHardcodeCollection::IsImmuneToCollisions(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return true; // AlienQueen can be destroyed only by PhazerShooter
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    if ( type == OBJECT_METAL ) return true;
+    if ( type == OBJECT_POWER ) return true;
+    if ( type == OBJECT_NUCLEAR ) return true;
+
+    return false;
+}
+
+bool CHardcodeCollection::IsImmuneToLightning(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return true;
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    return GetLightningRodHeight(type) != 0.0f;
+}
+
+bool CHardcodeCollection::IsImmuneToFall(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return true;
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    return false;
+}
+
+bool CHardcodeCollection::IsImmuneToSpiders(ObjectType type)
+{
+    if ( type == OBJECT_MOTHER )  return true;
+    if ((type == OBJECT_BOMB         ||
+         type == OBJECT_RUINmobilew1 ||
+         type == OBJECT_RUINmobilew2 ||
+         type == OBJECT_RUINmobilet1 ||
+         type == OBJECT_RUINmobilet2 ||
+         type == OBJECT_RUINmobiler1 ||
+         type == OBJECT_RUINmobiler2 ||
+         type == OBJECT_RUINfactory  ||
+         type == OBJECT_RUINdoor     ||
+         type == OBJECT_RUINsupport  ||
+         type == OBJECT_RUINradar    ||
+         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
+
+    if ( type == OBJECT_ANT    ||
+         type == OBJECT_SPIDER ||
+         type == OBJECT_BEE    ||
+         type == OBJECT_WORM   ||
+         type == OBJECT_NEST   ||
+         type == OBJECT_BULLET ||
+         type == OBJECT_EGG    ||
+         type == OBJECT_TEEN28 ||
+         type == OBJECT_TEEN31  ) return true;
+
+    return false;
+}
+
 bool CHardcodeCollection::IsShieldAutoregen(ObjectType type)
 {
     return type == OBJECT_HUMAN;
+}
+
+bool CHardcodeCollection::IsRepairable(ObjectType type)
+{
+    if (type == OBJECT_HUMAN) return false;
+    return true;
 }
 
 float CHardcodeCollection::GetShieldAutoregenTime(ObjectType type)
@@ -5659,111 +7195,13 @@ float CHardcodeCollection::GetShieldAutoregenTime(ObjectType type)
 
 bool CHardcodeCollection::IsSloted(ObjectType type)
 {
-    return HasCargoSlot(type) || HasPowerSlot(type) || HasOtherSlot(type);
+    return GetSlots(type).size() > 0;
 }
 
-bool CHardcodeCollection::HasCargoSlot(ObjectType type)
+std::vector<CObjectSlotDetails> CHardcodeCollection::GetSlots(ObjectType type)
 {
-    if ( type == OBJECT_HUMAN ||
-         type == OBJECT_TECH ||
-         type == OBJECT_MOBILEfa || // Grabbers
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEsa) // subber
-         return true;
+    std::vector<CObjectSlotDetails> result;
 
-    // DEV BRACH MISSED THIS
-    if ( type == OBJECT_BEE ) return true;
-
-    return false;
-}
-
-bool CHardcodeCollection::HasPowerSlot(ObjectType type)
-{
-    // TODO: Another temporary hack
-    if (type == OBJECT_MOBILEfa ||
-        type == OBJECT_MOBILEta ||
-        type == OBJECT_MOBILEwa ||
-        type == OBJECT_MOBILEia ||
-        type == OBJECT_MOBILEfb ||
-        type == OBJECT_MOBILEtb ||
-        type == OBJECT_MOBILEwb ||
-        type == OBJECT_MOBILEib ||
-        type == OBJECT_MOBILEfc ||
-        type == OBJECT_MOBILEtc ||
-        type == OBJECT_MOBILEwc ||
-        type == OBJECT_MOBILEic ||
-        type == OBJECT_MOBILEfi ||
-        type == OBJECT_MOBILEti ||
-        type == OBJECT_MOBILEwi ||
-        type == OBJECT_MOBILEii ||
-        type == OBJECT_MOBILEfs ||
-        type == OBJECT_MOBILEts ||
-        type == OBJECT_MOBILEws ||
-        type == OBJECT_MOBILEis ||
-        type == OBJECT_MOBILErt ||
-        type == OBJECT_MOBILErc ||
-        type == OBJECT_MOBILErr ||
-        type == OBJECT_MOBILErs ||
-        type == OBJECT_MOBILEsa ||
-        type == OBJECT_MOBILEtg ||
-        type == OBJECT_MOBILEft ||
-        type == OBJECT_MOBILEtt ||
-        type == OBJECT_MOBILEwt ||
-        type == OBJECT_MOBILEit ||
-        type == OBJECT_MOBILErp ||
-        type == OBJECT_MOBILEst ||
-        type == OBJECT_TOWER    ||
-        type == OBJECT_RESEARCH ) return true;
-
-    return false;
-}
-
-int CHardcodeCollection::GetCargoSlotPartNumber(ObjectType type)
-{
-    switch (type)
-    {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            return 4;
-        case OBJECT_BEE:
-            return 3;
-        case OBJECT_MOBILEsa: // subber
-            return 2;
-        case OBJECT_MOBILEfa: // Grabbers
-        case OBJECT_MOBILEta:
-        case OBJECT_MOBILEwa:
-        case OBJECT_MOBILEia:
-            return 3;
-        default:
-            return 0;
-    }
-}
-
-Math::Vector CHardcodeCollection::GetCargoSlotPosition(ObjectType type)
-{
-    switch (type)
-    {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            return Math::Vector(1.7f, -0.5f, 1.1f);
-        case OBJECT_BEE:
-            return Math::Vector(4.7f, 0.0f, 0.0f);
-        case OBJECT_MOBILEsa: // subber
-            return Math::Vector(1.1f, -1.0f, 1.0f);
-        case OBJECT_MOBILEfa: // Grabbers
-        case OBJECT_MOBILEta:
-        case OBJECT_MOBILEwa:
-        case OBJECT_MOBILEia:
-            return Math::Vector(4.7f, 0.0f, 0.0f);
-        default:
-            return Math::Vector();
-    }
-}
-
-Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
-{
     if ( type == OBJECT_MOBILEwa ||
          type == OBJECT_MOBILEwb ||
          type == OBJECT_MOBILEwc ||
@@ -5771,11 +7209,11 @@ Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
          type == OBJECT_MOBILEws ||
          type == OBJECT_MOBILEwt )  // wheels?
     {
-        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-3.2f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_MOBILEtg )
     {
-        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-3.2f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_MOBILEta ||
          type == OBJECT_MOBILEtb ||
@@ -5784,7 +7222,7 @@ Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
          type == OBJECT_MOBILEts ||
          type == OBJECT_MOBILEtt )  // caterpillars?
     {
-        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-3.2f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_MOBILEia ||
          type == OBJECT_MOBILEib ||
@@ -5793,7 +7231,7 @@ Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
          type == OBJECT_MOBILEis ||
          type == OBJECT_MOBILEit)  // legs?
     {
-        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-3.2f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_MOBILEfa ||
          type == OBJECT_MOBILEfb ||
@@ -5802,7 +7240,7 @@ Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
          type == OBJECT_MOBILEfs ||
          type == OBJECT_MOBILEft )  // flying?
     {
-        return (Math::Vector(-3.2f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-3.2f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_MOBILErt ||
          type == OBJECT_MOBILErc ||
@@ -5810,53 +7248,64 @@ Math::Vector CHardcodeCollection::GetPowerSlotPosition(ObjectType type)
          type == OBJECT_MOBILErs ||
          type == OBJECT_MOBILErp)  // large caterpillars?
     {
-        return (Math::Vector(-5.8f, 4.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-5.8f, 4.0f, 0.0f)});
     }
     if ( type == OBJECT_MOBILEsa ||
          type == OBJECT_MOBILEst )
     {
-        return (Math::Vector(-5.0f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(-5.0f, 3.0f, 0.0f)});
     }
 
     if ( type == OBJECT_MOBILEdr )
     {
-        return (Math::Vector(-5.0f, 3.0f, 0.0f));
+//        result.push_back({SLOT_POWER, 0, Math::Vector(-5.0f, 3.0f, 0.0f)});
     }
 
     if ( type == OBJECT_RESEARCH )
     {
-        return (Math::Vector(7.5f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(7.5f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_TOWER )
     {
-        return (Math::Vector(5.0f, 3.0f, 0.0f));
+        result.push_back({SLOT_POWER, 0, Math::Vector(5.0f, 3.0f, 0.0f)});
     }
-    return Math::Vector();
-}
 
-bool CHardcodeCollection::HasOtherSlot(ObjectType type)
-{
-    if (type == OBJECT_ENERGY   ||
-        type == OBJECT_LABO     ||
-        type == OBJECT_NUCLEAR  ) return true;
-    return false;
-}
+    switch( type )
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+            result.push_back({SLOT_CARGO, 4, Math::Vector(1.7f, -0.5f, 1.1f)});
+            break;
+        case OBJECT_BEE:
+            result.push_back({SLOT_CARGO, 3, Math::Vector(4.7f, 0.0f, 0.0f)});
+            break;
+        case OBJECT_MOBILEsa: // subber
+            result.push_back({SLOT_CARGO, 2, Math::Vector(1.1f, -1.0f, 1.0f)});
+            break;
+        case OBJECT_MOBILEfa: // Grabbers
+        case OBJECT_MOBILEta:
+        case OBJECT_MOBILEwa:
+        case OBJECT_MOBILEia:
+            result.push_back({SLOT_CARGO, 3, Math::Vector(4.7f, 0.0f, 0.0f)});
+            break;
+        default:
+            break;
+    }
 
-Math::Vector CHardcodeCollection::GetOtherSlotPosition(ObjectType type)
-{
     if ( type == OBJECT_ENERGY )
     {
-        return (Math::Vector(0.0f, 3.0f, 0.0f));
+        result.push_back({SLOT_OTHER, 0, Math::Vector(0.0f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_LABO )
     {
-        return (Math::Vector(0.0f, 3.0f, 0.0f));
+        result.push_back({SLOT_OTHER, 0, Math::Vector(0.0f, 3.0f, 0.0f)});
     }
     if ( type == OBJECT_NUCLEAR )
     {
-        return (Math::Vector(22.0f, 3.0f, 0.0f));
+        result.push_back({SLOT_OTHER, 0, Math::Vector(22.0f, 3.0f, 0.0f)});
     }
-    return Math::Vector();
+
+    return result;
 }
 
 bool CHardcodeCollection::IsThumpable(ObjectType type)
@@ -6769,6 +8218,93 @@ bool CHardcodeCollection::HasOnboardCameraCrosshair(ObjectType type)
     return false;
 }
 
+Math::Vector CHardcodeCollection::GetOnboardCameraPosition(ObjectType type)
+{
+    Math::Vector eye;
+
+    if ( type == OBJECT_HUMAN ||
+         type == OBJECT_TECH  )
+    {
+        eye.x = -0.2f;
+        eye.y =  3.3f;
+        eye.z =  0.0f;
+//?     eye.x =  1.0f;
+//?     eye.y =  3.3f;
+//?     eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_MOBILErt ||
+              type == OBJECT_MOBILErr ||
+              type == OBJECT_MOBILErs ||
+              type == OBJECT_MOBILErp )
+    {
+        eye.x = -1.1f;  // on the cap
+        eye.y =  7.9f;
+        eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_MOBILEwc ||
+              type == OBJECT_MOBILEtc ||
+              type == OBJECT_MOBILEfc ||
+              type == OBJECT_MOBILEic )  // fireball?
+    {
+//?     eye.x = -0.9f;  // on the cannon
+//?     eye.y =  3.0f;
+//?     eye.z =  0.0f;
+//?     part = 1;
+        eye.x = -0.9f;  // on the cannon
+        eye.y =  8.3f;
+        eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_MOBILEwi ||
+              type == OBJECT_MOBILEti ||
+              type == OBJECT_MOBILEfi ||
+              type == OBJECT_MOBILEii )  // orgaball ?
+    {
+//?     eye.x = -3.5f;  // on the cannon
+//?     eye.y =  5.1f;
+//?     eye.z =  0.0f;
+//?     part = 1;
+        eye.x = -2.5f;  // on the cannon
+        eye.y = 10.4f;
+        eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_MOBILErc )
+    {
+//?     eye.x =  2.0f;  // in the cannon
+//?     eye.y =  0.0f;
+//?     eye.z =  0.0f;
+//?     part = 2;
+        eye.x =  4.0f;  // on the cannon
+        eye.y = 11.0f;
+        eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_MOBILEsa ||
+              type == OBJECT_MOBILEst )
+    {
+        eye.x =  3.0f;
+        eye.y =  4.5f;
+        eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_MOBILEdr )
+    {
+        eye.x =  1.0f;
+        eye.y =  6.5f;
+        eye.z =  0.0f;
+    }
+    else if ( type == OBJECT_APOLLO2 )
+    {
+        eye.x = -3.0f;
+        eye.y =  6.0f;
+        eye.z = -2.0f;
+    }
+    else
+    {
+        eye.x = 0.7f;  // between the brackets
+        eye.y = 4.8f;
+        eye.z = 0.0f;
+    }    
+
+    return eye;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -7079,18 +8615,29 @@ bool CHardcodeCollection::IsAutoBlockingFactory(ObjectType type)
      return true;
 }
 
-std::vector<CObjectProductionAutomationDetails> CHardcodeCollection::GetProduction(ObjectType type)
+CObjectProductionAutomationDetails CHardcodeCollection::GetProduction(ObjectType type)
 {
-    std::vector<CObjectProductionAutomationDetails> result;
+    CObjectProductionAutomationDetails result;
 
     if ( type == OBJECT_CONVERT )
-        result.push_back({OBJECT_STONE, OBJECT_METAL});
+    {
+        result = {TR("No titanium ore to convert"), ""};
+        result.objects.push_back({OBJECT_STONE,   OBJECT_METAL,  TR("Titanium available")});
+    }
     if ( type == OBJECT_ENERGY )
-        result.push_back({OBJECT_METAL, OBJECT_POWER});
+    {
+        result = {TR("No titanium to transform"), TR("Transforms only titanium")};
+        result.objects.push_back({OBJECT_METAL,   OBJECT_POWER,  TR("Power cell available")});
+    }
     if ( type == OBJECT_NUCLEAR )
-        result.push_back({OBJECT_URANIUM, OBJECT_ATOMIC});
+    {
+        result = {TR("No uranium to transform"), TR("Transforms only uranium")};
+        result.objects.push_back({OBJECT_URANIUM, OBJECT_ATOMIC, TR("Nuclear power cell available")});
+    }
     if ( type == OBJECT_NEST )
-        result.push_back({OBJECT_NULL, OBJECT_BULLET});
+    {
+        result.objects.push_back({OBJECT_NULL, OBJECT_BULLET, ""});
+    }
 
     return result;
 }
@@ -7813,6 +9360,11 @@ ObjectType CHardcodeCollection::GetAssistantType()
     return OBJECT_TOTO;
 }
 
+ObjectType CHardcodeCollection::GetArrowType()
+{
+    return OBJECT_SHOW;
+}
+
 ObjectType CHardcodeCollection::GetFunctionDestroyPerformerObject()
 {
     return OBJECT_DESTROYER;
@@ -7833,37 +9385,17 @@ ObjectType CHardcodeCollection::GetFunctionReceivePerformerObject()
     return OBJECT_INFO;
 }
 
-std::vector<CObjectButton> CHardcodeCollection::GetBuilderMenuButtons()
+std::vector<CObjectDebugButton> CHardcodeCollection::GetDebugMenuButtons()
 {
-    std::vector<CObjectButton> result;
-    result.push_back({ OBJECT_RESEARCH, 128+35, TR("Build a research center") });
-    result.push_back({ OBJECT_FACTORY,  128+32, TR("Build a bot factory") });
-    result.push_back({ OBJECT_CONVERT,  128+34, TR("Build a converter") });
-    result.push_back({ OBJECT_STATION,  128+36, TR("Build a power station") });
-    result.push_back({ OBJECT_RADAR,    128+40, TR("Build a radar station") });
-    result.push_back({ OBJECT_REPAIR,   128+41, TR("Build a repair center") });
-    result.push_back({ OBJECT_INFO,     128+44, TR("Build a exchange post") });
-    result.push_back({ OBJECT_TOWER,    128+37, TR("Build a defense tower") });
-    result.push_back({ OBJECT_ENERGY,   128+39, TR("Build a power cell factory") });
-    result.push_back({ OBJECT_DERRICK,  128+33, TR("Build a derrick") });
-    result.push_back({ OBJECT_NUCLEAR,  128+42, TR("Build a nuclear power plant") });
-    result.push_back({ OBJECT_LABO,     128+38, TR("Build an autolab") });
-    result.push_back({ OBJECT_PARA,     128+46, TR("Build a lightning conductor") });
-    result.push_back({ OBJECT_SAFE,     128+47, TR("Build a vault") });
-    return result;
-}
-
-std::vector<CObjectButton> CHardcodeCollection::GetDebugMenuButtons()
-{
-    std::vector<CObjectButton> result;
-    result.push_back({OBJECT_HUMAN,    128+8,  ""});
-    result.push_back({OBJECT_MOBILEwa, 128+9,  ""});
-    result.push_back({OBJECT_MOBILEwc, 128+15, ""});
-    result.push_back({OBJECT_MOBILErc, 128+19, ""});
-    result.push_back({OBJECT_FACTORY,  128+32, ""});
-    result.push_back({OBJECT_CONVERT,  128+34, ""});
-    result.push_back({OBJECT_DERRICK,  128+33, ""});
-    result.push_back({OBJECT_STATION,  128+36, ""});
+    std::vector<CObjectDebugButton> result;
+    result.push_back({OBJECT_HUMAN,    128+8,  "Me"});
+    result.push_back({OBJECT_MOBILEwa, 128+9,  "Wheeled grabber"});
+    result.push_back({OBJECT_MOBILEwc, 128+15, "Wheeled shooter"});
+    result.push_back({OBJECT_MOBILErc, 128+19, "Phazer shooter"});
+    result.push_back({OBJECT_FACTORY,  128+32, "Bot factory"});
+    result.push_back({OBJECT_CONVERT,  128+34, "Converter"});
+    result.push_back({OBJECT_DERRICK,  128+33, "Derrick"});
+    result.push_back({OBJECT_STATION,  128+36, "Power station"});
     result.push_back({OBJECT_METAL,    -1,     "Titanium"});
     result.push_back({OBJECT_STONE,    -1,     "TitaniumOre"});
     result.push_back({OBJECT_URANIUM,  -1,     "UraniumOre"});

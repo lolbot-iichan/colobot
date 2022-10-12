@@ -20,9 +20,6 @@
 
 #include "object/auto/autofan.h"
 
-#include "graphics/engine/particle.h"
-#include "graphics/engine/water.h"
-
 #include "object/old_object.h"
 
 #include "sound/sound.h"
@@ -57,7 +54,6 @@ void CAutoFan::Init()
 {
     m_speed = 1.0f/1.0f;
     m_progress = 0.0f;
-    m_lastParticle = 0.0f;
 
     if ( m_soundChannel == -1 )
     {

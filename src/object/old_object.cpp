@@ -55,7 +55,7 @@
 #include "object/details/flying_details.h"
 #include "object/details/fragile_details.h"
 #include "object/details/jet_flying_details.h"
-#include "object/details/josteable_details.h"
+#include "object/details/jostleable_details.h"
 #include "object/details/movable_details.h"
 #include "object/details/power_container_details.h"
 #include "object/details/programmable_details.h"
@@ -106,8 +106,7 @@ COldObject::COldObject(int id)
       CRangedObject(m_implementedInterfaces),
       CTraceDrawingObject(m_implementedInterfaces),
       CShieldedAutoRegenObject(m_implementedInterfaces),
-      CThumpableObject(m_implementedInterfaces),
-      m_partiSel()
+      CThumpableObject(m_implementedInterfaces)
 {
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)] = true;
 
@@ -128,8 +127,9 @@ COldObject::COldObject(int id)
     m_cirVibration  = Math::Vector(0.0f, 0.0f, 0.0f);
     m_tilt   = Math::Vector(0.0f, 0.0f, 0.0f);
 
-    m_power = nullptr;
-    m_cargo  = nullptr;
+    m_otherSlot = nullptr;
+    m_powerSlot = nullptr;
+    m_cargoSlot = nullptr;
     m_transporter = nullptr;
     m_transporterLink = 0;
     m_shield   = 1.0f;
@@ -155,8 +155,6 @@ COldObject::COldObject(int id)
     m_gunGoalH = 0.0f;
     m_shieldRadius = 0.0f;
     m_magnifyDamage = 1.0f;
-    m_hasPowerSlot = false;
-    m_hasCargoSlot = false;
 
     m_cameraType = Gfx::CAM_TYPE_BACK;
     m_bCameraLock = false;
@@ -166,11 +164,6 @@ COldObject::COldObject(int id)
         m_objectPart[i].bUsed = false;
     }
     m_totalPart = 0;
-
-    for (int i=0 ; i<4 ; i++ )
-    {
-        m_partiSel[i] = -1;
-    }
 
     m_time = 0.0f;
     m_burnTime = 0.0f;
@@ -271,23 +264,15 @@ void COldObject::DeleteObject(bool bAll)
 
     if (!bAll)
     {
-        if (m_power != nullptr)
+        for (int i = 0; i < GetNumSlots(); i++ )
         {
-            if (m_power->Implements(ObjectInterfaceType::Old))
+            CObject* item = GetSlotContainedObject(i);
+            if (item->Implements(ObjectInterfaceType::Old))
             {
-                dynamic_cast<COldObject&>(*m_power).SetTransporter(nullptr);
-                dynamic_cast<COldObject&>(*m_power).DeleteObject(bAll);
+                dynamic_cast<COldObject*>(item)->SetTransporter(nullptr);
+                dynamic_cast<COldObject*>(item)->DeleteObject(bAll);
             }
-            m_power = nullptr;
-        }
-        if (m_cargo != nullptr)
-        {
-            if (m_cargo->Implements(ObjectInterfaceType::Old))
-            {
-                dynamic_cast<COldObject&>(*m_cargo).SetTransporter(nullptr);
-                dynamic_cast<COldObject&>(*m_cargo).DeleteObject(bAll);
-            }
-            m_cargo = nullptr;
+            SetSlotContainedObject(i, nullptr);
         }
     }
 
@@ -343,6 +328,17 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
     if ( IsDying() )  return false;
     if ( Implements(ObjectInterfaceType::Jostleable) ) return false;
 
+    auto damageable = GetObjectDamageableDetails(this);
+    if ( type == DamageType::Fire          && !damageable.fire.enabled          ) return false;
+    if ( type == DamageType::Organic       && !damageable.organic.enabled       ) return false;
+    if ( type == DamageType::Phazer        && !damageable.phazer.enabled        ) return false;
+    if ( type == DamageType::Tower         && !damageable.tower.enabled         ) return false;
+    if ( type == DamageType::FallingObject && !damageable.fallingObject.enabled ) return false;
+    if ( type == DamageType::Explosive     && !damageable.explosive.enabled     ) return false;
+    if ( type == DamageType::Collision     && !damageable.collision.enabled     ) return false;
+    if ( type == DamageType::Lightning     && !damageable.lightning.enabled     ) return false;
+    if ( type == DamageType::Fall          && !damageable.fall.enabled          ) return false;
+
     if ( Implements(ObjectInterfaceType::Fragile) )
     {
         auto fragile = GetObjectFragileDetails(this);
@@ -353,32 +349,11 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
             force = -1.0f;
         }
 
-        if ((m_type == OBJECT_BOMB         ||
-             m_type == OBJECT_RUINmobilew1 ||
-             m_type == OBJECT_RUINmobilew2 ||
-             m_type == OBJECT_RUINmobilet1 ||
-             m_type == OBJECT_RUINmobilet2 ||
-             m_type == OBJECT_RUINmobiler1 ||
-             m_type == OBJECT_RUINmobiler2 ||
-             m_type == OBJECT_RUINfactory  ||
-             m_type == OBJECT_RUINdoor     ||
-             m_type == OBJECT_RUINsupport  ||
-             m_type == OBJECT_RUINradar    ||
-             m_type == OBJECT_RUINconvert   ) && type != DamageType::Explosive ) return false; // Mines and ruins can't be destroyed by shooting
-        if ( m_type == OBJECT_URANIUM && (type == DamageType::Fire || type == DamageType::Organic) ) return false; // UraniumOre is not destroyable by shooting or aliens (see #777)
-        if ( m_type == OBJECT_STONE && (type == DamageType::Fire || type == DamageType::Organic) ) return false; // TitaniumOre is not destroyable either
-        // PowerCell, NuclearCell and Titanium are destroyable by shooting, but not by collisions!
-        if ( m_type == OBJECT_METAL && type == DamageType::Collision ) return false;
-        if ( m_type == OBJECT_POWER && type == DamageType::Collision ) return false;
-        if ( m_type == OBJECT_NUCLEAR && type == DamageType::Collision ) return false;
-
         if ( m_magnifyDamage * m_main->GetGlobalMagnifyDamage() == 0 ) return false; // Don't destroy if magnifyDamage=0
 
         DestroyObject(DestructionType::Explosion, killer);
         return true;
     }
-
-    if ( type != DamageType::Phazer && m_type == OBJECT_MOTHER ) return false; // AlienQueen can be destroyed only by PhazerShooter
 
     if ( type == DamageType::Organic )
     {
@@ -400,12 +375,10 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
             if (loss > 1.0f) loss = 1.0f;
 
             // Decreases the the shield
-            float shield = GetShield();
-            shield -= loss;
-            SetShield(shield);
+            SetShield(GetShield() - loss);
 
             // Sending info about taking damage
-            if (!m_damaging)
+            if (!IsDamaging())
             {
                 SetDamaging(true);
                 m_main->UpdateShortcuts();
@@ -437,18 +410,7 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
         return true;
     }
 
-    if ( m_type == OBJECT_HUMAN )
-    {
-        m_engine->GetPyroManager()->Create(Gfx::PT_SHOTH, this, loss);
-    }
-    else if ( m_type == OBJECT_MOTHER )
-    {
-        m_engine->GetPyroManager()->Create(Gfx::PT_SHOTM, this, loss);
-    }
-    else
-    {
-        m_engine->GetPyroManager()->Create(Gfx::PT_SHOTT, this, loss);
-    }
+    m_engine->GetPyroManager()->Create(damageable.effect, this, loss);
     return false;
 }
 
@@ -643,7 +605,7 @@ void COldObject::SetType(ObjectType type)
     auto transportable       = GetObjectTransportableDetails(this);
     auto programmable        = GetObjectProgrammableDetails(this);
     auto task_executor       = GetObjectTaskExecutorDetails(this);
-    auto jostleable          = GetObjectJosteableDetails(this);
+    auto jostleable          = GetObjectJostleableDetails(this);
     auto movable             = GetObjectMovableDetails(this);
     auto flying              = GetObjectFlyingDetails(this);
     auto jet_flying          = GetObjectJetFlyingDetails(this);
@@ -684,9 +646,6 @@ void COldObject::SetType(ObjectType type)
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)]               = oldEnabled;
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)]           = slotted.enabled;
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Thumpable)]         = thumpable.enabled;
-
-    m_hasCargoSlot = slotted.cargo.enabled;
-    m_hasPowerSlot = slotted.power.enabled || slotted.other.enabled;
 
     m_cameraType = controllable.camera.defaultCamera;
 }
@@ -1332,41 +1291,42 @@ void COldObject::SetMasterParticle(int part, int parti)
 
 int COldObject::GetNumSlots()
 {
-    assert(m_hasPowerSlot || m_hasCargoSlot); // otherwise implemented[CSlottedObject] is false
-    return (m_hasPowerSlot ? 1 : 0) + (m_hasCargoSlot ? 1 : 0);
+    auto slots = GetObjectSlottedDetails(this).slots;
+    return slots.size();
 }
+
 int COldObject::MapPseudoSlot(Pseudoslot pseudoslot)
 {
-    switch (pseudoslot)
+    auto slots = GetObjectSlottedDetails(this).slots;
+
+    for (unsigned int i = 0; i < slots.size(); i++)
     {
-    case Pseudoslot::POWER:
-        return m_hasPowerSlot ? 0 : -1;
-    case Pseudoslot::CARRYING:
-        return m_hasCargoSlot ? (m_hasPowerSlot ? 1 : 0) : -1;
-    default:
-        return -1;
+        if (slots[i].category == SLOT_POWER && pseudoslot == Pseudoslot::POWER)
+            return i;
+        if (slots[i].category == SLOT_CARGO && pseudoslot == Pseudoslot::CARRYING)
+            return i;
     }
+
+    return -1;
 }
+
 Math::Vector COldObject::GetSlotPosition(int slotNum)
 {
-    if (slotNum == 0 && m_hasPowerSlot)
-        return m_powerPosition;
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
+    auto slots = GetObjectSlottedDetails(this).slots;
 
-        // See CTaskManip::TransporterTakeObject call to SetTransporterPart and SetPosition
+    assert(unsigned(slotNum) < slots.size());
+    if (slots[slotNum].partNum == 0)
+        return slots[slotNum].position;
 
-        auto slotted = GetObjectSlottedDetails(this);
-        int grabPartNum = slotted.cargo.partNum;
-        Math::Vector grabRelPos = slotted.cargo.position;
-
-        return Math::Transform(GetWorldMatrix(0)->Inverse(), Math::Transform(*GetWorldMatrix(grabPartNum), grabRelPos));
-    }
+    return Math::Transform(GetWorldMatrix(0)->Inverse(), Math::Transform(*GetWorldMatrix(slots[slotNum].partNum), slots[slotNum].position));
 }
+
 float COldObject::GetSlotAngle(int slotNum)
 {
-    if (slotNum == 0 && m_hasPowerSlot)
+    auto slots = GetObjectSlottedDetails(this).slots;
+
+    assert(unsigned(slotNum) < slots.size());
+    if (slots[slotNum].category != SLOT_CARGO)
     {
         switch (m_type)
         {
@@ -1380,15 +1340,16 @@ float COldObject::GetSlotAngle(int slotNum)
             return Math::PI;
         }
     }
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        return 0;
-    }
+
+    return 0;
 }
+
 float COldObject::GetSlotAcceptanceAngle(int slotNum)
 {
-    if (slotNum == 0 && m_hasPowerSlot)
+    auto slots = GetObjectSlottedDetails(this).slots;
+
+    assert(unsigned(slotNum) < slots.size());
+    if (slots[slotNum].category != SLOT_CARGO)
     {
         switch (m_type)
         {
@@ -1405,38 +1366,39 @@ float COldObject::GetSlotAcceptanceAngle(int slotNum)
             return 45.0f*Math::PI/180.0f;
         }
     }
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        return 0; // no acceptance angle for cargo slot
-    }
-}
-CObject *COldObject::GetSlotContainedObject(int slotNum)
-{
-    if (slotNum == 0 && m_hasPowerSlot)
-        return m_power;
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        return m_cargo;
-    }
-}
-void COldObject::SetSlotContainedObject(int slotNum, CObject *object)
-{
-    if (slotNum == 0 && m_hasPowerSlot)
-        m_power = object;
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        m_cargo = object;
-    }
-}
-// not part of CSlottedObject; just used for initialization
-void COldObject::SetPowerPosition(const Math::Vector& powerPosition)
-{
-    m_powerPosition = powerPosition;
+
+    return 0; // no acceptance angle for cargo slot
 }
 
+CObject *COldObject::GetSlotContainedObject(int slotNum)
+{
+    auto slots = GetObjectSlottedDetails(this).slots;
+
+    assert(unsigned(slotNum) < slots.size());
+
+    if (slots[slotNum].category == SLOT_CARGO)
+        return m_cargoSlot;
+
+    if (slots[slotNum].category == SLOT_POWER)
+        return m_powerSlot;
+
+    return m_otherSlot;
+}
+
+void COldObject::SetSlotContainedObject(int slotNum, CObject *object)
+{
+    auto slots = GetObjectSlottedDetails(this).slots;
+
+    assert(unsigned(slotNum) < slots.size());
+
+    if (slots[slotNum].category == SLOT_CARGO)
+        m_cargoSlot = object;
+
+    if (slots[slotNum].category == SLOT_POWER)
+        m_powerSlot = object;
+
+    m_otherSlot = object;
+}
 
 
 // Management of the object "transporter" that transports it.
@@ -2008,7 +1970,7 @@ bool COldObject::EventFrame(const Event &event)
             SetShield(GetShield() + event.rTime*(1.0f/autoregenTime));
     }
 
-    if (m_damaging && m_time - m_damageTime > 2.0f)
+    if (IsDamaging() && m_time - m_damageTime > 2.0f)
     {
         SetDamaging(false);
         m_main->UpdateShortcuts();
@@ -2110,87 +2072,9 @@ void COldObject::AdjustCamera(Math::Vector &eye, float &dirH, float &dirV,
 
     UpdateTransformObject();
 
-    part = 0;
-    if ( m_type == OBJECT_HUMAN ||
-         m_type == OBJECT_TECH  )
-    {
-        eye.x = -0.2f;
-        eye.y =  3.3f;
-        eye.z =  0.0f;
-//?     eye.x =  1.0f;
-//?     eye.y =  3.3f;
-//?     eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILErt ||
-              m_type == OBJECT_MOBILErr ||
-              m_type == OBJECT_MOBILErs ||
-              m_type == OBJECT_MOBILErp )
-    {
-        eye.x = -1.1f;  // on the cap
-        eye.y =  7.9f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEwc ||
-              m_type == OBJECT_MOBILEtc ||
-              m_type == OBJECT_MOBILEfc ||
-              m_type == OBJECT_MOBILEic )  // fireball?
-    {
-//?     eye.x = -0.9f;  // on the cannon
-//?     eye.y =  3.0f;
-//?     eye.z =  0.0f;
-//?     part = 1;
-        eye.x = -0.9f;  // on the cannon
-        eye.y =  8.3f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEii )  // orgaball ?
-    {
-//?     eye.x = -3.5f;  // on the cannon
-//?     eye.y =  5.1f;
-//?     eye.z =  0.0f;
-//?     part = 1;
-        eye.x = -2.5f;  // on the cannon
-        eye.y = 10.4f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILErc )
-    {
-//?     eye.x =  2.0f;  // in the cannon
-//?     eye.y =  0.0f;
-//?     eye.z =  0.0f;
-//?     part = 2;
-        eye.x =  4.0f;  // on the cannon
-        eye.y = 11.0f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEsa ||
-              m_type == OBJECT_MOBILEst )
-    {
-        eye.x =  3.0f;
-        eye.y =  4.5f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEdr )
-    {
-        eye.x =  1.0f;
-        eye.y =  6.5f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_APOLLO2 )
-    {
-        eye.x = -3.0f;
-        eye.y =  6.0f;
-        eye.z = -2.0f;
-    }
-    else
-    {
-        eye.x = 0.7f;  // between the brackets
-        eye.y = 4.8f;
-        eye.z = 0.0f;
-    }
+    auto controllable = GetObjectControllableDetails(this);
+    part = controllable.camera.onboard.partNum;
+    eye  = controllable.camera.onboard.position;
 
     if ( type == Gfx::CAM_TYPE_BACK )
     {
@@ -2448,11 +2332,25 @@ void COldObject::SetSelect(bool select, bool bDisplayError)
         return;  // if not selected, we're done
 
     Error err = ERR_OK;
-    if ( m_physics != nullptr )
+
+    if ( GetVirusMode() )
     {
-        err = m_physics->GetError();
+        if (Implements(ObjectInterfaceType::ProgramStorage) && GetActiveVirus())
+            err = ERR_VEH_VIRUS;
+        else
+            err = ERR_BAT_VIRUS;
     }
-    if ( m_auto != nullptr )
+
+    if (HasPowerCellSlot(this))
+    {
+        CPowerContainerObject* power = GetObjectPowerCell(this);
+        if (power == nullptr)
+            err = ERR_VEH_POWER;
+        else if ( power->GetEnergy() == 0.0f )
+            err = ERR_VEH_ENERGY;
+    }
+
+    if ( err == ERR_OK && m_auto != nullptr )
     {
         err = m_auto->GetError();
     }
@@ -2569,76 +2467,26 @@ bool COldObject::GetDetectable()
 
 void COldObject::SetGunGoalV(float gunGoal)
 {
-    if ( m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib)  // fireball?
-    {
-        if ( gunGoal >  10.0f*Math::PI/180.0f )  gunGoal =  10.0f*Math::PI/180.0f;
-        if ( gunGoal < -20.0f*Math::PI/180.0f )  gunGoal = -20.0f*Math::PI/180.0f;
-        SetPartRotationZ(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEii )  // orgaball?
-    {
-        if ( gunGoal >  20.0f*Math::PI/180.0f )  gunGoal =  20.0f*Math::PI/180.0f;
-        if ( gunGoal < -20.0f*Math::PI/180.0f )  gunGoal = -20.0f*Math::PI/180.0f;
-        SetPartRotationZ(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILErc )  // phazer?
-    {
-        if ( gunGoal >  45.0f*Math::PI/180.0f )  gunGoal =  45.0f*Math::PI/180.0f;
-        if ( gunGoal < -20.0f*Math::PI/180.0f )  gunGoal = -20.0f*Math::PI/180.0f;
-        SetPartRotationZ(2, gunGoal);
-    }
-    else
-    {
-        gunGoal = 0.0f;
-    }
+    auto task_executor = GetObjectTaskExecutorDetails(this);
+
+    if ( gunGoal < task_executor.aim.minZ ) gunGoal = task_executor.aim.minZ;
+    if ( gunGoal > task_executor.aim.maxZ ) gunGoal = task_executor.aim.maxZ;
+        
+    if ( task_executor.aim.partNum != -1 )
+        SetPartRotationZ(task_executor.aim.partNum, gunGoal);
 
     m_gunGoalV = gunGoal;
 }
 
 void COldObject::SetGunGoalH(float gunGoal)
 {
-    if ( m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib)  // fireball?
-    {
-        if ( gunGoal >  40.0f*Math::PI/180.0f )  gunGoal =  40.0f*Math::PI/180.0f;
-        if ( gunGoal < -40.0f*Math::PI/180.0f )  gunGoal = -40.0f*Math::PI/180.0f;
-        SetPartRotationY(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEii )  // orgaball?
-    {
-        if ( gunGoal >  40.0f*Math::PI/180.0f )  gunGoal =  40.0f*Math::PI/180.0f;
-        if ( gunGoal < -40.0f*Math::PI/180.0f )  gunGoal = -40.0f*Math::PI/180.0f;
-        SetPartRotationY(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILErc )  // phazer?
-    {
-        if ( gunGoal >  40.0f*Math::PI/180.0f )  gunGoal =  40.0f*Math::PI/180.0f;
-        if ( gunGoal < -40.0f*Math::PI/180.0f )  gunGoal = -40.0f*Math::PI/180.0f;
-        SetPartRotationY(2, gunGoal);
-    }
-    else
-    {
-        gunGoal = 0.0f;
-    }
+    auto task_executor = GetObjectTaskExecutorDetails(this);
+
+    if ( gunGoal < task_executor.aim.minY ) gunGoal = task_executor.aim.minY;
+    if ( gunGoal > task_executor.aim.maxY ) gunGoal = task_executor.aim.maxY;
+        
+    if ( task_executor.aim.partNum != -1 )
+        SetPartRotationY(task_executor.aim.partNum, gunGoal);
 
     m_gunGoalH = gunGoal;
 }
@@ -2663,67 +2511,29 @@ float COldObject::GetShowLimitRadius()
 
 void COldObject::CreateSelectParticle()
 {
-    Math::Vector    pos, speed;
-    Math::Point     dim;
-    int         i;
-
     // Removes particles preceding.
-    for ( i=0 ; i<4 ; i++ )
+    for ( int it: m_partiSel )
     {
-        if ( m_partiSel[i] != -1 )
-        {
-            m_particle->DeleteParticle(m_partiSel[i]);
-            m_partiSel[i] = -1;
-        }
+        if ( it != -1 )
+            m_particle->DeleteParticle(it);
     }
+    m_partiSel.clear();
 
     if ( m_bSelect || IsProgram() || m_main->GetMissionType() == MISSION_RETRO )
     {
         // Creates particles lens for the headlights.
-        if ( m_type == OBJECT_MOBILEfa ||
-             m_type == OBJECT_MOBILEta ||
-             m_type == OBJECT_MOBILEwa ||
-             m_type == OBJECT_MOBILEia ||
-             m_type == OBJECT_MOBILEfb ||
-             m_type == OBJECT_MOBILEtb ||
-             m_type == OBJECT_MOBILEwb ||
-             m_type == OBJECT_MOBILEib ||
-             m_type == OBJECT_MOBILEfc ||
-             m_type == OBJECT_MOBILEtc ||
-             m_type == OBJECT_MOBILEwc ||
-             m_type == OBJECT_MOBILEic ||
-             m_type == OBJECT_MOBILEfi ||
-             m_type == OBJECT_MOBILEti ||
-             m_type == OBJECT_MOBILEwi ||
-             m_type == OBJECT_MOBILEii ||
-             m_type == OBJECT_MOBILEfs ||
-             m_type == OBJECT_MOBILEts ||
-             m_type == OBJECT_MOBILEws ||
-             m_type == OBJECT_MOBILEis ||
-             m_type == OBJECT_MOBILErt ||
-             m_type == OBJECT_MOBILErc ||
-             m_type == OBJECT_MOBILErr ||
-             m_type == OBJECT_MOBILErs ||
-             m_type == OBJECT_MOBILEsa ||
-             m_type == OBJECT_MOBILEtg ||
-             m_type == OBJECT_MOBILEft ||
-             m_type == OBJECT_MOBILEtt ||
-             m_type == OBJECT_MOBILEwt ||
-             m_type == OBJECT_MOBILEit ||
-             m_type == OBJECT_MOBILErp ||
-             m_type == OBJECT_MOBILEst ||
-             m_type == OBJECT_MOBILEdr )  // vehicle?
+        auto lights = GetObjectControllableDetails(this).lights;
+        for ( auto it: lights )
         {
-            pos = Math::Vector(0.0f, 0.0f, 0.0f);
-            speed = Math::Vector(0.0f, 0.0f, 0.0f);
-            dim.x = 0.0f;
-            dim.y = 0.0f;
-            m_partiSel[0] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELY, 1.0f, 0.0f, 0.0f);
-            m_partiSel[1] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELY, 1.0f, 0.0f, 0.0f);
-            m_partiSel[2] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELR, 1.0f, 0.0f, 0.0f);
-            m_partiSel[3] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELR, 1.0f, 0.0f, 0.0f);
-            UpdateSelectParticle();
+            int particle = -1;
+            if ( it.trainerMatcher == TRAINER_ANY || it.trainerMatcher == GetTrainer() )
+            {
+                particle = m_particle->CreateParticle(Math::Vector(), Math::Vector(), Math::Point(), it.color, 1.0f, 0.0f, 0.0f);
+            }
+            m_partiSel.push_back(particle);
         }
+        if ( lights.size() )
+            UpdateSelectParticle();
     }
 }
 
@@ -2731,170 +2541,26 @@ void COldObject::CreateSelectParticle()
 
 void COldObject::UpdateSelectParticle()
 {
-    Math::Vector    pos[4];
-    Math::Point     dim[4];
-    float       zoom[4];
-    float       angle;
-    int         i;
-
     if ( !m_bSelect && !IsProgram() && m_main->GetMissionType() != MISSION_RETRO )  return;
 
-    dim[0].x = 1.0f;
-    dim[1].x = 1.0f;
-    dim[2].x = 1.2f;
-    dim[3].x = 1.2f;
-
-    // Lens front yellow.
-    if ( m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs ||
-         m_type == OBJECT_MOBILErp )  // large caterpillars?
-    {
-        pos[0] = Math::Vector(4.2f, 2.8f,  1.5f);
-        pos[1] = Math::Vector(4.2f, 2.8f, -1.5f);
-        dim[0].x = 1.5f;
-        dim[1].x = 1.5f;
-    }
-    else if ( m_type == OBJECT_MOBILEsa ||
-              m_type == OBJECT_MOBILEst )  // submarine?
-    {
-        pos[0] = Math::Vector(3.6f, 4.0f,  2.0f);
-        pos[1] = Math::Vector(3.6f, 4.0f, -2.0f);
-    }
-    else if ( m_type == OBJECT_MOBILEtg )  // target?
-    {
-        pos[0] = Math::Vector(3.4f, 6.5f,  2.0f);
-        pos[1] = Math::Vector(3.4f, 6.5f, -2.0f);
-    }
-    else if ( m_type == OBJECT_MOBILEdr )  // designer?
-    {
-        pos[0] = Math::Vector(4.9f, 3.5f,  2.5f);
-        pos[1] = Math::Vector(4.9f, 3.5f, -2.5f);
-    }
-    else if ( m_type == OBJECT_MOBILEwt ||
-              m_type == OBJECT_MOBILEtt ||
-              m_type == OBJECT_MOBILEft ||
-              m_type == OBJECT_MOBILEit ||
-              GetTrainer())                // trainer ?
-    {
-        pos[0] = Math::Vector(4.2f, 2.5f,  1.2f);
-        pos[1] = Math::Vector(4.2f, 2.5f, -1.2f);
-        dim[0].x = 1.5f;
-        dim[1].x = 1.5f;
-    }
-    else
-    {
-        pos[0] = Math::Vector(4.2f, 2.5f,  1.5f);
-        pos[1] = Math::Vector(4.2f, 2.5f, -1.5f);
-    }
-
-    // Red back lens
-    if ( m_type == OBJECT_MOBILEwt ||
-         m_type == OBJECT_MOBILEtt ||
-         m_type == OBJECT_MOBILEft ||
-         m_type == OBJECT_MOBILEit ||
-         GetTrainer())               // trainer?
-    {
-        pos[2] = Math::Vector(-4.0f, 2.5f,  2.2f);
-        pos[3] = Math::Vector(-4.0f, 2.5f, -2.2f);
-    }
-    else if ( m_type == OBJECT_MOBILEfa ||
-              m_type == OBJECT_MOBILEfb ||
-              m_type == OBJECT_MOBILEfc ||
-              m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEfs )  // flying?
-    {
-        pos[2] = Math::Vector(-4.0f, 3.1f,  4.5f);
-        pos[3] = Math::Vector(-4.0f, 3.1f, -4.5f);
-        dim[2].x = 0.6f;
-        dim[3].x = 0.6f;
-    }
-    else if ( m_type == OBJECT_MOBILEwa ||
-              m_type == OBJECT_MOBILEwb ||
-              m_type == OBJECT_MOBILEwc ||
-              m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEws )  // wheels?
-    {
-        pos[2] = Math::Vector(-4.5f, 2.7f,  2.8f);
-        pos[3] = Math::Vector(-4.5f, 2.7f, -2.8f);
-    }
-    else if ( m_type == OBJECT_MOBILEia ||
-              m_type == OBJECT_MOBILEib ||
-              m_type == OBJECT_MOBILEic ||
-              m_type == OBJECT_MOBILEii ||
-              m_type == OBJECT_MOBILEis )  // legs?
-    {
-        pos[2] = Math::Vector(-4.5f, 2.7f,  2.8f);
-        pos[3] = Math::Vector(-4.5f, 2.7f, -2.8f);
-    }
-    else if ( m_type == OBJECT_MOBILEta ||
-              m_type == OBJECT_MOBILEtb ||
-              m_type == OBJECT_MOBILEtc ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEts )  // caterpillars?
-    {
-        pos[2] = Math::Vector(-3.6f, 4.2f,  3.0f);
-        pos[3] = Math::Vector(-3.6f, 4.2f, -3.0f);
-    }
-    else if ( m_type == OBJECT_MOBILErt ||
-              m_type == OBJECT_MOBILErc ||
-              m_type == OBJECT_MOBILErr ||
-              m_type == OBJECT_MOBILErs )  // large caterpillars?
-    {
-        pos[2] = Math::Vector(-5.0f, 5.2f,  2.5f);
-        pos[3] = Math::Vector(-5.0f, 5.2f, -2.5f);
-    }
-    if ( m_type == OBJECT_MOBILErp || ( GetTrainer() &&
-       ( m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs)))  // large caterpillars (trainer)?
-    {
-        pos[2] = Math::Vector(-4.6f, 5.2f,  2.6f);
-        pos[3] = Math::Vector(-4.6f, 5.2f, -2.6f);
-    }
-    if ( m_type == OBJECT_MOBILEsa ||
-         m_type == OBJECT_MOBILEst )  // submarine?
-    {
-        pos[2] = Math::Vector(-3.6f, 4.0f,  2.0f);
-        pos[3] = Math::Vector(-3.6f, 4.0f, -2.0f);
-    }
-    if ( m_type == OBJECT_MOBILEtg )  // target?
-    {
-        pos[2] = Math::Vector(-2.4f, 6.5f,  2.0f);
-        pos[3] = Math::Vector(-2.4f, 6.5f, -2.0f);
-    }
-    if ( m_type == OBJECT_MOBILEdr )  // designer?
-    {
-        pos[2] = Math::Vector(-5.3f, 2.7f,  1.8f);
-        pos[3] = Math::Vector(-5.3f, 2.7f, -1.8f);
-    }
-
-    angle = GetRotationY()/Math::PI;
-
-    zoom[0] = 1.0f;
-    zoom[1] = 1.0f;
-    zoom[2] = 1.0f;
-    zoom[3] = 1.0f;
+    float angle = GetRotationY()/Math::PI;
+    float zoom  = 1.0f;
 
     if ( ( IsProgram() ||  // current program?
          m_main->GetMissionType() == MISSION_RETRO ) && // Retro mode?
          Math::Mod(m_aTime, 0.7f) < 0.3f )
     {
-        zoom[0] = 0.0f;  // blinks
-        zoom[1] = 0.0f;
-        zoom[2] = 0.0f;
-        zoom[3] = 0.0f;
+        zoom = 0.0f;  // blinks
     }
 
     // Updates lens.
-    for ( i=0 ; i<4 ; i++ )
+    auto lights = GetObjectControllableDetails(this).lights;
+    for (unsigned int i = 0 ; i < m_partiSel.size() ; i++)
     {
         if (m_partiSel[i] == -1) continue;
-        pos[i] = Math::Transform(m_objectPart[0].matWorld, pos[i]);
-        dim[i].y = dim[i].x;
-        m_particle->SetParam(m_partiSel[i], pos[i], dim[i], zoom[i], angle, 1.0f);
+        Math::Vector pos = Math::Transform(m_objectPart[lights[i].partNum].matWorld, lights[i].position);
+        Math::Point dim  = Math::Point(lights[i].zoom, lights[i].zoom);
+        m_particle->SetParam(m_partiSel[i], pos, dim, zoom, angle, 1.0f);
     }
 }
 
@@ -3025,8 +2691,8 @@ void COldObject::SetTraceWidth(float width)
 
 bool COldObject::IsRepairable()
 {
-    if (m_type == OBJECT_HUMAN) return false;
-    return true;
+    auto shielded = GetObjectShieldedDetails(this);
+    return shielded.enabled && shielded.repairable;
 }
 
 float COldObject::GetShieldFullRegenTime()
@@ -3038,69 +2704,8 @@ float COldObject::GetShieldFullRegenTime()
 
 float COldObject::GetLightningHitProbability()
 {
-    if ( m_type == OBJECT_BASE     ||
-         m_type == OBJECT_DERRICK  ||
-         m_type == OBJECT_FACTORY  ||
-         m_type == OBJECT_REPAIR   ||
-         m_type == OBJECT_DESTROYER||
-         m_type == OBJECT_STATION  ||
-         m_type == OBJECT_CONVERT  ||
-         m_type == OBJECT_TOWER    ||
-         m_type == OBJECT_RESEARCH ||
-         m_type == OBJECT_RADAR    ||
-         m_type == OBJECT_INFO     ||
-         m_type == OBJECT_ENERGY   ||
-         m_type == OBJECT_LABO     ||
-         m_type == OBJECT_NUCLEAR  ||
-         m_type == OBJECT_PARA     ||
-         m_type == OBJECT_SAFE     ||
-         m_type == OBJECT_HUSTON   )  // building?
-    {
-        return 1.0f;
-    }
-    if ( m_type == OBJECT_METAL    ||
-         m_type == OBJECT_POWER    ||
-         m_type == OBJECT_ATOMIC   ) // resource?
-    {
-        return 0.3f;
-    }
-    if ( m_type == OBJECT_MOBILEfa ||
-         m_type == OBJECT_MOBILEta ||
-         m_type == OBJECT_MOBILEwa ||
-         m_type == OBJECT_MOBILEia ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib ||
-         m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfi ||
-         m_type == OBJECT_MOBILEti ||
-         m_type == OBJECT_MOBILEwi ||
-         m_type == OBJECT_MOBILEii ||
-         m_type == OBJECT_MOBILEfs ||
-         m_type == OBJECT_MOBILEts ||
-         m_type == OBJECT_MOBILEws ||
-         m_type == OBJECT_MOBILEis ||
-         m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs ||
-         m_type == OBJECT_MOBILEsa ||
-         m_type == OBJECT_MOBILEft ||
-         m_type == OBJECT_MOBILEtt ||
-         m_type == OBJECT_MOBILEwt ||
-         m_type == OBJECT_MOBILEit ||
-         m_type == OBJECT_MOBILErp ||
-         m_type == OBJECT_MOBILEst ||
-         m_type == OBJECT_MOBILEtg ||
-         m_type == OBJECT_MOBILEdr )  // robot?
-    {
-        return 0.5f;
-    }
-    return 0.0f;
+    auto damageable = GetObjectDamageableDetails(this);
+    return damageable.lightning.lightningHitProbability;
 }
 
 bool COldObject::IsSelectableByDefault()

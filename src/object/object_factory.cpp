@@ -36,17 +36,38 @@
 #include "object/object_details.h"
 #include "object/old_object.h"
 
-#include "object/auto/autoboat.h"
-#include "object/auto/autoegg.h"
-#include "object/auto/autofan.h"
-#include "object/auto/autoflag.h"
 #include "object/auto/autojostle.h"
+
+#include "object/auto/autoegg.h"
+#include "object/auto/autoflag.h"
 #include "object/auto/automush.h"
 #include "object/auto/autoroot.h"
+
+#include "object/auto/autobase.h"
+#include "object/auto/autoconvert.h"
+#include "object/auto/autoderrick.h"
+#include "object/auto/autodestroyer.h"
+#include "object/auto/autofactory.h"
+#include "object/auto/autohouston.h"
+#include "object/auto/autolabo.h"
+#include "object/auto/autonest.h"
+#include "object/auto/autonuclearplant.h"
+#include "object/auto/autoportico.h"
+#include "object/auto/autopowercaptor.h"
+#include "object/auto/autopowerplant.h"
+#include "object/auto/autopowerstation.h"
+#include "object/auto/autoradar.h"
+#include "object/auto/autorepair.h"
+#include "object/auto/autoresearch.h"
+#include "object/auto/autotower.h"
+#include "object/auto/autovault.h"
+
+#include "object/auto/autoboat.h"
+#include "object/auto/autofan.h"
 #include "object/auto/autotrunk.h"
 
 #include "object/details/creation_details.h"
-#include "object/details/josteable_details.h"
+#include "object/details/jostleable_details.h"
 #include "object/details/movable_details.h"
 
 #include "object/motion/motion.h"
@@ -93,9 +114,6 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
         case BASE_CLASS_SIMPLE:
             return CreateSimpleObject(params, m_oldModelManager);
 
-        case BASE_CLASS_BUILDING:
-            return CBaseBuilding::Create(params, m_oldModelManager, m_engine);
-
         case BASE_CLASS_INFO:
             return CExchangePost::Create(params, m_oldModelManager, m_engine);
 
@@ -124,9 +142,9 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
     auto obj = MakeUnique<COldObject>(params.id);
 
     obj->SetType(type);
+    obj->SetTrainer(params.trainer || obj->GetPlusTrainer());
     obj->SetTeam(params.team);
     obj->SetOption(params.option);
-    obj->SetEnergyLevel(params.power);
 
     float fShadow = Math::Norm(1.0f-height/10.0f);
 
@@ -141,9 +159,9 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
         if ( it.modFile.size() )
         {
             if ( it.copyModel ) 
-                m_oldModelManager->AddModelCopy(it.modFile, false, rank, obj->GetTeam());
+                m_oldModelManager->AddModelCopy(it.modFile, it.mirrored, rank, obj->GetTeam());
             else
-                m_oldModelManager->AddModelReference(it.modFile, false, rank, obj->GetTeam());
+                m_oldModelManager->AddModelReference(it.modFile, it.mirrored, rank, obj->GetTeam());
         }
 
         if ( it.parentId != -1)
@@ -151,6 +169,7 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
             obj->SetObjectParent(it.chunkId, it.parentId);
             obj->SetPartPosition(it.chunkId, it.position);
             obj->SetPartRotation(it.chunkId, it.rotation);
+            obj->SetPartScale(it.chunkId, it.zoom);
         }
     }
 
@@ -199,11 +218,12 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
     AddObjectAuto(obj.get());
     AddObjectHacks(obj.get());
 
-    auto josteable = GetObjectJosteableDetails(obj.get());
-    if ( josteable.enabled )
-        obj->SetJostlingSphere(josteable.sphere);
+    if ( obj->Implements(ObjectInterfaceType::Jostleable) )
+    {
+        obj->SetJostlingSphere(GetObjectJostleableDetails(obj.get()).sphere);
+    }
 
-    if ( GetObjectMovableDetails(obj.get()).enabled )
+    if ( obj->Implements(ObjectInterfaceType::Movable) )
     {
         std::unique_ptr<CPhysics> physics = MakeUnique<CPhysics>(obj.get());
         std::unique_ptr<CMotion> motion = MakeUnique<CMotion>(obj.get());
@@ -211,6 +231,12 @@ CObjectUPtr CObjectFactory::CreateSimpleObject(const ObjectCreateParams& params,
         physics->SetMotion(motion.get());
         motion->Create(params.pos, params.angle, params.type, params.power, modelManager);
         obj->SetMovable(std::move(motion), std::move(physics));
+    }
+
+    if ( obj->Implements(ObjectInterfaceType::PowerContainer) )
+    {
+        obj->SetEnergyLevel(params.power);
+        obj->UpdateMapping();
     }
 
     return std::move(obj);
@@ -224,25 +250,57 @@ void CObjectFactory::AddObjectAuto(COldObject* obj)
 
     auto creation = GetObjectCreationDetails(obj);
 
-    if ( creation.autoClass == AUTO_CLASS_EGG      )
+    if ( creation.autoClass == AUTO_CLASS_EGG          )
         objAuto = MakeUnique<CAutoEgg>(obj);
-
-    if ( creation.autoClass == AUTO_CLASS_ROOT     )
+    if ( creation.autoClass == AUTO_CLASS_FLAG         )
+        objAuto = MakeUnique<CAutoFlag>(obj);
+    if ( creation.autoClass == AUTO_CLASS_MUSHROOM     )
+        objAuto = MakeUnique<CAutoMush>(obj);
+    if ( creation.autoClass == AUTO_CLASS_ROOT         )
         objAuto = MakeUnique<CAutoRoot>(obj);
 
-    if ( creation.autoClass == AUTO_CLASS_MUSHROOM )
-        objAuto = MakeUnique<CAutoMush>(obj);
+    if ( creation.autoClass == AUTO_CLASS_BASE         )
+        objAuto = MakeUnique<CAutoBase>(obj);
+    if ( creation.autoClass == AUTO_CLASS_CONVERT      )
+        objAuto = MakeUnique<CAutoConvert>(obj);
+    if ( creation.autoClass == AUTO_CLASS_DERRICK      )
+        objAuto = MakeUnique<CAutoDerrick>(obj);
+    if ( creation.autoClass == AUTO_CLASS_DESTROYER    )
+        objAuto = MakeUnique<CAutoDestroyer>(obj);
+    if ( creation.autoClass == AUTO_CLASS_FACTORY      )
+        objAuto = MakeUnique<CAutoFactory>(obj);
+    if ( creation.autoClass == AUTO_CLASS_HUSTON       )
+        objAuto = MakeUnique<CAutoHouston>(obj);
+    if ( creation.autoClass == AUTO_CLASS_LABO         )
+        objAuto = MakeUnique<CAutoLabo>(obj);
+    if ( creation.autoClass == AUTO_CLASS_NEST         )
+        objAuto = MakeUnique<CAutoNest>(obj);
+    if ( creation.autoClass == AUTO_CLASS_NUCLEARPLANT )
+        objAuto = MakeUnique<CAutoNuclearPlant>(obj);
+    if ( creation.autoClass == AUTO_CLASS_PORTICO      )
+        objAuto = MakeUnique<CAutoPortico>(obj);
+    if ( creation.autoClass == AUTO_CLASS_POWERCAPTOR  )
+        objAuto = MakeUnique<CAutoPowerCaptor>(obj);
+    if ( creation.autoClass == AUTO_CLASS_POWERPLANT   )
+        objAuto = MakeUnique<CAutoPowerPlant>(obj);
+    if ( creation.autoClass == AUTO_CLASS_POWERSTATION )
+        objAuto = MakeUnique<CAutoPowerStation>(obj);
+    if ( creation.autoClass == AUTO_CLASS_RADAR        )
+        objAuto = MakeUnique<CAutoRadar>(obj);
+    if ( creation.autoClass == AUTO_CLASS_REPAIR       )
+        objAuto = MakeUnique<CAutoRepair>(obj);
+    if ( creation.autoClass == AUTO_CLASS_RESEARCH     )
+        objAuto = MakeUnique<CAutoResearch>(obj);
+    if ( creation.autoClass == AUTO_CLASS_TOWER        )
+        objAuto = MakeUnique<CAutoTower>(obj);
+    if ( creation.autoClass == AUTO_CLASS_VAULT        )
+        objAuto = MakeUnique<CAutoVault>(obj);
 
-    if ( creation.autoClass == AUTO_CLASS_FLAG     )
-        objAuto = MakeUnique<CAutoFlag>(obj);
-
-    if ( creation.autoClass == AUTO_CLASS_TRUNK    )
+    if ( creation.autoClass == AUTO_CLASS_TEEN_TRUNK   )
         objAuto = MakeUnique<CAutoTrunk>(obj);
-
-    if ( creation.autoClass == AUTO_CLASS_BOAT     )
+    if ( creation.autoClass == AUTO_CLASS_TEEN_BOAT    )
         objAuto = MakeUnique<CAutoBoat>(obj);
-
-    if ( creation.autoClass == AUTO_CLASS_FAN      )
+    if ( creation.autoClass == AUTO_CLASS_TEEN_FAN     )
         objAuto = MakeUnique<CAutoFan>(obj);
 
     if (objAuto != nullptr)

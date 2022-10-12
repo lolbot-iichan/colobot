@@ -149,11 +149,6 @@ bool CTaskGoto::EventProcess(const Event &event)
 
     if ( m_error != ERR_OK )  return false;
 
-    if ( m_bWorm )
-    {
-        WormFrame(event.rTime);
-    }
-
     if ( m_phase == TGP_BEAMLEAK )  // leak?
     {
         m_leakTime += event.rTime;
@@ -541,114 +536,6 @@ bool CTaskGoto::EventProcess(const Event &event)
 }
 
 
-// Sought a target for the worm.
-
-CObject* CTaskGoto::WormSearch(Math::Vector &impact)
-{
-    Math::Vector iPos = m_object->GetPosition();
-    float min = 1000000.0f;
-
-    CObject* best = nullptr;
-    for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
-    {
-        ObjectType oType = obj->GetType();
-        if ( oType != OBJECT_MOBILEfa &&
-             oType != OBJECT_MOBILEta &&
-             oType != OBJECT_MOBILEwa &&
-             oType != OBJECT_MOBILEia &&
-             oType != OBJECT_MOBILEfb &&
-             oType != OBJECT_MOBILEtb &&
-             oType != OBJECT_MOBILEwb &&
-             oType != OBJECT_MOBILEib &&
-             oType != OBJECT_MOBILEfc &&
-             oType != OBJECT_MOBILEtc &&
-             oType != OBJECT_MOBILEwc &&
-             oType != OBJECT_MOBILEic &&
-             oType != OBJECT_MOBILEfi &&
-             oType != OBJECT_MOBILEti &&
-             oType != OBJECT_MOBILEwi &&
-             oType != OBJECT_MOBILEii &&
-             oType != OBJECT_MOBILEfs &&
-             oType != OBJECT_MOBILEts &&
-             oType != OBJECT_MOBILEws &&
-             oType != OBJECT_MOBILEis &&
-             oType != OBJECT_MOBILErt &&
-             oType != OBJECT_MOBILErc &&
-             oType != OBJECT_MOBILErr &&
-             oType != OBJECT_MOBILErs &&
-             oType != OBJECT_MOBILEsa &&
-             oType != OBJECT_MOBILEtg &&
-             oType != OBJECT_MOBILEft &&
-             oType != OBJECT_MOBILEtt &&
-             oType != OBJECT_MOBILEwt &&
-             oType != OBJECT_MOBILEit &&
-             oType != OBJECT_MOBILErp &&
-             oType != OBJECT_MOBILEst &&
-             oType != OBJECT_MOBILEdr &&
-             oType != OBJECT_DERRICK  &&
-             oType != OBJECT_STATION  &&
-             oType != OBJECT_FACTORY  &&
-             oType != OBJECT_REPAIR   &&
-             oType != OBJECT_DESTROYER &&
-             oType != OBJECT_CONVERT  &&
-             oType != OBJECT_TOWER    &&
-             oType != OBJECT_RESEARCH &&
-             oType != OBJECT_RADAR    &&
-             oType != OBJECT_INFO     &&
-             oType != OBJECT_ENERGY   &&
-             oType != OBJECT_LABO     &&
-             oType != OBJECT_NUCLEAR  &&
-             oType != OBJECT_PARA     &&
-             oType != OBJECT_SAFE     &&
-             oType != OBJECT_HUSTON   )  continue;
-
-        if ( obj->GetVirusMode() )  continue;  // object infected?
-
-        if (obj->GetCrashSphereCount() == 0) continue;
-
-        Math::Vector oPos = obj->GetFirstCrashSphere().sphere.pos;
-        float distance = Math::DistanceProjected(oPos, iPos);
-        if (distance < min)
-        {
-            min = distance;
-            best = obj;
-        }
-    }
-    if ( best == nullptr )  return nullptr;
-
-    impact = best->GetPosition();
-    return best;
-}
-
-// Contaminate objects near the worm.
-
-void CTaskGoto::WormFrame(float rTime)
-{
-    CObject*    pObj;
-    Math::Vector    impact, pos;
-    float       dist;
-
-    m_wormLastTime += rTime;
-
-    if ( m_wormLastTime >= 0.5f )
-    {
-        m_wormLastTime = 0.0f;
-
-        pObj = WormSearch(impact);
-        if ( pObj != nullptr )
-        {
-            pos = m_object->GetPosition();
-            dist = Math::Distance(pos, impact);
-            if ( dist <= 15.0f )
-            {
-                pObj->SetVirusMode(true);  // bam, infected!
-            }
-        }
-    }
-}
-
-
-
 // Assigns the goal was achieved.
 // "dist" is the distance that needs to go far to make a deposit or object.
 
@@ -710,13 +597,6 @@ Error CTaskGoto::Start(Math::Vector goal, float altitude,
     if ( dist < 10.0f && m_crashMode == TGC_BEAM )
     {
         m_crashMode = TGC_RIGHTLEFT;
-    }
-
-    m_bWorm = false;
-    if ( type == OBJECT_WORM )
-    {
-        m_bWorm = true;
-        m_wormLastTime = 0.0f;
     }
 
     m_bApprox = false;

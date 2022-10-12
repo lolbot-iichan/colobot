@@ -770,6 +770,13 @@ Gfx::EngineShadowType CLevelParserParam::AsEngineShadowType(Gfx::EngineShadowTyp
     return static_cast<Gfx::EngineShadowType>(Cast<int>(m_value, "EngineShadowType"));
 }
 
+Gfx::ParticleType CLevelParserParam::AsParticleType(Gfx::ParticleType def)
+{
+    if (m_empty)
+        return def;
+    return static_cast<Gfx::ParticleType>(Cast<int>(m_value, "ParticleType"));
+}
+
 SoundType CLevelParserParam::AsSoundType(SoundType def)
 {
     if (m_empty)

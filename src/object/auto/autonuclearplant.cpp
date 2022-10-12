@@ -240,15 +240,19 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
             cargo = SearchUranium();
             if ( cargo != nullptr )
             {
-                for ( auto it : GetObjectAutomationDetails(m_object).production )
+                std::vector<CObjectProductionAutomation> matched;
+                for ( auto it : GetObjectAutomationDetails(m_object).production.objects )
                 {
-                    if ( it.input != cargo->GetType() ) continue;
-
-                    CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-                    m_object->SetSlotContainedObject(0, nullptr);
-                    CreatePower(it.output);  // creates the atomic cell
-                    break;
+                    if ( cargo->GetType() == it.input )
+                        matched.push_back(it);
                 }
+
+                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
+                m_object->SetSlotContainedObject(0, nullptr);
+
+                CObjectProductionAutomation matchedFinal = matched[ std::rand() % matched.size() ];
+                CreatePower(matchedFinal.output);  // creates the atomic cell
+                m_onCompleted = matchedFinal.message;
             }
 
             max = static_cast< int >(20.0f*m_engine->GetParticleDensity());
@@ -288,7 +292,7 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
             SetBusy(false);
             UpdateInterface();
 
-            m_main->DisplayError(INFO_NUCLEAR, m_object);
+            m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
 
             m_phase    = ANUP_WAIT;
             m_progress = 0.0f;
@@ -307,7 +311,7 @@ CObject* CAutoNuclearPlant::SearchUranium()
     CObject* obj = m_object->GetSlotContainedObject(0);
     if (obj == nullptr) return nullptr;
 
-    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    for ( auto it : GetObjectAutomationDetails(m_object).production.objects )
     {
         if ( obj->GetType() == it.input )  return obj;
     }
@@ -356,28 +360,23 @@ void CAutoNuclearPlant::CreatePower(ObjectType type)
 
 Error CAutoNuclearPlant::GetError()
 {
-//? TerrainRes  res;
-
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-//? res = m_terrain->GetResource(m_object->GetPosition());
-//? if ( res != TR_POWER )  return ERR_NUCLEAR_NULL;
-
-//? if ( m_object->GetEnergy() < ENERGY_POWER )  return ERR_NUCLEAR_LOW;
+    auto production = GetObjectAutomationDetails(m_object).production;
 
     CObject* obj = m_object->GetSlotContainedObject(0);
-    if ( obj == nullptr )  return ERR_NUCLEAR_EMPTY;
+    if ( obj == nullptr )
+    {
+        m_main->DisplayText(production.noInput, m_object, Ui::TT_WARNING);
+        return ERR_OK;
+    }
     if ( obj->GetLock() )  return ERR_OK;
 
-    for ( auto it : GetObjectAutomationDetails(m_object).production )
+    for ( auto it : production.objects )
     {
         if ( obj->GetType() == it.input )  return ERR_OK;
         if ( obj->GetType() == it.output  )  return ERR_OK;
     }
-    return ERR_NUCLEAR_BAD;
+    m_main->DisplayText(production.badInput, m_object, Ui::TT_WARNING);
+    return ERR_OK;
 }
 
 

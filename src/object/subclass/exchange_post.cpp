@@ -39,17 +39,19 @@
 #include <boost/lexical_cast.hpp>
 
 
-CExchangePost::CExchangePost(int id)
-    : CBaseBuilding(id, OBJECT_INFO)
+CExchangePost::CExchangePost(int id, ObjectType type)
+    : COldObject(id)
     , m_infoUpdate(false)
-{}
+{
+    SetType(type);
+}
 
 std::unique_ptr<CExchangePost> CExchangePost::Create(
     const ObjectCreateParams& params,
     Gfx::COldModelManager* modelManager,
     Gfx::CEngine* engine)
 {
-    auto obj = MakeUnique<CExchangePost>(params.id);
+    auto obj = MakeUnique<CExchangePost>(params.id, params.type);
 
     obj->SetTeam(params.team);
 

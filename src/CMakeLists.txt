@@ -239,6 +239,8 @@ add_library(colobotbase STATIC
     object/auto/autotrunk.h
     object/auto/autovault.cpp
     object/auto/autovault.h
+    object/auto/autoworm.cpp
+    object/auto/autoworm.h
     object/crash_sphere.h
     object/details/hardcode.cpp
     object/details/hardcode.h
@@ -264,8 +266,8 @@ add_library(colobotbase STATIC
     object/details/global_details.h
     object/details/jet_flying_details.cpp
     object/details/jet_flying_details.h
-    object/details/josteable_details.cpp
-    object/details/josteable_details.h
+    object/details/jostleable_details.cpp
+    object/details/jostleable_details.h
     object/details/movable_details.cpp
     object/details/movable_details.h
     object/details/naming_details.cpp
@@ -359,8 +361,6 @@ add_library(colobotbase STATIC
     object/old_object.h
     object/old_object_interface.cpp
     object/old_object_interface.h
-    object/subclass/base_building.cpp
-    object/subclass/base_building.h
     object/subclass/base_movable.cpp
     object/subclass/base_movable.h
     object/subclass/exchange_post.cpp

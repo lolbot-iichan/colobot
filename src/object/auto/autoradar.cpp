@@ -192,11 +192,6 @@ bool CAutoRadar::EventProcess(const Event &event)
 
 Error CAutoRadar::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     return ERR_OK;
 }
 

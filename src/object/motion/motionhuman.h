@@ -67,9 +67,6 @@ public:
     bool    EventProcess(const Event &event) override;
     Error   SetAction(int action, float time=0.2f) override;
 
-    void    StartDisplayPerso();
-    void    StopDisplayPerso();
-
 protected:
     void    CreatePhysics(ObjectType type);
     bool    EventFrame(const Event &event);
@@ -90,6 +87,5 @@ protected:
     float       m_lastSoundHhh;
     float       m_time;
     float       m_tired;
-    bool        m_bDisplayPerso;
     int         m_glassesRank;
 };

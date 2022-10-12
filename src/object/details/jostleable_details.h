@@ -18,8 +18,8 @@
  */
 
 /**
- * \file object/details/josteable_details.h
- * \brief CObjectJosteableDetails - set of tweaks for Josteable objects
+ * \file object/details/jostleable_details.h
+ * \brief CObjectJostleableDetails - set of tweaks for Jostleable objects
  */
 
 #pragma once
@@ -34,7 +34,7 @@ class CLevelParserLine;
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
 
-struct CObjectJosteableDetails
+struct CObjectJostleableDetails
 {
     bool  enabled = false;
     float factor  = 1.0f;
@@ -51,4 +51,4 @@ struct CObjectJosteableDetails
 // Provider
 //////////////////////////////////////////////////////////////////////////////
 
-CObjectJosteableDetails GetObjectJosteableDetails(CObject* obj);
+CObjectJostleableDetails GetObjectJostleableDetails(CObject* obj);
