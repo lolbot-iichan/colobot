@@ -28,78 +28,28 @@ class CObject;
 class CLevelParser;
 class CLevelParserLine;
 
+#include "graphics/engine/pyro_type.h"
 #include "graphics/engine/terrain.h"
 
 #include "math/vector.h"
 
 #include "object/tool_type.h"
 
+#include "object/task/task.h"
+
 //////////////////////////////////////////////////////////////////////////////
 // Child structs
 //////////////////////////////////////////////////////////////////////////////
 
-enum TaskExecutionType
-{
-    ExecutionDisabled  = -1,
-    ExecutionNoMotion  = 0,
-    ExecutionAsHuman   = 1,
-    ExecutionAsInsect  = 2,
-    ExecutionAsSniffer = 3,
-};
-
 struct CObjectAimTaskExecutorDetails
 {
+    bool  enabled  = false;
+    int   partNum = -1;
+
     float minY    = 0.0f;
     float maxY    = 0.0f;
     float minZ    = 0.0f;
     float maxZ    = 0.0f;
-    int   partNum = -1;
-};
-
-struct CObjectFlagTaskExecutorObject
-{
-    ObjectType output   = OBJECT_NULL;
-    int        maxCount = 5;
-};
-
-struct CObjectFlagTaskExecutorDetails
-{
-    TaskExecutionType execution  = ExecutionNoMotion;
-    int               partNum    = 0;
-    Math::Vector      pos        = Math::Vector(0.0f, 0.0f, 0.0f);
-
-    std::vector<CObjectFlagTaskExecutorObject> objects;
-};
-
-struct CObjectSniffTaskExecutorObject
-{
-    Gfx::TerrainRes soil   = Gfx::TR_NULL;
-    ObjectType      output = OBJECT_NULL;
-    std::string     message;
-};
-
-struct CObjectSniffTaskExecutorDetails
-{
-    TaskExecutionType execution  = ExecutionNoMotion;
-    int               partNum    = 0;
-    Math::Vector      pos        = Math::Vector(0.0f, 0.0f, 0.0f);
-
-    std::vector<CObjectSniffTaskExecutorObject> objects;
-};
-
-struct CObjectRecycleTaskExecutorObject
-{
-    ObjectType      input  = OBJECT_NULL;
-    ObjectType      output = OBJECT_NULL;
-};
-
-struct CObjectRecycleTaskExecutorDetails
-{
-//TODO    TaskExecutionType execution  = ExecutionNoMotion;
-//TODO    int               partNum    = 0;
-//TODO    Math::Vector      pos        = Math::Vector(0.0f, 0.0f, 0.0f);
-
-    std::vector<CObjectRecycleTaskExecutorObject> objects;
 };
 
 struct CObjectBuildTaskExecutorObject
@@ -107,13 +57,104 @@ struct CObjectBuildTaskExecutorObject
     ObjectType  input   = OBJECT_NULL;
     ObjectType  output  = OBJECT_NULL;
     std::string message = "";
+
     int         icon    = -1;
     std::string text    = "";
 };
 
-struct CObjectBuildTaskExecutorDetails
+struct CObjectBuildTaskExecutorDetails : public CTaskConditions
 {
+    TaskExecutionType execution  = ExecutionNoMotion;
+    int               partNum    = 0;
+    Math::Vector      position   = Math::Vector(0.0f, 0.0f, 0.0f);
+
     std::vector<CObjectBuildTaskExecutorObject> objects;
+};
+
+struct CObjectDeflagTaskExecutorObject
+{
+    ObjectType    input   = OBJECT_NULL;
+    ObjectType    output  = OBJECT_NULL;
+    std::string   message = "";
+    
+    Gfx::PyroType effect  = Gfx::PT_FLDELETE;
+};
+
+struct CObjectDeflagTaskExecutorDetails : public CTaskConditions
+{
+    TaskExecutionType execution  = ExecutionNoMotion;
+    int               partNum    = 0;
+    Math::Vector      position   = Math::Vector(0.0f, 0.0f, 0.0f);
+
+    float             radius     = 10.0f;
+
+    std::vector<CObjectDeflagTaskExecutorObject> objects;
+};
+
+struct CObjectFlagTaskExecutorObject
+{
+    ObjectType  output  = OBJECT_NULL;
+    std::string message = "";
+
+    int         maxCount = 5;
+};
+
+struct CObjectFlagTaskExecutorDetails : public CTaskConditions
+{
+    TaskExecutionType execution  = ExecutionNoMotion;
+    int               partNum    = 0;
+    Math::Vector      position   = Math::Vector(0.0f, 0.0f, 0.0f);
+
+    std::vector<CObjectFlagTaskExecutorObject> objects;
+};
+
+struct CObjectRecycleTaskExecutorObject
+{
+    ObjectType  input   = OBJECT_NULL;
+    ObjectType  output  = OBJECT_NULL;
+    std::string message = "";
+};
+
+struct CObjectRecycleTaskExecutorDetails
+{
+//TODO    bool              enabled    = false;
+//TODO    TaskExecutionType execution  = ExecutionNoMotion;
+//TODO    int               partNum    = 0;
+//TODO    Math::Vector      position   = Math::Vector(0.0f, 0.0f, 0.0f);
+
+    std::vector<CObjectRecycleTaskExecutorObject> objects;
+};
+
+struct CObjectSniffTaskExecutorObject
+{
+    Gfx::TerrainRes soil    = Gfx::TR_ANY;
+    ObjectType      output  = OBJECT_NULL;
+    std::string     message = "";
+};
+
+struct CObjectSniffTaskExecutorDetails : public CTaskConditions
+{
+    TaskExecutionType execution  = ExecutionNoMotion;
+    int               partNum    = 0;
+    Math::Vector      position   = Math::Vector(0.0f, 0.0f, 0.0f);
+
+    std::vector<CObjectSniffTaskExecutorObject> objects;
+};
+
+struct CObjectThumpTaskExecutorObject
+{
+    ObjectType      target   = OBJECT_NULL;
+    int             action   = -1;
+    float           min      = 0.0f;
+    float           max      = 9.9f;
+};
+
+struct CObjectThumpTaskExecutorDetails
+{
+    bool              enabled    = false;
+    TaskExecutionType execution  = ExecutionNoMotion;
+
+    std::vector<CObjectThumpTaskExecutorObject> objects;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -125,11 +166,13 @@ struct CObjectTaskExecutorDetails
     bool     enabled = true;
     ToolType tool    = ToolType::Other;
 
-    CObjectAimTaskExecutorDetails     aim;      // for CTaskGunGoal
-    CObjectBuildTaskExecutorDetails   build;    // for CTaskBuild
-    CObjectFlagTaskExecutorDetails    flag;     // for CTaskFlag
-    CObjectRecycleTaskExecutorDetails recycle;  // for CTaskRecover
-    CObjectSniffTaskExecutorDetails   sniff;    // for CTaskDeleteMark, CTaskSearch
+    CObjectAimTaskExecutorDetails     aim;      // for CTaskGunGoal (aim)
+    CObjectBuildTaskExecutorDetails   build;    // for CTaskBuild (build)
+    CObjectDeflagTaskExecutorDetails  deflag;   // for CTaskDeflag (deflag)
+    CObjectFlagTaskExecutorDetails    flag;     // for CTaskFlag (flag)
+    CObjectRecycleTaskExecutorDetails recycle;  // for CTaskRecover (recycle)
+    CObjectSniffTaskExecutorDetails   sniff;    // for CTaskDeleteMark, CTaskSearch (sniff, deletemark)
+//    CObjectThumpTaskExecutorDetails   thump;    // for CTaskTerraform (thump)
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

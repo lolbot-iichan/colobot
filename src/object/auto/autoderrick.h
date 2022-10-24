@@ -28,7 +28,7 @@ class CObject;
 enum AutoDerrickPhase
 {
     ADP_WAIT        = 1,
-    ADP_EXCAVATE        = 2,    // down the drill
+    ADP_EXCAVATE    = 2,    // down the drill
     ADP_ASCEND      = 3,    // up the drill
     ADP_EXPORT      = 4,    // exports matter
     ADP_ISFREE      = 5,    // expected material loss
@@ -55,8 +55,8 @@ protected:
     CObject*    SearchCargo();
     bool        SearchFree(Math::Vector pos);
     void        CreateCargo(Math::Vector pos, float angle, ObjectType type, float height);
-    bool        ExistKey();
 
+    void         FindSomethingToDig();
     Math::Vector GetCargoPos();
 
 protected:
@@ -68,4 +68,6 @@ protected:
     float               m_lastTrack = 0.0f;
     int                 m_soundChannel = 0;
     bool                m_bSoundFall = false;
+    float               m_typeTime = 10.0f;
+    std::string         m_onCompleted;
 };

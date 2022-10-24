@@ -25,6 +25,9 @@
 
 #include "object/details/hardcode.h"
 
+#include "object/motion/motionant.h"
+#include "object/motion/motionspider.h"
+
 /* Macro to mark which texts are translatable by gettext
  * It doesn't do anything at compile-time, as all texts represented here are used later
  * in explicit call to gettext(), but it is used by xgettext executable to filter extracted
@@ -36,6 +39,7 @@
  * after changing this file in order to update translation files. Thank you.
  */
 
+
 float CHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(ObjectType type)
 {
     if ( type == OBJECT_MOTHER ) return 1.2f;
@@ -45,46 +49,6 @@ float CHardcodeCollection::GetCollisionOtherObjectRadiusToIgnore(ObjectType type
     if ( type == OBJECT_WORM   ) return 1.2f;
 
     return 0.0f;
-}
-
-bool CHardcodeCollection::IsCollisionDamagable(ObjectType type)
-{
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2  ) return true;
-
-    return false;
 }
 
 float CHardcodeCollection::GetCollisionSoftness(ObjectType type)
@@ -1474,21 +1438,19 @@ bool CHardcodeCollection::IsValidObjectTypeId(ObjectType type)
     return validIds.count(type);
 }
 
-std::vector<ObjectType> CHardcodeCollection::GetObjectsFindableByType(ObjectType type)
+std::vector<CObjectProduceScriptingFindable> CHardcodeCollection::GetObjectsFindableByType(ObjectType type)
 {
-    std::vector<ObjectType> result;
+    std::vector<CObjectProduceScriptingFindable> result;
 
     if ( type == OBJECT_MOBILEpr)
     {
-        result.push_back(OBJECT_MOBILEwt);
-        result.push_back(OBJECT_MOBILEtt);
-        result.push_back(OBJECT_MOBILEft);
-        result.push_back(OBJECT_MOBILEit);
-        result.push_back(OBJECT_MOBILErp);
-        result.push_back(OBJECT_MOBILEst);
+        result.push_back({OBJECT_MOBILEwt});
+        result.push_back({OBJECT_MOBILEtt});
+        result.push_back({OBJECT_MOBILEft});
+        result.push_back({OBJECT_MOBILEit});
+        result.push_back({OBJECT_MOBILErp});
+        result.push_back({OBJECT_MOBILEst});
     }
-
-
 
     return result;
 }
@@ -1811,7 +1773,7 @@ BaseClass CHardcodeCollection::GetCreationBaseClass(ObjectType type)
             return BASE_CLASS_MOVABLE;
 
         case OBJECT_MOBILErs:
-            return BASE_CLASS_SHIELDER;
+            return BASE_CLASS_MOVABLE;
 
         default:
             return BASE_CLASS_SIMPLE;
@@ -4926,27 +4888,91 @@ CObjectAimTaskExecutorDetails CHardcodeCollection::GetAimTaskExecutionDetails(Ob
     if ( type == OBJECT_MOBILEfc ||
          type == OBJECT_MOBILEtc ||
          type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEic )  // fireball?
+    {
+        return {true, 1, -40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 10.0f*Math::PI/180.0f};
+    }
+    else if ( type == OBJECT_MOBILEfb ||
          type == OBJECT_MOBILEtb ||
          type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib)  // fireball?
+         type == OBJECT_MOBILEib )  // builder?
     {
-        return {-40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 10.0f*Math::PI/180.0f, 1};
+        return {true, 1, -40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 10.0f*Math::PI/180.0f};
     }
     else if ( type == OBJECT_MOBILEfi ||
               type == OBJECT_MOBILEti ||
               type == OBJECT_MOBILEwi ||
               type == OBJECT_MOBILEii )  // orgaball?
     {
-        return {-40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 20.0f*Math::PI/180.0f, 1};
+        return {true, 1, -40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 20.0f*Math::PI/180.0f};
     }
     else if ( type == OBJECT_MOBILErc )  // phazer?
     {
-        return {-40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 45.0f*Math::PI/180.0f, 2};
+        return {true, 2, -40.0f*Math::PI/180.0f, 40.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 45.0f*Math::PI/180.0f};
     }
 
-    return CObjectAimTaskExecutorDetails();
+    return {false};
+}
+
+CObjectBuildTaskExecutorDetails CHardcodeCollection::GetBuildTaskExecutionDetails(ObjectType type)
+{
+    if ( type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEib )  // builder?
+    {
+        return {true, false, false, false, false, false, ExecutionAsRobot};
+    }
+    else if ( type == OBJECT_MOBILEfb )  // flying builder?
+    {
+        return {true, false, true, false, false, false, ExecutionAsRobot};
+    }
+    else if ( type == OBJECT_HUMAN )  // me?
+    {
+        return {true, false, false, false, false, false, ExecutionAsHuman};
+    }
+
+    return {false};
+}
+
+CObjectDeflagTaskExecutorDetails CHardcodeCollection::GetDeflagTaskExecutionDetails(ObjectType type)
+{
+    switch(type)
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+            return {true, false, false, false, false, false, ExecutionAsHuman, 0, Math::Vector(0.0f, 0.0f, 0.0f), 10.0f};
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEis:
+            return {true, false, false, false, false, false, ExecutionAsRobot, 0, Math::Vector(0.0f, 0.0f, 0.0f), 10.0f};
+        default:
+            return {false};
+    }
+}
+
+std::vector<CObjectDeflagTaskExecutorObject> CHardcodeCollection::GetDeflagTaskExecutionObjects(ObjectType type)
+{
+    std::vector<CObjectDeflagTaskExecutorObject> result;
+
+    switch(type)
+    {
+        case OBJECT_HUMAN:
+        case OBJECT_TECH:
+        case OBJECT_MOBILEws:
+        case OBJECT_MOBILEts:
+        case OBJECT_MOBILEfs:
+        case OBJECT_MOBILEis:
+            return {
+                {OBJECT_FLAGb,OBJECT_NULL,"", Gfx::PT_FLDELETE},
+                {OBJECT_FLAGr,OBJECT_NULL,"", Gfx::PT_FLDELETE},
+                {OBJECT_FLAGg,OBJECT_NULL,"", Gfx::PT_FLDELETE},
+                {OBJECT_FLAGy,OBJECT_NULL,"", Gfx::PT_FLDELETE},
+                {OBJECT_FLAGv,OBJECT_NULL,"", Gfx::PT_FLDELETE},
+            };
+        default:
+            return result;
+    }
 }
 
 CObjectFlagTaskExecutorDetails CHardcodeCollection::GetFlagTaskExecutionDetails(ObjectType type)
@@ -4955,14 +4981,14 @@ CObjectFlagTaskExecutorDetails CHardcodeCollection::GetFlagTaskExecutionDetails(
     {
         case OBJECT_HUMAN:
         case OBJECT_TECH:
-            return {ExecutionAsHuman, 0, Math::Vector(4.0f, 0.0f, 0.0f)};
+            return {true, false, false, false, false, false, ExecutionAsHuman, 0, Math::Vector(4.0f, 0.0f, 0.0f)};
         case OBJECT_MOBILEws:
         case OBJECT_MOBILEts:
         case OBJECT_MOBILEfs:
         case OBJECT_MOBILEis:
-            return {ExecutionAsSniffer, 0, Math::Vector(6.0f, 0.0f, 0.0f)};
+            return {true, false, false, false, false, false, ExecutionAsRobot, 0, Math::Vector(6.0f, 0.0f, 0.0f)};
         default:
-            return {ExecutionNoMotion, 0, Math::Vector(0.0f, 0.0f, 0.0f)};
+            return {false};
     }
 }
 
@@ -4978,7 +5004,7 @@ std::vector<CObjectFlagTaskExecutorObject> CHardcodeCollection::GetFlagTaskExecu
         case OBJECT_MOBILEts:
         case OBJECT_MOBILEfs:
         case OBJECT_MOBILEis:
-            return {{OBJECT_FLAGb,5}, {OBJECT_FLAGr,5}, {OBJECT_FLAGg,5}, {OBJECT_FLAGy,5}, {OBJECT_FLAGv,5}};
+            return {{OBJECT_FLAGb,"",5}, {OBJECT_FLAGr,"",5}, {OBJECT_FLAGg,"",5}, {OBJECT_FLAGy,"",5}, {OBJECT_FLAGv,"",5}};
         default:
             return result;
     }
@@ -4992,9 +5018,9 @@ CObjectSniffTaskExecutorDetails CHardcodeCollection::GetSniffTaskExecutionDetail
         case OBJECT_MOBILEts:
         case OBJECT_MOBILEfs:
         case OBJECT_MOBILEis:
-            return {ExecutionAsSniffer, 0, Math::Vector(7.5f, 0.0f, 0.0f)};
+            return {true, false, false, false, false, false, ExecutionAsRobot, 0, Math::Vector(7.5f, 0.0f, 0.0f)};
         default:
-            return {ExecutionNoMotion, 0, Math::Vector(0.0f, 0.0f, 0.0f)};
+            return {false};
     }
 }
 
@@ -6498,6 +6524,7 @@ bool CHardcodeCollection::IsDamageable(ObjectType type)
          type == OBJECT_ENERGY   ||
          type == OBJECT_LABO     ||
          type == OBJECT_NUCLEAR  ||
+         type == OBJECT_SAFE     ||
          type == OBJECT_PARA     ||
          type == OBJECT_MOTHER    )
     {
@@ -6829,6 +6856,13 @@ bool CHardcodeCollection::IsFragileBurnable(ObjectType type)
     return false;
 }
 
+bool CHardcodeCollection::IsShielder(ObjectType type)
+{
+    if ( type == OBJECT_MOBILErs ) return true;
+
+    return false;
+}
+
 bool CHardcodeCollection::IsShielded(ObjectType type)
 {
     // TODO: Hacking some more
@@ -7071,18 +7105,6 @@ bool CHardcodeCollection::IsImmuneToOrgaballs(ObjectType type)
 bool CHardcodeCollection::IsImmuneToExplosive(ObjectType type)
 {
     if ( type == OBJECT_MOTHER )  return true; // AlienQueen can be destroyed only by PhazerShooter
-    if ((type == OBJECT_BOMB         ||
-         type == OBJECT_RUINmobilew1 ||
-         type == OBJECT_RUINmobilew2 ||
-         type == OBJECT_RUINmobilet1 ||
-         type == OBJECT_RUINmobilet2 ||
-         type == OBJECT_RUINmobiler1 ||
-         type == OBJECT_RUINmobiler2 ||
-         type == OBJECT_RUINfactory  ||
-         type == OBJECT_RUINdoor     ||
-         type == OBJECT_RUINsupport  ||
-         type == OBJECT_RUINradar    ||
-         type == OBJECT_RUINconvert  )) return true; // Mines and ruins can't be destroyed by shooting
 
     return false;
 }
@@ -7106,6 +7128,41 @@ bool CHardcodeCollection::IsImmuneToCollisions(ObjectType type)
     if ( type == OBJECT_METAL ) return true;
     if ( type == OBJECT_POWER ) return true;
     if ( type == OBJECT_NUCLEAR ) return true;
+
+    if ( type == OBJECT_HUMAN    ||
+         type == OBJECT_MOBILEwa ||
+         type == OBJECT_MOBILEta ||
+         type == OBJECT_MOBILEfa ||
+         type == OBJECT_MOBILEia ||
+         type == OBJECT_MOBILEwb ||
+         type == OBJECT_MOBILEtb ||
+         type == OBJECT_MOBILEfb ||
+         type == OBJECT_MOBILEib ||
+         type == OBJECT_MOBILEwc ||
+         type == OBJECT_MOBILEtc ||
+         type == OBJECT_MOBILEfc ||
+         type == OBJECT_MOBILEic ||
+         type == OBJECT_MOBILEwi ||
+         type == OBJECT_MOBILEti ||
+         type == OBJECT_MOBILEfi ||
+         type == OBJECT_MOBILEii ||
+         type == OBJECT_MOBILEws ||
+         type == OBJECT_MOBILEts ||
+         type == OBJECT_MOBILEfs ||
+         type == OBJECT_MOBILEis ||
+         type == OBJECT_MOBILErt ||
+         type == OBJECT_MOBILErc ||
+         type == OBJECT_MOBILErr ||
+         type == OBJECT_MOBILErs ||
+         type == OBJECT_MOBILEsa ||
+         type == OBJECT_MOBILEwt ||
+         type == OBJECT_MOBILEtt ||
+         type == OBJECT_MOBILEft ||
+         type == OBJECT_MOBILEit ||
+         type == OBJECT_MOBILErp ||
+         type == OBJECT_MOBILEst ||
+         type == OBJECT_MOBILEdr ||
+         type == OBJECT_APOLLO2  ) return false;
 
     return false;
 }
@@ -7314,6 +7371,26 @@ bool CHardcodeCollection::IsThumpable(ObjectType type)
     if (type == OBJECT_SPIDER) return true;
     
     return false;
+}
+
+int CHardcodeCollection::GetThumpAction(ObjectType type)
+{
+    if (type == OBJECT_ANT)    return MAS_BACK1;
+    if (type == OBJECT_SPIDER) return MSS_BACK1;
+    return -1;
+}
+
+float CHardcodeCollection::GetThumpDurationMin(ObjectType type)
+{
+    if (type == OBJECT_ANT)    return 0.8f;
+    if (type == OBJECT_SPIDER) return 0.8f;
+    return 0.0f;
+}
+float CHardcodeCollection::GetThumpDurationMax(ObjectType type)
+{
+    if (type == OBJECT_ANT)    return 1.1f;
+    if (type == OBJECT_SPIDER) return 1.1f;;
+    return 999999999.99f;
 }
 
 bool CHardcodeCollection::IsSquashedByHeavy(ObjectType type)
@@ -8634,14 +8711,32 @@ CObjectProductionAutomationDetails CHardcodeCollection::GetProduction(ObjectType
         result = {TR("No uranium to transform"), TR("Transforms only uranium")};
         result.objects.push_back({OBJECT_URANIUM, OBJECT_ATOMIC, TR("Nuclear power cell available")});
     }
-    if ( type == OBJECT_NEST )
-    {
-        result.objects.push_back({OBJECT_NULL, OBJECT_BULLET, ""});
-    }
 
     return result;
 }
 
+CObjectDiggingAutomationDetails CHardcodeCollection::GetDigging(ObjectType type)
+{
+    CObjectDiggingAutomationDetails result;
+
+    if ( type == OBJECT_DERRICK )
+    {
+        result = {TR("No ore in the subsoil"), 0, Math::Vector(7.0f, 0.0f, 0.0f)};
+        result.objects.push_back({Gfx::TR_STONE,   OBJECT_STONE,   -1, 10.0f, ""});
+        result.objects.push_back({Gfx::TR_URANIUM, OBJECT_URANIUM, -1, 30.0f, ""});
+        result.objects.push_back({Gfx::TR_KEY_A,   OBJECT_KEYa,     1, 10.0f, ""});
+        result.objects.push_back({Gfx::TR_KEY_B,   OBJECT_KEYb,     1, 10.0f, ""});
+        result.objects.push_back({Gfx::TR_KEY_C,   OBJECT_KEYc,     1, 10.0f, ""});
+        result.objects.push_back({Gfx::TR_KEY_D,   OBJECT_KEYd,     1, 10.0f, ""});
+    }
+    if ( type == OBJECT_NEST )
+    {
+        result = {"", 0, Math::Vector(0.0f, 0.0f, 0.0f)};
+        result.objects.push_back({Gfx::TR_ANY,     OBJECT_BULLET,  -1,  5.0f, ""});
+    }
+
+    return result;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // UI Icon Details

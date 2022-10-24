@@ -17,7 +17,7 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
-#include "object/task/taskflag.h"
+#include "object/task/taskdeflag.h"
 
 #include "graphics/engine/particle.h"
 #include "graphics/engine/pyro_manager.h"
@@ -39,19 +39,20 @@
 
 // Object's constructor.
 
-CTaskFlag::CTaskFlag(COldObject* object) : CForegroundTask(object)
+CTaskDeflag::CTaskDeflag(COldObject* object) : CForegroundTask(object)
 {
 }
 
 // Object's destructor.
 
-CTaskFlag::~CTaskFlag()
+CTaskDeflag::~CTaskDeflag()
 {
 }
 
+
 // Management of an event.
 
-bool CTaskFlag::EventProcess(const Event &event)
+bool CTaskDeflag::EventProcess(const Event &event)
 {
     if ( m_bError )  return true;
     if ( m_engine->GetPause() )  return true;
@@ -59,7 +60,7 @@ bool CTaskFlag::EventProcess(const Event &event)
 
     m_time += event.rTime;
 
-    if ( GetObjectTaskExecutorDetails(m_object).flag.execution == ExecutionAsRobot )
+    if ( GetObjectTaskExecutorDetails(m_object).deflag.execution == ExecutionAsRobot )
     {
         float angle =  110.0f*Math::PI/180.0f;
         float diff  =  -10.0f*Math::PI/180.0f;
@@ -78,7 +79,7 @@ bool CTaskFlag::EventProcess(const Event &event)
 
 // Assigns the goal was achieved.
 
-Error CTaskFlag::Start(int rank)
+Error CTaskDeflag::Start()
 {
     Error err;
 
@@ -86,21 +87,21 @@ Error CTaskFlag::Start(int rank)
 
     m_bError = true;  // operation impossible
 
-    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
+    auto deflag = GetObjectTaskExecutorDetails(m_object).deflag;
 
-    err = CanStartTask(&flag);
+    err = CanStartTask(&deflag);
     if ( err != ERR_OK )  return err;
 
-    err = CreateFlag(rank);
+    err = DeleteFlag();
     if ( err != ERR_OK )  return err;
 
     m_bError = false;
 
-    if ( flag.execution == ExecutionAsHuman )
+    if ( deflag.execution == ExecutionAsHuman )
     {
         m_motion->SetAction(MHS_FLAG);
     }
-    if ( flag.execution == ExecutionAsRobot )
+    if ( deflag.execution == ExecutionAsRobot )
     {
         int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
         m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
@@ -119,7 +120,7 @@ Error CTaskFlag::Start(int rank)
 
 // Indicates whether the action is finished.
 
-Error CTaskFlag::IsEnded()
+Error CTaskDeflag::IsEnded()
 {
     if ( m_engine->GetPause() )  return ERR_CONTINUE;
 
@@ -132,14 +133,14 @@ Error CTaskFlag::IsEnded()
 
 // Suddenly ends the current action.
 
-bool CTaskFlag::Abort()
+bool CTaskDeflag::Abort()
 {
-    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
-    if ( flag.execution == ExecutionAsHuman )
+    auto deflag = GetObjectTaskExecutorDetails(m_object).deflag;
+    if ( deflag.execution == ExecutionAsHuman )
     {
         m_motion->SetAction(-1);
     }
-    if ( flag.execution == ExecutionAsRobot )
+    if ( deflag.execution == ExecutionAsRobot )
     {
         m_object->SetPartRotationZ(1, 110.0f*Math::PI/180.0f);
     }
@@ -150,60 +151,62 @@ bool CTaskFlag::Abort()
 
 // Returns the closest object to a given position.
 
-CObject* CTaskFlag::SearchNearest(Math::Vector pos)
+CObject* CTaskDeflag::SearchNearest(Math::Vector pos)
 {
     std::vector<ObjectType> types;
-    for ( auto it : GetObjectTaskExecutorDetails(m_object).flag.objects )
-        types.push_back(it.output);
+    for ( auto it : GetObjectTaskExecutorDetails(m_object).deflag.objects )
+        types.push_back(it.input);
     return CObjectManager::GetInstancePointer()->FindNearest(nullptr, pos, types);
 }
 
-// Counts the number of existing objects.
+// Deletes a color indicator.
 
-int CTaskFlag::CountObject(ObjectType type)
+Error CTaskDeflag::DeleteFlag()
 {
-    int count = 0;
-    for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
+    auto deflag = GetObjectTaskExecutorDetails(m_object).deflag;
+    Math::Matrix* mat = m_object->GetWorldMatrix(deflag.partNum);
+    Math::Vector iPos = Transform(*mat, deflag.position);
+
+    CObject* pObj = SearchNearest(iPos);
+    if ( pObj == nullptr || Math::Distance(iPos, pObj->GetPosition()) > deflag.radius )
     {
-        if ( obj->GetType() == type ) count ++;
+        return ERR_FLAG_DELETE;
     }
-    return count;
-}
 
-// Creates a color indicator.
-
-Error CTaskFlag::CreateFlag(int rank)
-{
-    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
-    Math::Matrix* mat = m_object->GetWorldMatrix(flag.partNum);
-    Math::Vector  pos = Transform(*mat, flag.position);
-
-    CObject* pObj = SearchNearest(pos);
-    if ( pObj != nullptr )
+    Math::Vector oPos = pObj->GetPosition();
+    if (oPos.x != iPos.x || iPos.z != oPos.z)
     {
-        float dist = Math::Distance(pos, pObj->GetPosition());
-        if ( dist < 10.0f )
+        float iAngle = Math::NormAngle(m_object->GetRotationY());  // 0..2*Math::PI
+        float angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
+        float aLimit = 45.0f*Math::PI/180.0f;
+        if ( !Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
         {
-            return ERR_FLAG_PROXY;
+            return ERR_FLAG_DELETE;
         }
     }
 
-    if ( static_cast<size_t>(rank) >= flag.objects.size() )
+    std::vector<CObjectDeflagTaskExecutorObject> matched;
+    for ( auto it : deflag.objects )
     {
-        return ERR_WRONG_OBJ;
+        if (it.input != pObj->GetType())  continue;
+        matched.push_back(it);
     }
 
-    ObjectType type = flag.objects[rank].output;
-    if ( CountObject(type) >= flag.objects[rank].maxCount )
+    if ( matched.size() > 0 )
     {
-        return ERR_FLAG_CREATE;
+        CObjectDeflagTaskExecutorObject matchedFinal = matched[ std::rand() % matched.size() ];
+
+        // TODO: Should we use DestroyObject instead ?!
+        m_sound->Play(SOUND_WAYPOINT, iPos);
+        m_engine->GetPyroManager()->Create(matchedFinal.effect, pObj);
+
+        if ( matchedFinal.output != OBJECT_NULL )
+        {
+            CObject* pNew = CObjectManager::GetInstancePointer()->CreateObject(oPos, 0.0f, matchedFinal.output);
+            m_engine->GetPyroManager()->Create(Gfx::PT_FLCREATE, pNew);
+        }
+        m_main->DisplayText(matchedFinal.message, m_object, Ui::TT_INFO);  // displays the message
     }
-
-    CObject* pNew = CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, type);
-
-    m_sound->Play(SOUND_WAYPOINT, pos);
-    m_engine->GetPyroManager()->Create(Gfx::PT_FLCREATE, pNew);
-    m_main->DisplayText(flag.objects[rank].message, m_object, Ui::TT_INFO);  // displays the message
 
     return ERR_OK;
 }

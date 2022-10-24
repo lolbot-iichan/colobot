@@ -27,16 +27,17 @@
 
 #include "math/geometry.h"
 
-#include "object/object_details.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/destroyable_details.h"
+#include "object/details/thumpable_details.h"
+
 #include "object/interface/slotted_object.h"
 
-#include "object/motion/motionant.h"
-#include "object/motion/motionspider.h"
-
 #include "object/interface/thumpable_object.h"
+
+#include "object/motion/motion.h"
 
 #include "physics/physics.h"
 
@@ -352,7 +353,6 @@ bool CTaskTerraform::Abort()
 bool CTaskTerraform::Terraform()
 {
     CMotion*    motion;
-    ObjectType  type;
     float       dist;
 
     m_camera->StartEffect(Gfx::CAM_EFFECT_TERRAFORM, m_terraPos, 1.0f);
@@ -361,15 +361,7 @@ bool CTaskTerraform::Terraform()
 
     for (CObject* pObj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        type = pObj->GetType();
-        if ( type == OBJECT_NULL )  continue;
-
         dist = Math::Distance(m_terraPos, pObj->GetPosition());
-
-        auto thumperDetails = GetObjectPhysicsDetails(pObj).thumper;
-        float radius = thumperDetails.safeRadius;
-        Gfx::PyroType pyroType = thumperDetails.effect;
-        float explosiveDamage = thumperDetails.explosionDamage;
 
         // turning insects on their back action
         {
@@ -382,11 +374,10 @@ bool CTaskTerraform::Terraform()
     
                 assert(pObj->Implements(ObjectInterfaceType::TaskExecutor));
                 dynamic_cast<CTaskExecutorObject&>(*pObj).StopForegroundTask();
-    
-                int actionType = -1;
-                if (type == OBJECT_ANT)    actionType = MAS_BACK1;
-                if (type == OBJECT_SPIDER) actionType = MSS_BACK1;
-                motion->SetAction(actionType, 0.8f+Math::Rand()*0.3f);
+
+                auto thumpable = GetObjectThumpableDetails(pObj);
+                float duration = thumpable.minDuration + Math::Rand()*(thumpable.maxDuration - thumpable.minDuration);
+                motion->SetAction(thumpable.action, duration);
     
                 dynamic_cast<CThumpableObject*>(pObj)->SetFixed(true);  // not moving
             }
@@ -394,9 +385,14 @@ bool CTaskTerraform::Terraform()
 
         // destroying small objects action
         {
-            if ( dist > radius )  continue;
-            m_engine->GetPyroManager()->Create(pyroType, pObj);
+            auto thumperDetails = GetObjectDestroyableDetails(pObj).thumper;
+
+            if ( dist > thumperDetails.safeRadius )  continue;
+            
+            // TODO: Should we use DestroyObject() instead???
+            m_engine->GetPyroManager()->Create(thumperDetails.effect, pObj);
     
+            float explosiveDamage = thumperDetails.explosionDamage;
             if ( explosiveDamage != 0.0f )
             {
                 dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive, explosiveDamage);

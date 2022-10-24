@@ -28,14 +28,6 @@
 
 class CObject;
 
-enum TaskFlagOrder
-{
-    TFL_CREATE  = 0,    // sets
-    TFL_DELETE  = 1,    // removes
-};
-
-
-
 class CTaskFlag : public CForegroundTask
 {
 public:
@@ -44,18 +36,16 @@ public:
 
     bool        EventProcess(const Event &event) override;
 
-    Error       Start(TaskFlagOrder order, int rank);
+    Error       Start(int rank);
     Error       IsEnded() override;
     bool        Abort() override;
 
 protected:
     Error       CreateFlag(int rank);
-    Error       DeleteFlag();
-    CObject*    SearchNearest(Math::Vector pos, ObjectType type);
+    CObject*    SearchNearest(Math::Vector pos);
     int         CountObject(ObjectType type);
 
 protected:
-    TaskFlagOrder   m_order = TFL_CREATE;
     float           m_time = 0.0f;
     bool            m_bError = false;
 };

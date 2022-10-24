@@ -21,8 +21,6 @@
 #include "object/details/hardcode.h"
 #include "object/details/macro.h"
 
-
-
 CObjectDetails::CObjectDetails()
 {
     Clear();
@@ -74,6 +72,7 @@ void CObjectDetails::LoadHardcode()
         m_objects[type].shielded_auto_regen.ReadHardcode(type);
         m_objects[type].slotted.ReadHardcode(type);
         m_objects[type].thumpable.ReadHardcode(type);
+        m_objects[type].shielder.ReadHardcode(type);
 
         auto levelNaming = m_objects[type].naming;
         if ( levelNaming.name.size() )
@@ -136,7 +135,8 @@ void CObjectDetails::Load(const char* fname)
                 m_objects[type].shielded.Read(line.get()) ||
                 m_objects[type].shielded_auto_regen.Read(line.get()) ||
                 m_objects[type].slotted.Read(line.get()) ||
-                m_objects[type].thumpable.Read(line.get()) ) continue;
+                m_objects[type].thumpable.Read(line.get()) ||
+                m_objects[type].shielder.Read(line.get()) ) continue;
             else
                 UnusedCmd(line.get());
         }
@@ -182,6 +182,7 @@ void CObjectDetails::Dump(const char* fname)
         m_objects[type].shielded_auto_regen.Write(&parser, type);
         m_objects[type].slotted.Write(&parser, type);
         m_objects[type].thumpable.Write(&parser, type);
+        m_objects[type].shielder.Write(&parser, type);
     }
 
     m_globals.Write(&parser);
@@ -209,13 +210,7 @@ CObjectPhysicsDetails CObjectDetails::GetObjectPhysicsDetailsHardcode(ObjectType
     CObjectPhysicsDetails result;
     CHardcodeCollection hardcode;
 
-    result.thumper.safeRadius                 = hardcode.GetThumperSafeRadius(type);
-    result.thumper.effect                     = hardcode.GetThumperPyroType(type);
-    result.thumper.explosionDamage            = hardcode.GetThumperExplosionDamage(type);
-
-    result.collisionOtherObjectRadiusToIgnore = hardcode.GetCollisionOtherObjectRadiusToIgnore(type);
-    result.isCollisionDamagable               = hardcode.IsCollisionDamagable(type);
-    result.collisionSoftness                  = hardcode.GetCollisionSoftness(type);
+    result.collisionSoftness = hardcode.GetCollisionSoftness(type);
 
     return result;
 }

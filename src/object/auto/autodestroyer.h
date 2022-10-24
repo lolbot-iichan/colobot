@@ -42,11 +42,8 @@ public:
     CAutoDestroyer(COldObject* object);
     ~CAutoDestroyer();
 
-    void        DeleteObject(bool bAll=false) override;
-
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
 
     Error       StartAction(int param) override;
 

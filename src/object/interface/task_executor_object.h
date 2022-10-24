@@ -24,7 +24,6 @@
 
 #include "object/interface/trace_drawing_object.h"
 
-#include "object/task/taskflag.h"
 #include "object/task/taskgoto.h"
 #include "object/task/taskmanip.h"
 #include "object/task/taskshield.h"
@@ -47,7 +46,8 @@ public:
     //@{
     virtual Error StartTaskTake() = 0;
     virtual Error StartTaskManip(TaskManipOrder order, TaskManipArm arm) = 0;
-    virtual Error StartTaskFlag(TaskFlagOrder order, int rank) = 0;
+    virtual Error StartTaskDeflag() = 0;
+    virtual Error StartTaskFlag(int rank) = 0;
     virtual Error StartTaskBuild(ObjectType type) = 0;
     virtual Error StartTaskSearch() = 0;
     virtual Error StartTaskDeleteMark() = 0;

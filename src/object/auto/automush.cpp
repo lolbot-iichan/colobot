@@ -47,14 +47,6 @@ CAutoMush::~CAutoMush()
 }
 
 
-// Destroys the object.
-
-void CAutoMush::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoMush::Init()
@@ -243,15 +235,6 @@ bool CAutoMush::SearchTarget()
 
     return false;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoMush::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

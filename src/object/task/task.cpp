@@ -22,12 +22,15 @@
 
 #include "app/app.h"
 
+#include "graphics/engine/water.h"
+
 #include "level/robotmain.h"
 
 #include "object/old_object.h"
 
 #include "object/interface/programmable_object.h"
 
+#include "physics/physics.h"
 
 // Object's constructor.
 
@@ -88,4 +91,28 @@ bool CTask::IsBusy()
 bool CTask::Abort()
 {
     return true;
+}
+
+
+// Some generic checks useful for most tasks
+
+Error CTask::CanStartTask(const CTaskConditions* cond)
+{
+    if ( cond == nullptr )  return ERR_WRONG_OBJ;
+    if ( !cond->enabled )  return ERR_WRONG_OBJ;
+
+    if (!cond->onCarrying && IsObjectCarryingCargo(m_object))  return ERR_MANIP_BUSY;
+    if (!cond->onCarried && IsObjectBeingTransported(m_object))  return ERR_MANIP_FLY;
+
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+    {
+        Math::Vector pos = m_object->GetPosition();
+        if (!cond->onWater  && !m_physics->GetLand() && pos.y < m_water->GetLevel() )  return ERR_MANIP_WATER;
+        if (!cond->onFlying && !m_physics->GetLand() && pos.y >= m_water->GetLevel() )  return ERR_MANIP_FLY;
+
+        Math::Vector speed = m_physics->GetMotorSpeed();
+        if (!cond->onMoving && (speed.x != 0.0f || speed.z != 0.0f) )  return ERR_MANIP_MOTOR;
+    }
+    
+    return ERR_OK;
 }

@@ -49,14 +49,6 @@ CAutoRadar::~CAutoRadar()
 }
 
 
-// Destroys the object.
-
-void CAutoRadar::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoRadar::Init()
@@ -186,15 +178,6 @@ bool CAutoRadar::EventProcess(const Event &event)
 
     return true;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoRadar::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Creates all the interface when the object is selected.
 

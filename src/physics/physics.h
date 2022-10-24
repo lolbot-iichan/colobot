@@ -185,7 +185,7 @@ protected:
     bool        JostleObject(CJostleableObject* pObj, Math::Vector iPos, float iRad);
     bool        JostleObject(CObject* pObj, float force);
     bool        ExploOther(ObjectType iType, CObject *pObj, ObjectType oType, float force);
-    int         ExploHimself(ObjectType iType, ObjectType oType, float force);
+    int         ExploHimself(ObjectType iType, CObject *pObj, ObjectType oType, float force);
 
     void        PowerParticle(float factor, bool bBreak);
     void        CrashParticle(float crash);

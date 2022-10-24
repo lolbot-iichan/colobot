@@ -49,11 +49,9 @@ bool CObjectTransportableDetails::Read(CLevelParserLine* line)
 
 void CObjectTransportableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectTransportableDetails def;
-
     WRITE_LINE( "SetObjectTransportable" );
-    WRITE_ARG( "enabled",      def, enabled      );
-    WRITE_ARG( "showDropZone", def, showDropZone );
+    WRITE_ARG( "enabled",      AsBool, enabled      );
+    WRITE_ARG( "showDropZone", AsBool, showDropZone );
     WRITE_END();
 }
 

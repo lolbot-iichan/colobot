@@ -34,12 +34,18 @@ void CObjectThumpableDetails::ReadHardcode(ObjectType type)
     CHardcodeCollection hardcode;
 
     enabled     = hardcode.IsThumpable(type);
+    action      = hardcode.GetThumpAction(type);
+    minDuration = hardcode.GetThumpDurationMin(type);
+    maxDuration = hardcode.GetThumpDurationMax(type);
 }
 
 bool CObjectThumpableDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectThumpable" );
-    READ_ARG( "enabled",     AsBool, enabled );
+    READ_ARG( "enabled", AsBool,  enabled     );
+    READ_ARG( "action",  AsInt,   action      );
+    READ_ARG( "min",     AsFloat, minDuration );
+    READ_ARG( "max",     AsFloat, maxDuration );
     READ_END();
 
     return false;
@@ -47,10 +53,11 @@ bool CObjectThumpableDetails::Read(CLevelParserLine* line)
 
 void CObjectThumpableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectThumpableDetails def;
-
     WRITE_LINE( "SetObjectThumpable" );
-    WRITE_ARG( "enabled",     def, enabled );
+    WRITE_ARG( "enabled", AsBool,  enabled     );
+    WRITE_ARG( "action",  AsInt,   action      );
+    WRITE_ARG( "min",     AsFloat, minDuration );
+    WRITE_ARG( "max",     AsFloat, maxDuration );
     WRITE_END();
 }
 

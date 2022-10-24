@@ -44,7 +44,8 @@ public:
 
     Error StartTaskTake() override;
     Error StartTaskManip(TaskManipOrder order, TaskManipArm arm) override;
-    Error StartTaskFlag(TaskFlagOrder order, int rank) override;
+    Error StartTaskDeflag() override;
+    Error StartTaskFlag(int rank) override;
     Error StartTaskBuild(ObjectType type) override;
     Error StartTaskSearch() override;
     Error StartTaskDeleteMark() override;

@@ -49,11 +49,9 @@ bool CObjectShieldedAutoRegenDetails::Read(CLevelParserLine* line)
 
 void CObjectShieldedAutoRegenDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectShieldedAutoRegenDetails def;
-
     WRITE_LINE( "SetObjectShieldedAutoRegen" );
-    WRITE_ARG( "enabled", def, enabled );
-    WRITE_ARG( "time",    def, time    );
+    WRITE_ARG( "enabled", AsBool,  enabled );
+    WRITE_ARG( "time",    AsFloat, time    );
     WRITE_END();
 }
 

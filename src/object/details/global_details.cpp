@@ -58,22 +58,10 @@ bool CObjectGlobalDetails::Read(CLevelParserLine* line)
     READ_ARG( "receive",   AsObjectType, defaults.receivePerformer );
     READ_END();
 
-    READ_LINE( "AddGlobalDebugMenuItem" );
-    READ_NEW( id,                     debugMenu          )
-    READ_ARG( "object", AsObjectType, debugMenu[id].type );
-    READ_ARG( "icon",   AsInt,        debugMenu[id].icon );
-    READ_ARG( "text",   AsString,     debugMenu[id].text );
-    READ_END();
-
-    READ_LINE( "UpdGlobalDebugMenuItem" );
-    READ_IDX( id );
-    READ_ARG( "object", AsObjectType, debugMenu[id].type );
-    READ_ARG( "icon",   AsInt,        debugMenu[id].icon );
-    READ_ARG( "text",   AsString,     debugMenu[id].text );
-    READ_END();
-
-    READ_LINE( "ClrGlobalDebugMenuItems" );
-    debugMenu.clear();
+    READ_IT_LINE( "AddGlobalDebugMenuItem", "UpdGlobalDebugMenuItem", "ClrGlobalDebugMenuItem", debugMenu );
+    READ_IT_ARG( "object", AsObjectType, type );
+    READ_IT_ARG( "icon",   AsInt,        icon );
+    READ_IT_ARG( "text",   AsString,     text );
     READ_END();
 
     return false;
@@ -81,28 +69,22 @@ bool CObjectGlobalDetails::Read(CLevelParserLine* line)
 
 void CObjectGlobalDetails::Write(CLevelParser* parser)
 {
-    CObjectGlobalDetails def;
-
     WRITE_GLOB( "SetGlobal" );
-    WRITE_ARG( "player",    def, defaults.player           );
-    WRITE_ARG( "base",      def, defaults.base             );
-    WRITE_ARG( "assistant", def, defaults.assistant        );
-    WRITE_ARG( "arrow",     def, defaults.arrow            );
-    WRITE_ARG( "destroy",   def, defaults.destroyPerformer );
-    WRITE_ARG( "factory",   def, defaults.factoryPerformer );
-    WRITE_ARG( "takeoff",   def, defaults.takeoffPerformer );
-    WRITE_ARG( "receive",   def, defaults.receivePerformer );
+    WRITE_ARG( "player",    AsObjectType, defaults.player           );
+    WRITE_ARG( "base",      AsObjectType, defaults.base             );
+    WRITE_ARG( "assistant", AsObjectType, defaults.assistant        );
+    WRITE_ARG( "arrow",     AsObjectType, defaults.arrow            );
+    WRITE_ARG( "destroy",   AsObjectType, defaults.destroyPerformer );
+    WRITE_ARG( "factory",   AsObjectType, defaults.factoryPerformer );
+    WRITE_ARG( "takeoff",   AsObjectType, defaults.takeoffPerformer );
+    WRITE_ARG( "receive",   AsObjectType, defaults.receivePerformer );
     WRITE_END();
 
-    CObjectDebugButton defB;
-    for ( auto it : debugMenu )
-    {
-        WRITE_GLOB( "AddGlobalDebugMenuItem" );
-        WRITE_IT( "object", defB, type );
-        WRITE_IT( "icon",   defB, icon );
-        WRITE_IT( "text",   defB, text );
-        WRITE_END();
-    }
+    WRITE_IT_GLOB( "AddGlobalDebugMenuItem", debugMenu );
+    WRITE_IT_ARG( "object", AsObjectType, type );
+    WRITE_IT_ARG( "icon",   AsInt,        icon );
+    WRITE_IT_ARG( "text",   AsString,     text );
+    WRITE_IT_END();
 }
 
 CObjectGlobalDetails GetObjectGlobalDetails()

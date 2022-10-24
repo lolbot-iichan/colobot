@@ -110,110 +110,97 @@ bool CObjectControllableDetails::Read(CLevelParserLine* line)
     READ_ARG( "transparencyGateHack",      AsBool,       camera.back.hasGateTransparency             );
     READ_END();
 
-    READ_LINE( "AddObjectControllableWidget" );
-    READ_NEW( id,                                       controls.widgets                            );
-    READ_ARG( "position",               AsPoint,        controls.widgets[id].position               );
-    READ_ARG( "size",                   AsPoint,        controls.widgets[id].size                   );
-    READ_ARG( "widget",                 AsWidgetType,   controls.widgets[id].widgetType             );
-    if ( controls.widgets[id].widgetType == Ui::WIDGET_COLOR_BUTTON )
-        { READ_ARG( "color",            AsColor,        controls.widgets[id].params.color           ); }
+    READ_IT_LINE( "AddObjectControllableWidget", "UpdObjectControllableWidget", "ClrObjectControllableWidget", controls.widgets );
+    READ_IT_ARG( "position",               AsPoint,        position               );
+    READ_IT_ARG( "size",                   AsPoint,        size                   );
+    READ_IT_ARG( "widget",                 AsWidgetType,   widgetType             );
+    if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
+        { READ_IT_ARG( "color",            AsColor,        params.color           ); }
     else
-        { READ_ARG( "icon",             AsInt,          controls.widgets[id].params.icon            ); }
-    READ_ARG( "event",                  AsEventType,    controls.widgets[id].event                  );
-    READ_ARG( "default",                AsBool,         controls.widgets[id].isDefault              );
-    READ_ARG( "immediat",               AsBool,         controls.widgets[id].isImmediat             );
-    READ_ARG( "disabledByTrainer",      AsBool,         controls.widgets[id].disabledByTrainer      );
-    READ_ARG( "disabledByPlusExplorer", AsBool,         controls.widgets[id].disabledByPlusExplorer );
-    READ_ARG( "onBuildingEnabled",      AsBuildFlag,    controls.widgets[id].onBuildingEnabled      );
-    READ_ARG( "onResearchDone",         AsResearchFlag, controls.widgets[id].onResearchDone         );
-    READ_END();
+        { READ_IT_ARG( "icon",             AsInt,          params.icon            ); }
+    READ_IT_ARG( "event",                  AsEventType,    event                  );
+    READ_IT_ARG( "default",                AsBool,         isDefault              );
+    READ_IT_ARG( "immediat",               AsBool,         isImmediat             );
+    READ_IT_ARG( "disabledByTrainer",      AsBool,         disabledByTrainer      );
+    READ_IT_ARG( "disabledByPlusExplorer", AsBool,         disabledByPlusExplorer );
+    READ_IT_ARG( "onBuildingEnabled",      AsBuildFlag,    onBuildingEnabled      );
+    READ_IT_ARG( "onResearchDone",         AsResearchFlag, onResearchDone         );
+    READ_IT_END();
 
-    READ_LINE( "AddObjectControllableLight" );
-    READ_NEW( id,                         lights                    );
-    READ_ARG( "color",    AsParticleType, lights[id].color          );
-    READ_ARG( "position", AsPoint,        lights[id].position       );
-    READ_ARG( "partNum",  AsInt,          lights[id].partNum        );
-    READ_ARG( "zoom",     AsFloat,        lights[id].zoom           );
-    READ_ARG( "trainer",  AsInt,          lights[id].trainerMatcher );
-    READ_END();
+    READ_IT_LINE( "AddObjectControllableLight", "UpdObjectControllableLight", "ClrObjectControllableLight", lights );
+    READ_IT_ARG( "color",    AsParticleType, color          );
+    READ_IT_ARG( "position", AsPoint,        position       );
+    READ_IT_ARG( "partNum",  AsInt,          partNum        );
+    READ_IT_ARG( "zoom",     AsFloat,        zoom           );
+    READ_IT_ARG( "trainer",  AsInt,          trainerMatcher );
+    READ_IT_END();
 
     return false;
 }
 
 void CObjectControllableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectControllableDetails def;
-
     WRITE_LINE( "SetObjectControllable" );
-    WRITE_ARG( "enabled",        def, enabled                          );
-    WRITE_ARG( "selectable",     def, selectable                       );
-    WRITE_ARG( "infectable",     def, infectable                       );
-    WRITE_ARG( "icon",           def, shortcut.icon                    );
-    WRITE_ARG( "isBuilding",     def, shortcut.isBuilding              );
-    WRITE_ARG( "isMovable",      def, shortcut.isMovable               );
-    WRITE_ARG( "programs",       def, controls.hasProgramUI            );
-    WRITE_ARG( "bPrograms",      def, controls.hasProgramUIBlink       );
-    WRITE_ARG( "hBuilder",       def, controls.hasBuilderUIHuman       );
-    WRITE_ARG( "rBuilder",       def, controls.hasBuilderUIRobot       );
-    WRITE_ARG( "rShielder",      def, controls.hasShielderUIRobot      );
-    WRITE_ARG( "rScribbler",     def, controls.hasScribblerUIRobot     );
-    WRITE_ARG( "noFlyWhileGrab", def, controls.disableFlyWhileGrabbing );
+    WRITE_ARG( "enabled",        AsBool, enabled                          );
+    WRITE_ARG( "selectable",     AsBool, selectable                       );
+    WRITE_ARG( "infectable",     AsBool, infectable                       );
+    WRITE_ARG( "icon",           AsInt,  shortcut.icon                    );
+    WRITE_ARG( "isBuilding",     AsBool, shortcut.isBuilding              );
+    WRITE_ARG( "isMovable",      AsBool, shortcut.isMovable               );
+    WRITE_ARG( "programs",       AsBool, controls.hasProgramUI            );
+    WRITE_ARG( "bPrograms",      AsBool, controls.hasProgramUIBlink       );
+    WRITE_ARG( "hBuilder",       AsBool, controls.hasBuilderUIHuman       );
+    WRITE_ARG( "rBuilder",       AsBool, controls.hasBuilderUIRobot       );
+    WRITE_ARG( "rShielder",      AsBool, controls.hasShielderUIRobot      );
+    WRITE_ARG( "rScribbler",     AsBool, controls.hasScribblerUIRobot     );
+    WRITE_ARG( "noFlyWhileGrab", AsBool, controls.disableFlyWhileGrabbing );
     WRITE_END();
 
     WRITE_LINE( "SetObjectControllableCamera" );
-    WRITE_ARG( "changable",                 def, camera.isCameraTypeChangable                );
-    WRITE_ARG( "persistent",                def, camera.isCameraTypePersistent               );
-    WRITE_ARG( "default",                   def, camera.defaultCamera                        );
-    WRITE_ARG( "visitDist",                 def, camera.visit.distance                       );
-    WRITE_ARG( "visitHeight",               def, camera.visit.height                         );
-    WRITE_ARG( "fixedNoCollision",          def, camera.fixed.disableCollisions              );
-    WRITE_ARG( "onboardNoCorners",          def, camera.onboard.disableCorners               );
-    WRITE_ARG( "onboardCrosshair",          def, camera.onboard.hasCrosshair                 );
-    WRITE_ARG( "partNum",                   def, camera.onboard.partNum                      );
-    WRITE_ARG( "position",                  def, camera.onboard.position                     );
-    WRITE_ARG( "backDistance",              def, camera.back.distance                        );
-    WRITE_ARG( "backMinimum",               def, camera.back.distanceMin                     );
-    WRITE_ARG( "backHeight",                def, camera.back.height                          );
-    WRITE_ARG( "backRotationY",             def, camera.back.rotationY                       );
-    WRITE_ARG( "backRotationZ",             def, camera.back.rotationZ                       );
-    WRITE_ARG( "transparencyDisableOthers", def, camera.back.disableOtherObjectsTransparency );
-    WRITE_ARG( "transparencyDisable",       def, camera.back.disableObjectTransparency       );
-    WRITE_ARG( "transparencyGateHack",      def, camera.back.hasGateTransparency             );
+    WRITE_ARG( "changable",                 AsBool,       camera.isCameraTypeChangable                );
+    WRITE_ARG( "persistent",                AsBool,       camera.isCameraTypePersistent               );
+    WRITE_ARG( "default",                   AsCameraType, camera.defaultCamera                        );
+    WRITE_ARG( "visitDist",                 AsFloat,      camera.visit.distance                       );
+    WRITE_ARG( "visitHeight",               AsFloat,      camera.visit.height                         );
+    WRITE_ARG( "fixedNoCollision",          AsBool,       camera.fixed.disableCollisions              );
+    WRITE_ARG( "onboardNoCorners",          AsBool,       camera.onboard.disableCorners               );
+    WRITE_ARG( "onboardCrosshair",          AsBool,       camera.onboard.hasCrosshair                 );
+    WRITE_ARG( "partNum",                   AsInt,        camera.onboard.partNum                      );
+    WRITE_ARG( "position",                  AsPoint,      camera.onboard.position                     );
+    WRITE_ARG( "backDistance",              AsFloat,      camera.back.distance                        );
+    WRITE_ARG( "backMinimum",               AsFloat,      camera.back.distanceMin                     );
+    WRITE_ARG( "backHeight",                AsFloat,      camera.back.height                          );
+    WRITE_ARG( "backRotationY",             AsFloat,      camera.back.rotationY                       );
+    WRITE_ARG( "backRotationZ",             AsFloat,      camera.back.rotationZ                       );
+    WRITE_ARG( "transparencyDisableOthers", AsBool,       camera.back.disableOtherObjectsTransparency );
+    WRITE_ARG( "transparencyDisable",       AsBool,       camera.back.disableObjectTransparency       );
+    WRITE_ARG( "transparencyGateHack",      AsBool,       camera.back.hasGateTransparency             );
     WRITE_END();
 
-    for ( auto it: controls.widgets )
-    {
-        Ui::CWidget defW;
+    WRITE_IT_LINE( "AddObjectControllableWidget", controls.widgets );
+    WRITE_IT_ARG( "position",               AsPoint,        position               );
+    WRITE_IT_ARG( "size",                   AsPoint,        size                   );
+    WRITE_IT_ARG( "widget",                 AsWidgetType,   widgetType             );
+    if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
+        { WRITE_IT_ARG( "color",            AsColor,        params.color           ); }
+    else
+        { WRITE_IT_ARG( "icon",             AsInt,          params.icon            ); }
+    WRITE_IT_ARG( "event",                  AsEventType,    event                  );
+    WRITE_IT_ARG( "default",                AsBool,         isDefault              );
+    WRITE_IT_ARG( "immediat",               AsBool,         isImmediat             );
+    WRITE_IT_ARG( "disabledByTrainer",      AsBool,         disabledByTrainer      );
+    WRITE_IT_ARG( "disabledByPlusExplorer", AsBool,         disabledByPlusExplorer );
+    WRITE_IT_ARG( "onBuildingEnabled",      AsBuildFlag,    onBuildingEnabled      );
+    WRITE_IT_ARG( "onResearchDone",         AsResearchFlag, onResearchDone         );
+    WRITE_IT_END();
 
-        WRITE_LINE( "AddObjectControllableWidget" );
-        WRITE_IT( "position",               defW, position               );
-        WRITE_IT( "size",                   defW, size                   );
-        WRITE_IT( "widget",                 defW, widgetType             );
-        if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
-            { WRITE_IT( "color",            defW, params.color           ); }
-        else
-            { WRITE_IT( "icon",             defW, params.icon            ); }
-        WRITE_IT( "event",                  defW, event                  );
-        WRITE_IT( "default",                defW, isDefault              );
-        WRITE_IT( "immediat",               defW, isImmediat             );
-        WRITE_IT( "disabledByTrainer",      defW, disabledByTrainer      );
-        WRITE_IT( "disabledByPlusExplorer", defW, disabledByPlusExplorer );
-        WRITE_IT( "onBuildingEnabled",      defW, onBuildingEnabled      );
-        WRITE_IT( "onResearchDone",         defW, onResearchDone         );
-        WRITE_END();
-    }
-
-    for ( auto it: lights )
-    {
-        CObjectControlLightsDetails defL;
-        WRITE_LINE( "AddObjectControllableLight" );
-        WRITE_IT( "color",    defL, color          );
-        WRITE_IT( "position", defL, position       );
-        WRITE_IT( "partNum",  defL, partNum        );
-        WRITE_IT( "zoom",     defL, zoom           );
-        WRITE_IT( "trainer",  defL, trainerMatcher );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectControllableLight", lights );
+    WRITE_IT_ARG( "color",    AsParticleType, color          );
+    WRITE_IT_ARG( "position", AsPoint,        position       );
+    WRITE_IT_ARG( "partNum",  AsInt,          partNum        );
+    WRITE_IT_ARG( "zoom",     AsFloat,        zoom           );
+    WRITE_IT_ARG( "trainer",  AsInt,          trainerMatcher );
+    WRITE_IT_END();
 }
 
 CObjectControllableDetails GetObjectControllableDetails(CObject* obj)

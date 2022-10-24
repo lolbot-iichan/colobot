@@ -19,40 +19,32 @@
 
 #pragma once
 
-#include "object/subclass/base_movable.h"
+#include "object/task/task.h"
 
-struct ObjectCreateParams;
+#include "math/vector.h"
 
-namespace Gfx
+#include "object/object_type.h"
+
+
+class CObject;
+
+class CTaskDeflag : public CForegroundTask
 {
-class COldModelManager;
-class CEngine;
-}
-
-class CShielder : public CBaseMovable
-{
 public:
-    CShielder(int id);
-    virtual ~CShielder();
+    CTaskDeflag(COldObject* object);
+    ~CTaskDeflag();
 
-public:
-    static std::unique_ptr<CShielder> Create(
-        const ObjectCreateParams& params,
-        Gfx::COldModelManager* modelManager,
-        Gfx::CEngine* engine);
+    bool        EventProcess(const Event &event) override;
 
-public:
-    //! Shielder radius (only while active) [0 or RADIUS_SHIELD_MIN..RADIUS_SHIELD_MAX]
-    float GetActiveShieldRadius();
-    //! Shielder radius [0..1]
-    //@{
-    void  SetShieldRadius(float shieldRadius);
-    float GetShieldRadius();
-    //@}
-
-    void Write(CLevelParserLine* line) override;
-    void Read(CLevelParserLine* line) override;
+    Error       Start();
+    Error       IsEnded() override;
+    bool        Abort() override;
 
 protected:
-    float m_shieldRadius;
+    Error       DeleteFlag();
+    CObject*    SearchNearest(Math::Vector pos);
+
+protected:
+    float           m_time = 0.0f;
+    bool            m_bError = false;
 };

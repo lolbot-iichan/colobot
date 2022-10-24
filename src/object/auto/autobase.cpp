@@ -1156,15 +1156,6 @@ bool CAutoBase::Abort()
     return true;
 }
 
-
-// Returns an error due the state of the automation.
-
-Error CAutoBase::GetError()
-{
-    return ERR_OK;
-}
-
-
 // Creates all the interface when the object is selected.
 
 bool CAutoBase::CreateInterface(bool bSelect)

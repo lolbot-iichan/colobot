@@ -43,6 +43,7 @@
 #include "object/interface/programmable_object.h"
 #include "object/interface/ranged_object.h"
 #include "object/interface/shielded_auto_regen_object.h"
+#include "object/interface/shielder_object.h"
 #include "object/interface/slotted_object.h"
 #include "object/interface/task_executor_object.h"
 #include "object/interface/thumpable_object.h"
@@ -90,7 +91,8 @@ class COldObject : public CObject,
                    public CRangedObject,
                    public CTraceDrawingObject,
                    public CShieldedAutoRegenObject,
-                   public CThumpableObject
+                   public CThumpableObject,
+                   public CShielderObject
 {
     friend class CObjectFactory;
     friend class CObjectManager;
@@ -302,6 +304,15 @@ public:
     void SetFixed(bool fixed) override;
     bool GetFixed() override;
 
+    // CShielderObject
+    //! Shielder radius (only while active) [0 or RADIUS_SHIELD_MIN..RADIUS_SHIELD_MAX]
+    float GetActiveShieldRadius() override;
+    //! Shielder radius [0..1]
+    //@{
+    void  SetShieldRadius(float shieldRadius) override;
+    float GetShieldRadius() override;
+    //@}
+
 protected:
     bool        EventFrame(const Event &event);
     void        VirusFrame(float rTime);
@@ -401,5 +412,5 @@ protected:
 
     bool        m_bulletWall = false;
 
-    bool m_fixed;
+    bool        m_fixed;
 };

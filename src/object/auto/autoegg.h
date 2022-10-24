@@ -48,7 +48,6 @@ public:
     void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
     Error       IsEnded() override;
-    Error       GetError() override;
 
     bool        SetType(ObjectType type) override;
     bool        SetValue(int rank, float value) override;

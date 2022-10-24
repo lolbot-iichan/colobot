@@ -49,11 +49,9 @@ bool CObjectRangedDetails::Read(CLevelParserLine* line)
 
 void CObjectRangedDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectRangedDetails def;
-
     WRITE_LINE( "SetObjectRanged" );
-    WRITE_ARG( "enabled", def, enabled );
-    WRITE_ARG( "radius",  def, radius  );
+    WRITE_ARG( "enabled", AsBool,  enabled );
+    WRITE_ARG( "radius",  AsFloat, radius  );
     WRITE_END();
 }
 

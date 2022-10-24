@@ -206,7 +206,8 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
                 }
 
                 CObjectProductionAutomation matchedFinal = matched[ std::rand() % matched.size() ];
-                CreatePower(matchedFinal.output);  // creates the battery
+                if (matchedFinal.output != OBJECT_NULL)
+                    CreatePower(matchedFinal.output);  // creates the battery
                 m_onCompleted = matchedFinal.message;
 
                 SetBusy(true);

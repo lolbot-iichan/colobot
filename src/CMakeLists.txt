@@ -286,6 +286,8 @@ add_library(colobotbase STATIC
     object/details/shielded_details.h
     object/details/shielded_auto_regen_details.cpp
     object/details/shielded_auto_regen_details.h
+    object/details/shielder_details.cpp
+    object/details/shielder_details.h
     object/details/task_executor_details.cpp
     object/details/task_executor_details.h
     object/details/thumpable_details.cpp
@@ -319,6 +321,7 @@ add_library(colobotbase STATIC
     object/interface/ranged_object.h
     object/interface/shielded_auto_regen_object.h
     object/interface/shielded_object.h
+    object/interface/shielder_object.h
     object/interface/slotted_object.h
     object/interface/task_executor_object.h
     object/interface/thumpable_object.h
@@ -365,8 +368,6 @@ add_library(colobotbase STATIC
     object/subclass/base_movable.h
     object/subclass/exchange_post.cpp
     object/subclass/exchange_post.h
-    object/subclass/shielder.cpp
-    object/subclass/shielder.h
     object/subclass/static_object.cpp
     object/subclass/static_object.h
     object/task/task.cpp
@@ -375,6 +376,8 @@ add_library(colobotbase STATIC
     object/task/taskadvance.h
     object/task/taskbuild.cpp
     object/task/taskbuild.h
+    object/task/taskdeflag.cpp
+    object/task/taskdeflag.h
     object/task/taskdeletemark.cpp
     object/task/taskdeletemark.h
     object/task/taskfire.cpp

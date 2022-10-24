@@ -89,6 +89,7 @@ void CTaskDeleteMark::DeleteMark()
 
     if (obj != nullptr)
     {
+        // TODO: Should we use DestroyObject instead ?!
         m_engine->GetPyroManager()->Create(Gfx::PT_WPCHECK, obj);
     }
 }

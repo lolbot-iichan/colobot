@@ -49,11 +49,9 @@ bool CObjectShieldedDetails::Read(CLevelParserLine* line)
 
 void CObjectShieldedDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectShieldedDetails def;
-
     WRITE_LINE( "SetObjectShielded" );
-    WRITE_ARG( "enabled",    def, enabled    );
-    WRITE_ARG( "repairable", def, repairable );
+    WRITE_ARG( "enabled",    AsBool, enabled    );
+    WRITE_ARG( "repairable", AsBool, repairable );
     WRITE_END();
 }
 

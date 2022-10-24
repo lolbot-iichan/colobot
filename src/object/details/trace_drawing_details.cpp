@@ -49,11 +49,9 @@ bool CObjectTraceDrawingDetails::Read(CLevelParserLine* line)
 
 void CObjectTraceDrawingDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectTraceDrawingDetails def;
-
     WRITE_LINE( "SetObjectTraceDrawing" );
-    WRITE_ARG( "enabled",     def, enabled );
-    WRITE_ARG( "penAnimated", def, enabled );
+    WRITE_ARG( "enabled",     AsBool, enabled );
+    WRITE_ARG( "penAnimated", AsBool, enabled );
     WRITE_END();
 }
 

@@ -42,11 +42,8 @@ public:
     CAutoRepair(COldObject* object);
     ~CAutoRepair();
 
-    void        DeleteObject(bool bAll=false) override;
-
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
 
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;

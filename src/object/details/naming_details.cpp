@@ -39,25 +39,17 @@ void CObjectNamingDetails::ReadHardcode(ObjectType type)
 
 bool CObjectNamingDetails::Read(CLevelParserLine* line)
 {
-    if (line->GetCommand() == "SetObjectNaming") {
-        name  = line->GetParam("type")->GetValue();
-        alias = line->GetParam("alias")->GetValue();
-
-        std::set<std::string> keys = {"type", "value", "alias"};
-        for ( auto k: line->GetKeys() )
-            if (!keys.count(k))
-                UnusedArg(line, k);
-
-        return true;
-    }
+    READ_LINE( "SetObjectNaming" );
+    keys  = {"type", "value", "alias"};
+    name  = line->GetParam("type")->GetValue();
+    alias = line->GetParam("alias")->GetValue();
+    READ_END();
 
     return false;
 }
 
 void CObjectNamingDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectNamingDetails def;
-
     auto line = MakeUnique<CLevelParserLine>("SetObjectNaming");
     line->AddParam(("type"),MakeUnique<CLevelParserParam>( type ));
     line->AddParam(("value"),MakeUnique<CLevelParserParam>( int(type) ));

@@ -37,11 +37,10 @@
 
 #include "object/details/destroyable_details.h"
 
+#include "object/interface/shielder_object.h"
 #include "object/interface/slotted_object.h"
 
 #include "object/motion/motionhuman.h"
-
-#include "object/subclass/shielder.h"
 
 #include "sound/sound.h"
 
@@ -1609,9 +1608,9 @@ void CPyro::BurnStart()
     auto burningParts = GetObjectDestroyableDetails(m_object).burning.parts;
     for ( auto it : burningParts )
     {
-        pos.x = it.pos.x + it.posRandom.x * Math::Rand();
-        pos.y = it.pos.y + it.posRandom.y * Math::Rand();
-        pos.z = it.pos.z + it.posRandom.z * Math::Rand();
+        pos.x = it.position.x + it.posRandom.x * Math::Rand();
+        pos.y = it.position.y + it.posRandom.y * Math::Rand();
+        pos.z = it.position.z + it.posRandom.z * Math::Rand();
         angle.x = it.angle.x + it.angleRandom.x * Math::Rand();
         angle.y = it.angle.y + it.angleRandom.y * Math::Rand();
         angle.z = it.angle.z + it.angleRandom.z * Math::Rand();
@@ -1736,9 +1735,9 @@ CObject* CPyro::FallSearchBeeExplo()
 
         Math::Vector oPos = obj->GetPosition();
 
-        if (obj->GetType() == OBJECT_MOBILErs)
+        if (obj->Implements(ObjectInterfaceType::Shielder))
         {
-            float shieldRadius = dynamic_cast<CShielder&>(*obj).GetActiveShieldRadius();
+            float shieldRadius = dynamic_cast<CShielderObject&>(*obj).GetActiveShieldRadius();
             if ( shieldRadius > 0.0f )
             {
                 float distance = Math::Distance(oPos, bulletCrashSphere.sphere.pos);
@@ -1811,7 +1810,7 @@ void CPyro::FallProgress(float rTime)
             }
             else
             {
-                if (obj->GetType() == OBJECT_MOBILErs && dynamic_cast<CShielder&>(*obj).GetActiveShieldRadius() > 0.0f)  // protected by shield?
+                if (obj->Implements(ObjectInterfaceType::Shielder) && dynamic_cast<CShielderObject&>(*obj).GetActiveShieldRadius() > 0.0f)  // protected by shield?
                 {
                     m_particle->CreateParticle(pos, Math::Vector(0.0f, 0.0f, 0.0f),
                                                 Math::Point(6.0f, 6.0f), PARTIGUNDEL, 2.0f, 0.0f, 0.0f);

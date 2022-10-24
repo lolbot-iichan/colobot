@@ -46,13 +46,8 @@ public:
     CAutoHouston(COldObject* object);
     ~CAutoHouston();
 
-    void        DeleteObject(bool bAll=false) override;
-
     void        Init() override;
-    void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
-    bool        Abort() override;
-    Error       GetError() override;
 
 protected:
     float       m_progress = 0.0f;

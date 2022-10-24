@@ -43,7 +43,7 @@
 #include "object/object_type.h"
 #include "object/tool_type.h"
 
-#include "object/details/task_executor_details.h"
+#include "object/task/task.h"
 
 #include "ui/widget.h"
 

@@ -18,8 +18,8 @@
  */
 
 /**
- * \file object/details/slotted_details.cpp
- * \brief CObjectSlottedDetails - set of tweaks for Slotted objects
+ * \file object/details/shielder_details.cpp
+ * \brief CObjectShielderDetails - set of tweaks for Shielder objects
  */
 
 #include "level/parser/parser.h"
@@ -27,45 +27,32 @@
 #include "object/details/details_provider.h"
 #include "object/details/hardcode.h"
 #include "object/details/macro.h"
-#include "object/details/slotted_details.h"
+#include "object/details/shielder_details.h"
 
-void CObjectSlottedDetails::ReadHardcode(ObjectType type)
+void CObjectShielderDetails::ReadHardcode(ObjectType type)
 {
     CHardcodeCollection hardcode;
 
-    enabled = hardcode.IsSloted(type);
-    slots   = hardcode.GetSlots(type);
+    enabled = hardcode.IsShielder(type);
 }
 
-bool CObjectSlottedDetails::Read(CLevelParserLine* line)
+bool CObjectShielderDetails::Read(CLevelParserLine* line)
 {
-    READ_LINE( "SetObjectSlotted"         );
-    READ_ARG( "enabled", AsBool,  enabled );
+    READ_LINE( "SetObjectShielder" );
+    READ_ARG( "enabled", AsBool, enabled );
     READ_END();
-
-    READ_IT_LINE( "AddObjectSlot", "UpdObjectSlot", "ClrObjectSlot", slots );
-    READ_IT_ARG( "category", AsInt,   category );
-    READ_IT_ARG( "partNum",  AsInt,   partNum  );
-    READ_IT_ARG( "position", AsPoint, position );
-    READ_IT_END();
 
     return false;
 }
 
-void CObjectSlottedDetails::Write(CLevelParser* parser, ObjectType type)
+void CObjectShielderDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    WRITE_LINE( "SetObjectSlotted"        ); 
+    WRITE_LINE( "SetObjectShielder" );
     WRITE_ARG( "enabled", AsBool, enabled );
     WRITE_END();
-
-    WRITE_IT_LINE( "AddObjectSlot",    slots    );
-    WRITE_IT_ARG( "category", AsInt,   category );
-    WRITE_IT_ARG( "partNum",  AsInt,   partNum  );
-    WRITE_IT_ARG( "position", AsPoint, position );
-    WRITE_IT_END();
 }
 
-CObjectSlottedDetails GetObjectSlottedDetails(CObject* obj)
+CObjectShielderDetails GetObjectShielderDetails(CObject* obj)
 {
-    return CObjectDetails::GetInstance().GetObjectDetails(obj).slotted;
+    return CObjectDetails::GetInstance().GetObjectDetails(obj).shielder;
 }

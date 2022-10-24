@@ -56,6 +56,7 @@
 #include "object/details/scripting_details.h"
 #include "object/details/shielded_details.h"
 #include "object/details/shielded_auto_regen_details.h"
+#include "object/details/shielder_details.h"
 #include "object/details/slotted_details.h"
 #include "object/details/ranged_details.h"
 #include "object/details/task_executor_details.h"
@@ -67,20 +68,9 @@
 // Physics details
 //////////////////////////////////////////////////////////////////////////////
 
-struct CObjectThumperPhysicsDetails
-{
-    float         safeRadius      = -1.0f;
-    Gfx::PyroType effect          = Gfx::PT_NULL;
-    float         explosionDamage = 0.0f;
-};
-
 struct CObjectPhysicsDetails
 {
-    CObjectThumperPhysicsDetails   thumper;
-
-    float collisionOtherObjectRadiusToIgnore = 0.0f;
-    bool  isCollisionDamagable               = false;
-    float collisionSoftness                  = 200.0f;
+    float collisionSoftness       = 200.0f;
 };
 
 
@@ -104,7 +94,7 @@ struct CObjectDetail
     CObjectTransportableDetails     transportable;
     CObjectProgrammableDetails      programmable;
     CObjectTaskExecutorDetails      task_executor;
-    CObjectJostleableDetails         jostleable;
+    CObjectJostleableDetails        jostleable;
     CObjectMovableDetails           movable;
     CObjectFlyingDetails            flying;
     CObjectJetFlyingDetails         jet_flying;
@@ -119,6 +109,7 @@ struct CObjectDetail
     CObjectShieldedAutoRegenDetails shielded_auto_regen;
     CObjectSlottedDetails           slotted;
     CObjectThumpableDetails         thumpable;
+    CObjectShielderDetails          shielder;
 
     CObjectPhysicsDetails         physics;
 };
@@ -135,9 +126,6 @@ void Load(const char* fname);
 void Dump(const char* fname);
 
 ObjectType CastToObjectType(std::string name);
-
-
-
 
 public:
 
@@ -184,12 +172,6 @@ inline ObjectType CastToObjectType(std::string name)
 {
     return CObjectDetails::GetInstance().CastToObjectType(name);
 }
-
-inline CObjectPhysicsDetails GetObjectPhysicsDetails(ObjectType type)
-{
-    return CObjectDetails::GetInstance().GetObjectDetails(type).physics;
-}
-
 
 inline CObjectPhysicsDetails GetObjectPhysicsDetails(CObject* obj)
 {

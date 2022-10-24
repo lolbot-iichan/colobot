@@ -34,9 +34,8 @@
 
 #include "object/details/programmable_details.h"
 
+#include "object/interface/shielder_object.h"
 #include "object/interface/slotted_object.h"
-
-#include "object/subclass/shielder.h"
 
 #include "physics/physics.h"
 
@@ -57,7 +56,9 @@ CTaskShield::CTaskShield(COldObject* object) : CBackgroundTask(object)
     m_effectLight = -1;
 
     assert(HasPowerCellSlot(m_object));
-    m_shielder = dynamic_cast<CShielder*>(object);
+    assert(m_object->Implements(ObjectInterfaceType::Shielder));
+
+    m_shielder = dynamic_cast<CShielderObject*>(m_object);
 }
 
 // Object's destructor.

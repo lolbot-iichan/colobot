@@ -47,10 +47,8 @@ bool CObjectPowerContainerDetails::Read(CLevelParserLine* line)
 
 void CObjectPowerContainerDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectPowerContainerDetails def;
-
     WRITE_LINE( "SetObjectPowerContainer" );
-    WRITE_ARG( "enabled", def, enabled );
+    WRITE_ARG( "enabled", AsBool, enabled );
     WRITE_END();
 }
 

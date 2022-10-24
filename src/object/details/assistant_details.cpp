@@ -60,16 +60,14 @@ bool CObjectAssistantDetails::Read(CLevelParserLine* line)
 
 void CObjectAssistantDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectAssistantDetails def;
-
     WRITE_LINE( "SetObjectAssistant" );
-    WRITE_ARG( "enabled",          def, enabled          );
-    WRITE_ARG( "reactOnSatcom",    def, reactOnSatcom    );
-    WRITE_ARG( "reactOnMessages",  def, reactOnMessages  );
-    WRITE_ARG( "moveWithCamera",   def, moveWithCamera   );
-    WRITE_ARG( "ignoreOnSaveLoad", def, ignoreOnSaveLoad );
-    WRITE_ARG( "clickable",        def, clickable        );
-    WRITE_ARG( "unpausable",       def, unpausable       );
+    WRITE_ARG( "enabled",          AsBool, enabled          );
+    WRITE_ARG( "reactOnSatcom",    AsBool, reactOnSatcom    );
+    WRITE_ARG( "reactOnMessages",  AsBool, reactOnMessages  );
+    WRITE_ARG( "moveWithCamera",   AsBool, moveWithCamera   );
+    WRITE_ARG( "ignoreOnSaveLoad", AsBool, ignoreOnSaveLoad );
+    WRITE_ARG( "clickable",        AsBool, clickable        );
+    WRITE_ARG( "unpausable",       AsBool, unpausable       );
     WRITE_END();
 }
 

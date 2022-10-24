@@ -49,6 +49,7 @@
 #include "object/details/movable_details.h"
 #include "object/details/task_executor_details.h"
 #include "object/details/trace_drawing_details.h"
+#include "object/details/scripting_details.h"
 #include "object/details/slotted_details.h"
 
 
@@ -101,7 +102,7 @@ bool IsRadarExplicitOnly(ObjectType type);
 ObjectType GetBaseType(ObjectType type);
 
 // [script/radar] objects that could be find with radar functions by alias (default is vector with given id)
-std::vector<ObjectType> GetObjectsFindableByType(ObjectType type);
+std::vector<CObjectProduceScriptingFindable> GetObjectsFindableByType(ObjectType type);
 
 // [script/produce] can object be used at produce() call (default is false)
 bool IsValidObjectTypeId(ObjectType type);
@@ -157,12 +158,15 @@ ToolType GetToolType(ObjectType type);
 
 bool IsProgrammable(ObjectType type);
 bool IsTaskExecutor(ObjectType type);
-CObjectAimTaskExecutorDetails GetAimTaskExecutionDetails(ObjectType type);
-CObjectFlagTaskExecutorDetails GetFlagTaskExecutionDetails(ObjectType type);
-CObjectSniffTaskExecutorDetails GetSniffTaskExecutionDetails(ObjectType type);
-std::vector<CObjectFlagTaskExecutorObject>  GetFlagTaskExecutionObjects(ObjectType type);
-std::vector<CObjectSniffTaskExecutorObject> GetSniffTaskExecutionObjects(ObjectType type);
-std::vector<CObjectBuildTaskExecutorObject> GetBuilderMenuButtons(ObjectType type);
+CObjectAimTaskExecutorDetails    GetAimTaskExecutionDetails(ObjectType type);
+CObjectBuildTaskExecutorDetails  GetBuildTaskExecutionDetails(ObjectType type);
+CObjectDeflagTaskExecutorDetails GetDeflagTaskExecutionDetails(ObjectType type);
+CObjectFlagTaskExecutorDetails   GetFlagTaskExecutionDetails(ObjectType type);
+CObjectSniffTaskExecutorDetails  GetSniffTaskExecutionDetails(ObjectType type);
+std::vector<CObjectDeflagTaskExecutorObject> GetDeflagTaskExecutionObjects(ObjectType type);
+std::vector<CObjectFlagTaskExecutorObject>   GetFlagTaskExecutionObjects(ObjectType type);
+std::vector<CObjectSniffTaskExecutorObject>  GetSniffTaskExecutionObjects(ObjectType type);
+std::vector<CObjectBuildTaskExecutorObject>  GetBuilderMenuButtons(ObjectType type);
 
 bool IsTransportable(ObjectType type);
 bool IsDropZoneShownOnPut(ObjectType type);
@@ -240,6 +244,11 @@ bool IsSloted(ObjectType type);
 std::vector<CObjectSlotDetails> GetSlots(ObjectType type);
 
 bool IsThumpable(ObjectType type);
+int GetThumpAction(ObjectType type);
+float GetThumpDurationMin(ObjectType type);
+float GetThumpDurationMax(ObjectType type);
+
+bool IsShielder(ObjectType type);
 
 //////////////////////////////////////////////////////////////////////////////
 // Camera details
@@ -295,8 +304,6 @@ Math::Vector GetOnboardCameraPosition(ObjectType type);
 
 // [physics/collision] max radius of collision spheres to ignore (default is 0.0f)
 float GetCollisionOtherObjectRadiusToIgnore(ObjectType type);
-// [physics/collision] gets damage when collides with something (default is false)
-bool IsCollisionDamagable(ObjectType type);
 // [physics/collision] force of collision is devided by this (default is 200.0f)
 float GetCollisionSoftness(ObjectType type);
 
@@ -380,6 +387,7 @@ bool IsAutoBlockingNuclearPlant(ObjectType type);
 bool IsAutoBlockingFactory(ObjectType type);
 
 CObjectProductionAutomationDetails GetProduction(ObjectType type);
+CObjectDiggingAutomationDetails GetDigging(ObjectType type);
 std::vector<CObjectRecycleTaskExecutorObject> GetRecycleTaskExecutionObjects(ObjectType type);
 
 

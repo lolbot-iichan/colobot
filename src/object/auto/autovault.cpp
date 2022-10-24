@@ -308,15 +308,6 @@ bool CAutoVault::EventProcess(const Event &event)
     return true;
 }
 
-
-// Returns an error due the state of the automation.
-
-Error CAutoVault::GetError()
-{
-    return ERR_OK;
-}
-
-
 // Saves all parameters of the controller.
 
 bool CAutoVault::Write(CLevelParserLine* line)

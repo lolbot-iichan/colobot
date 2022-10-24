@@ -74,7 +74,6 @@
 
 #include "object/subclass/base_movable.h"
 #include "object/subclass/exchange_post.h"
-#include "object/subclass/shielder.h"
 #include "object/subclass/static_object.h"
 
 #include "physics/physics.h"
@@ -119,9 +118,6 @@ CObjectUPtr CObjectFactory::CreateObject(const ObjectCreateParams& params)
 
         case BASE_CLASS_MOVABLE:
             return CBaseMovable::Create(params, m_oldModelManager, m_engine);
-
-        case BASE_CLASS_SHIELDER:
-            return CShielder::Create(params, m_oldModelManager, m_engine);
 
         default:
             break;
@@ -248,59 +244,59 @@ void CObjectFactory::AddObjectAuto(COldObject* obj)
 {
     std::unique_ptr<CAuto> objAuto;
 
-    auto creation = GetObjectCreationDetails(obj);
+    auto autoClass = GetObjectAutomationDetails(obj).autoClass;
 
-    if ( creation.autoClass == AUTO_CLASS_EGG          )
+    if ( autoClass == AUTO_CLASS_EGG          )
         objAuto = MakeUnique<CAutoEgg>(obj);
-    if ( creation.autoClass == AUTO_CLASS_FLAG         )
+    if ( autoClass == AUTO_CLASS_FLAG         )
         objAuto = MakeUnique<CAutoFlag>(obj);
-    if ( creation.autoClass == AUTO_CLASS_MUSHROOM     )
+    if ( autoClass == AUTO_CLASS_MUSHROOM     )
         objAuto = MakeUnique<CAutoMush>(obj);
-    if ( creation.autoClass == AUTO_CLASS_ROOT         )
+    if ( autoClass == AUTO_CLASS_ROOT         )
         objAuto = MakeUnique<CAutoRoot>(obj);
 
-    if ( creation.autoClass == AUTO_CLASS_BASE         )
+    if ( autoClass == AUTO_CLASS_BASE         )
         objAuto = MakeUnique<CAutoBase>(obj);
-    if ( creation.autoClass == AUTO_CLASS_CONVERT      )
+    if ( autoClass == AUTO_CLASS_CONVERT      )
         objAuto = MakeUnique<CAutoConvert>(obj);
-    if ( creation.autoClass == AUTO_CLASS_DERRICK      )
+    if ( autoClass == AUTO_CLASS_DERRICK      )
         objAuto = MakeUnique<CAutoDerrick>(obj);
-    if ( creation.autoClass == AUTO_CLASS_DESTROYER    )
+    if ( autoClass == AUTO_CLASS_DESTROYER    )
         objAuto = MakeUnique<CAutoDestroyer>(obj);
-    if ( creation.autoClass == AUTO_CLASS_FACTORY      )
+    if ( autoClass == AUTO_CLASS_FACTORY      )
         objAuto = MakeUnique<CAutoFactory>(obj);
-    if ( creation.autoClass == AUTO_CLASS_HUSTON       )
+    if ( autoClass == AUTO_CLASS_HUSTON       )
         objAuto = MakeUnique<CAutoHouston>(obj);
-    if ( creation.autoClass == AUTO_CLASS_LABO         )
+    if ( autoClass == AUTO_CLASS_LABO         )
         objAuto = MakeUnique<CAutoLabo>(obj);
-    if ( creation.autoClass == AUTO_CLASS_NEST         )
+    if ( autoClass == AUTO_CLASS_NEST         )
         objAuto = MakeUnique<CAutoNest>(obj);
-    if ( creation.autoClass == AUTO_CLASS_NUCLEARPLANT )
+    if ( autoClass == AUTO_CLASS_NUCLEARPLANT )
         objAuto = MakeUnique<CAutoNuclearPlant>(obj);
-    if ( creation.autoClass == AUTO_CLASS_PORTICO      )
+    if ( autoClass == AUTO_CLASS_PORTICO      )
         objAuto = MakeUnique<CAutoPortico>(obj);
-    if ( creation.autoClass == AUTO_CLASS_POWERCAPTOR  )
+    if ( autoClass == AUTO_CLASS_POWERCAPTOR  )
         objAuto = MakeUnique<CAutoPowerCaptor>(obj);
-    if ( creation.autoClass == AUTO_CLASS_POWERPLANT   )
+    if ( autoClass == AUTO_CLASS_POWERPLANT   )
         objAuto = MakeUnique<CAutoPowerPlant>(obj);
-    if ( creation.autoClass == AUTO_CLASS_POWERSTATION )
+    if ( autoClass == AUTO_CLASS_POWERSTATION )
         objAuto = MakeUnique<CAutoPowerStation>(obj);
-    if ( creation.autoClass == AUTO_CLASS_RADAR        )
+    if ( autoClass == AUTO_CLASS_RADAR        )
         objAuto = MakeUnique<CAutoRadar>(obj);
-    if ( creation.autoClass == AUTO_CLASS_REPAIR       )
+    if ( autoClass == AUTO_CLASS_REPAIR       )
         objAuto = MakeUnique<CAutoRepair>(obj);
-    if ( creation.autoClass == AUTO_CLASS_RESEARCH     )
+    if ( autoClass == AUTO_CLASS_RESEARCH     )
         objAuto = MakeUnique<CAutoResearch>(obj);
-    if ( creation.autoClass == AUTO_CLASS_TOWER        )
+    if ( autoClass == AUTO_CLASS_TOWER        )
         objAuto = MakeUnique<CAutoTower>(obj);
-    if ( creation.autoClass == AUTO_CLASS_VAULT        )
+    if ( autoClass == AUTO_CLASS_VAULT        )
         objAuto = MakeUnique<CAutoVault>(obj);
 
-    if ( creation.autoClass == AUTO_CLASS_TEEN_TRUNK   )
+    if ( autoClass == AUTO_CLASS_TEEN_TRUNK   )
         objAuto = MakeUnique<CAutoTrunk>(obj);
-    if ( creation.autoClass == AUTO_CLASS_TEEN_BOAT    )
+    if ( autoClass == AUTO_CLASS_TEEN_BOAT    )
         objAuto = MakeUnique<CAutoBoat>(obj);
-    if ( creation.autoClass == AUTO_CLASS_TEEN_FAN     )
+    if ( autoClass == AUTO_CLASS_TEEN_FAN     )
         objAuto = MakeUnique<CAutoFan>(obj);
 
     if (objAuto != nullptr)

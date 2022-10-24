@@ -52,13 +52,11 @@ bool CObjectJostleableDetails::Read(CLevelParserLine* line)
 
 void CObjectJostleableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectJostleableDetails def;
-
     WRITE_LINE( "SetObjectJostleable" );
-    WRITE_ARG( "enabled",  def, enabled       );
-    WRITE_ARG( "factor",   def, factor        );
-    WRITE_ARG( "radius",   def, sphere.radius );
-    WRITE_ARG( "position", def, sphere.pos    );
+    WRITE_ARG( "enabled",  AsBool,  enabled       );
+    WRITE_ARG( "factor",   AsFloat, factor        );
+    WRITE_ARG( "radius",   AsFloat, sphere.radius );
+    WRITE_ARG( "position", AsPoint, sphere.pos    );
     WRITE_END();
 }
 

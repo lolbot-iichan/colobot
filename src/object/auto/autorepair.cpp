@@ -52,14 +52,6 @@ CAutoRepair::~CAutoRepair()
 }
 
 
-// Destroys the object.
-
-void CAutoRepair::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoRepair::Init()
@@ -224,15 +216,6 @@ CObject* CAutoRepair::SearchVehicle()
 
     return nullptr;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoRepair::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

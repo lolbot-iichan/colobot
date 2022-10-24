@@ -18,8 +18,8 @@
  */
 
 /**
- * \file object/details/scripting_details.h
- * \brief CObjectScriptingDetails - set of tweaks for Scripting objects
+ * \file object/details/shielder_details.h
+ * \brief CObjectShielderDetails - set of tweaks for Shielder objects
  */
 
 #pragma once
@@ -29,35 +29,12 @@ class CLevelParser;
 class CLevelParserLine;
 
 //////////////////////////////////////////////////////////////////////////////
-// Child structs
-//////////////////////////////////////////////////////////////////////////////
-
-struct CObjectProduceScriptingDetails
-{
-    bool       isProducable      = false;
-    bool       isProducedCharged = false;
-    bool       isProducedManual  = false;
-    ObjectType container         = OBJECT_NULL;
-};
-
-struct CObjectProduceScriptingFindable
-{
-    ObjectType value = OBJECT_NULL;
-};
-
-//////////////////////////////////////////////////////////////////////////////
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
 
-struct CObjectScriptingDetails
+struct CObjectShielderDetails
 {
-    std::string name          = "";
-    std::string alias         = "";
-    std::string helpTopicPath = "";
-
-    CObjectProduceScriptingDetails produce;
-
-    std::vector<CObjectProduceScriptingFindable> findableByRadar;
+    bool enabled    = false;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);
@@ -69,4 +46,4 @@ struct CObjectScriptingDetails
 // Provider
 //////////////////////////////////////////////////////////////////////////////
 
-CObjectScriptingDetails GetObjectScriptingDetails(ObjectType type);
+CObjectShielderDetails GetObjectShielderDetails(CObject* obj);

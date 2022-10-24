@@ -49,11 +49,9 @@ bool CObjectFragileDetails::Read(CLevelParserLine* line)
 
 void CObjectFragileDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectFragileDetails def;
-
     WRITE_LINE( "SetObjectFragile" );
-    WRITE_ARG( "enabled",  def, enabled  );
-    WRITE_ARG( "burnable", def, burnable );
+    WRITE_ARG( "enabled",  AsBool, enabled  );
+    WRITE_ARG( "burnable", AsBool, burnable );
     WRITE_END();
 }
 

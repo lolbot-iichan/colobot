@@ -28,9 +28,61 @@ class CObject;
 class CLevelParser;
 class CLevelParserLine;
 
+#include "graphics/engine/terrain.h"
+
 //////////////////////////////////////////////////////////////////////////////
 // Child structs
 //////////////////////////////////////////////////////////////////////////////
+
+enum AutoClass
+{
+    AUTO_CLASS_NONE = 0,
+
+    // jostling, has Start()
+    AUTO_CLASS_FLAG = 10,
+
+    // growing object, self-destroy
+    AUTO_CLASS_EGG = 20,
+
+    // dig something with CObjectDiggingAutomationDetails
+    AUTO_CLASS_DERRICK = 30,
+    AUTO_CLASS_NEST    = 31,
+
+    // convert something with CObjectProductionAutomationDetails
+    AUTO_CLASS_CONVERT      = 40,
+    AUTO_CLASS_NUCLEARPLANT = 41,
+    AUTO_CLASS_POWERPLANT   = 42,
+
+    // unlocking objects
+    AUTO_CLASS_VAULT = 50,
+
+    // research tasks executors
+    AUTO_CLASS_LABO     = 60,
+    AUTO_CLASS_RESEARCH = 61,
+
+    // other tasks executors
+    AUTO_CLASS_BASE      = 70,
+    AUTO_CLASS_DESTROYER = 71,
+    AUTO_CLASS_FACTORY   = 72,
+
+    // auto-targeting something
+    AUTO_CLASS_MUSHROOM     = 80,
+    AUTO_CLASS_RADAR        = 81,
+    AUTO_CLASS_ROOT         = 82,
+    AUTO_CLASS_POWERCAPTOR  = 83,
+    AUTO_CLASS_POWERSTATION = 84,
+    AUTO_CLASS_REPAIR       = 85,
+    AUTO_CLASS_TOWER        = 86,
+
+    // just nice animation
+    AUTO_CLASS_HUSTON       = 90,
+    AUTO_CLASS_TEEN_BOAT    = 91,
+    AUTO_CLASS_TEEN_FAN     = 92,
+    AUTO_CLASS_TEEN_TRUNK   = 93,
+
+    // half-vehicle, half-building
+    AUTO_CLASS_PORTICO      = 99,
+};
 
 struct CObjectBlockingAutomationDetails
 {
@@ -62,6 +114,24 @@ struct CObjectProductionAutomationDetails
     std::vector<CObjectProductionAutomation> objects;
 };
 
+struct CObjectDiggingAutomation
+{
+    Gfx::TerrainRes soil     = Gfx::TR_ANY;
+    ObjectType      output   = OBJECT_NULL;
+    int             maxCount = -1;
+    float           duration = 10.0f;
+    std::string     message;
+};
+
+struct CObjectDiggingAutomationDetails
+{
+    std::string     noSoil;
+    int             partNum = 0;
+    Math::Vector    position;
+
+    std::vector<CObjectDiggingAutomation> objects;
+};
+
 //////////////////////////////////////////////////////////////////////////////
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
@@ -69,10 +139,13 @@ struct CObjectProductionAutomationDetails
 
 struct CObjectAutomationDetails
 {
+    int   autoClass                 = AUTO_CLASS_NONE;
+
     CObjectBlockingAutomationDetails blocking;
     CObjectTargetedAutomationDetails targeted;
 
     CObjectProductionAutomationDetails production;
+    CObjectDiggingAutomationDetails    digging;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

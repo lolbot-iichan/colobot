@@ -39,14 +39,6 @@ CAutoJostle::~CAutoJostle()
 }
 
 
-// Destroys the object.
-
-void CAutoJostle::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoJostle::Init()

@@ -66,14 +66,15 @@ struct CObjectExplosiveDamageDetails
 
 struct CObjectCollisionDamageDetails
 {
-    bool enabled = true;
+    bool  enabled      = true;
+    float ignoreRadius = 0.0f;
 };
 
 struct CObjectLightningDamageDetails
 {
+    bool  enabled                 = true;
     float lightningRodHeight      = 0.0f;
     float lightningHitProbability = 0.0f;
-    bool enabled                  = true;
 };
 
 struct CObjectFallDamageDetails

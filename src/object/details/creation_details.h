@@ -43,42 +43,7 @@ enum BaseClass
 {
     BASE_CLASS_SIMPLE,
     BASE_CLASS_INFO,
-    BASE_CLASS_MOVABLE,
-    BASE_CLASS_SHIELDER,
-};
-
-enum AutoClass
-{
-    AUTO_CLASS_NONE = 0,
-
-    AUTO_CLASS_FLAG,
-
-    AUTO_CLASS_EGG,
-    AUTO_CLASS_MUSHROOM,
-    AUTO_CLASS_ROOT,
-
-    AUTO_CLASS_BASE,
-    AUTO_CLASS_CONVERT,
-    AUTO_CLASS_DERRICK,
-    AUTO_CLASS_DESTROYER,
-    AUTO_CLASS_FACTORY,
-    AUTO_CLASS_HUSTON,
-    AUTO_CLASS_LABO,
-    AUTO_CLASS_NEST,
-    AUTO_CLASS_NUCLEARPLANT,
-    AUTO_CLASS_PORTICO,
-    AUTO_CLASS_POWERCAPTOR,
-    AUTO_CLASS_POWERPLANT,
-    AUTO_CLASS_POWERSTATION,
-    AUTO_CLASS_RADAR,
-    AUTO_CLASS_REPAIR,
-    AUTO_CLASS_RESEARCH,
-    AUTO_CLASS_TOWER,
-    AUTO_CLASS_VAULT,
-
-    AUTO_CLASS_TEEN_BOAT,
-    AUTO_CLASS_TEEN_FAN,
-    AUTO_CLASS_TEEN_TRUNK,
+    BASE_CLASS_MOVABLE
 };
 
 enum TrainerMatcher
@@ -124,7 +89,6 @@ struct CObjectCreationShadowCircle
 struct CObjectCreationDetails
 {
     int   baseClass                 = BASE_CLASS_SIMPLE;
-    int   autoClass                 = AUTO_CLASS_NONE;
 
 // TODO split into creation and model details
 

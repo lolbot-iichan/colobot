@@ -251,7 +251,8 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
                 m_object->SetSlotContainedObject(0, nullptr);
 
                 CObjectProductionAutomation matchedFinal = matched[ std::rand() % matched.size() ];
-                CreatePower(matchedFinal.output);  // creates the atomic cell
+                if (matchedFinal.output != OBJECT_NULL)
+                    CreatePower(matchedFinal.output);  // creates the atomic cell
                 m_onCompleted = matchedFinal.message;
             }
 

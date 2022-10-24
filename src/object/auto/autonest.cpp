@@ -24,8 +24,12 @@
 
 #include "graphics/engine/terrain.h"
 
+#include "level/robotmain.h"
+
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
+
+#include "math/geometry.h"
 
 #include "object/object_manager.h"
 #include "object/old_object.h"
@@ -68,8 +72,6 @@ void CAutoNest::DeleteObject(bool all)
 
 void CAutoNest::Init()
 {
-    Math::Vector    pos;
-
     m_phase    = ANP_WAIT;
     m_progress = 0.0f;
     m_speed    = 1.0f/4.0f;
@@ -77,9 +79,7 @@ void CAutoNest::Init()
     m_time     = 0.0f;
     m_lastParticle = 0.0f;
 
-    pos = m_object->GetPosition();
-    m_terrain->AdjustToFloor(pos);
-    m_cargoPos = pos;
+    m_cargoPos = GetCargoPos();
 }
 
 
@@ -87,8 +87,6 @@ void CAutoNest::Init()
 
 bool CAutoNest::EventProcess(const Event &event)
 {
-    CObject*    cargo;
-
     CAuto::EventProcess(event);
 
     if ( m_engine->GetPause() )  return true;
@@ -99,30 +97,12 @@ bool CAutoNest::EventProcess(const Event &event)
     if ( m_phase == ANP_WAIT )
     {
         if ( m_progress >= 1.0f )
-        {
-            auto production = GetObjectAutomationDetails(m_object).production;
-
-            if ( !SearchFree(m_cargoPos) || production.objects.size() == 0 )
-            {
-                m_phase    = ANP_WAIT;
-                m_progress = 0.0f;
-                m_speed    = 1.0f/4.0f;
-            }
-            else
-            {
-                auto it = production.objects[ std::rand() % production.objects.size() ];
-                CreateCargo(m_cargoPos, 0.0f, it.output);
-
-                m_phase    = ANP_BIRTH;
-                m_progress = 0.0f;
-                m_speed    = 1.0f/5.0f;
-            }
-        }
+            FindSomethingToDig();
     }
 
     if ( m_phase == ANP_BIRTH )
     {
-        cargo = SearchCargo();
+        CObject* cargo = SearchCargo();
 
         if ( m_progress < 1.0f )
         {
@@ -138,6 +118,7 @@ bool CAutoNest::EventProcess(const Event &event)
                 cargo->SetScale(1.0f);
                 cargo->SetLock(false);
             }
+            m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
 
             m_phase    = ANP_WAIT;
             m_progress = 0.0f;
@@ -148,11 +129,62 @@ bool CAutoNest::EventProcess(const Event &event)
     return true;
 }
 
+void CAutoNest::FindSomethingToDig()
+{
+    auto digging = GetObjectAutomationDetails(m_object).digging;
+
+    Gfx::TerrainRes res = m_terrain->GetResource(m_object->GetPosition());
+
+    std::vector<CObjectDiggingAutomation> matched;
+    for ( auto it: digging.objects )
+    {
+        if (it.soil != Gfx::TR_ANY && it.soil != res)    continue;
+        if (it.maxCount != -1)
+        {
+            size_t maxCount = static_cast<size_t>(it.maxCount);
+            size_t count    = CObjectManager::GetInstancePointer()->RadarAll(nullptr, it.output).size();
+            if ( count >= maxCount ) continue;
+        }
+        matched.push_back(it);
+    }
+
+    if ( matched.size() > 0 && SearchFree(GetCargoPos()) )
+    {
+        CObjectDiggingAutomation matchedFinal = matched[ std::rand() % matched.size() ];
+        m_type        = matchedFinal.output;
+        m_onCompleted = matchedFinal.message;
+        m_cargoPos    = GetCargoPos();
+
+        if (matchedFinal.output != OBJECT_NULL)
+            CreateCargo(m_cargoPos, 0.0f);
+
+        m_phase    = ANP_BIRTH;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/matchedFinal.duration;
+    }
+    else
+    {
+        m_phase    = ANP_WAIT;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/4.0f;
+    }
+}
+
+Math::Vector CAutoNest::GetCargoPos()
+{
+    auto digging = GetObjectAutomationDetails(m_object).digging;
+    Math::Matrix* mat = m_object->GetWorldMatrix(digging.partNum);
+    Math::Vector pos = Math::Transform(*mat, digging.position);
+    m_terrain->AdjustToFloor(pos);
+    return pos;
+}
 
 // Seeks if a site is free.
 
 bool CAutoNest::SearchFree(Math::Vector pos)
 {
+    if (IsObjectBeingTransported(m_object)) return false;    
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
@@ -174,9 +206,11 @@ bool CAutoNest::SearchFree(Math::Vector pos)
 
 // Create a transportable object.
 
-void CAutoNest::CreateCargo(Math::Vector pos, float angle, ObjectType type)
+void CAutoNest::CreateCargo(Math::Vector pos, float angle)
 {
-    CObject* cargo = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type);
+    if (m_type == OBJECT_NULL) return; 
+
+    CObject* cargo = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, m_type);
     cargo->SetLock(true);  // not usable
     cargo->SetScale(0.0f);
 }
@@ -185,14 +219,12 @@ void CAutoNest::CreateCargo(Math::Vector pos, float angle, ObjectType type)
 
 CObject* CAutoNest::SearchCargo()
 {
-    auto production = GetObjectAutomationDetails(m_object).production;
-
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         if ( !obj->GetLock() )  continue;
-        for ( auto it: production.objects )
+        for ( auto it: GetObjectAutomationDetails(m_object).digging.objects )
         {
-            if ( obj->GetType() != it.output ) continue;
+            if ( obj->GetType() != m_type ) continue;
 
             Math::Vector oPos = obj->GetPosition();
             if ( oPos.x == m_cargoPos.x && oPos.z == m_cargoPos.z )
@@ -204,15 +236,6 @@ CObject* CAutoNest::SearchCargo()
 
     return nullptr;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoNest::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

@@ -106,7 +106,8 @@ COldObject::COldObject(int id)
       CRangedObject(m_implementedInterfaces),
       CTraceDrawingObject(m_implementedInterfaces),
       CShieldedAutoRegenObject(m_implementedInterfaces),
-      CThumpableObject(m_implementedInterfaces)
+      CThumpableObject(m_implementedInterfaces),
+      CShielderObject(m_implementedInterfaces)
 {
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)] = true;
 
@@ -620,6 +621,7 @@ void COldObject::SetType(ObjectType type)
     auto shielded_auto_regen = GetObjectShieldedAutoRegenDetails(this);
     auto slotted             = GetObjectSlottedDetails(this);
     auto thumpable           = GetObjectThumpableDetails(this);
+    auto shielder            = GetObjectShielderDetails(this);
 
     bool interactiveEnabled    = true;
     bool oldEnabled            = true;
@@ -646,6 +648,7 @@ void COldObject::SetType(ObjectType type)
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)]               = oldEnabled;
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)]           = slotted.enabled;
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Thumpable)]         = thumpable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielder)]          = shielder.enabled;
 
     m_cameraType = controllable.camera.defaultCamera;
 }
@@ -753,6 +756,11 @@ void COldObject::Write(CLevelParserLine* line)
         line->AddParam("bVirusActive", MakeUnique<CLevelParserParam>(GetActiveVirus()));
     }
 
+    if ( Implements(ObjectInterfaceType::Shielder) )
+    {
+        line->AddParam("bShieldActive", MakeUnique<CLevelParserParam>(IsBackgroundTask()));
+    }
+
     if (GetFixed())
         line->AddParam("fixed", MakeUnique<CLevelParserParam>(GetFixed()));
         
@@ -816,6 +824,14 @@ void COldObject::Read(CLevelParserLine* line)
             {
                 SetCmdLine(i, cmdline[i]->AsFloat());
             }
+        }
+    }
+
+    if ( Implements(ObjectInterfaceType::Shielder) )
+    {
+        if( line->GetParam("bShieldActive")->AsBool(false) )
+        {
+            StartTaskShield(TSM_START);
         }
     }
 
@@ -1842,6 +1858,10 @@ bool COldObject::EventProcess(const Event &event)
             {
                 canMove = canMove && !IsProgram();
             }
+            if (Implements(ObjectInterfaceType::Thumpable))
+            {
+                canMove = canMove && !GetFixed();
+            }
 
             if ( canMove )
             {
@@ -2467,26 +2487,28 @@ bool COldObject::GetDetectable()
 
 void COldObject::SetGunGoalV(float gunGoal)
 {
-    auto task_executor = GetObjectTaskExecutorDetails(this);
+    auto aim = GetObjectTaskExecutorDetails(this).aim;
+    if ( !aim.enabled ) return;
 
-    if ( gunGoal < task_executor.aim.minZ ) gunGoal = task_executor.aim.minZ;
-    if ( gunGoal > task_executor.aim.maxZ ) gunGoal = task_executor.aim.maxZ;
+    if ( gunGoal < aim.minZ ) gunGoal = aim.minZ;
+    if ( gunGoal > aim.maxZ ) gunGoal = aim.maxZ;
         
-    if ( task_executor.aim.partNum != -1 )
-        SetPartRotationZ(task_executor.aim.partNum, gunGoal);
+    if ( aim.partNum != -1 )
+        SetPartRotationZ(aim.partNum, gunGoal);
 
     m_gunGoalV = gunGoal;
 }
 
 void COldObject::SetGunGoalH(float gunGoal)
 {
-    auto task_executor = GetObjectTaskExecutorDetails(this);
+    auto aim = GetObjectTaskExecutorDetails(this).aim;
+    if ( !aim.enabled ) return;
 
-    if ( gunGoal < task_executor.aim.minY ) gunGoal = task_executor.aim.minY;
-    if ( gunGoal > task_executor.aim.maxY ) gunGoal = task_executor.aim.maxY;
+    if ( gunGoal < aim.minY ) gunGoal = aim.minY;
+    if ( gunGoal > aim.maxY ) gunGoal = aim.maxY;
         
-    if ( task_executor.aim.partNum != -1 )
-        SetPartRotationY(task_executor.aim.partNum, gunGoal);
+    if ( aim.partNum != -1 )
+        SetPartRotationY(aim.partNum, gunGoal);
 
     m_gunGoalH = gunGoal;
 }
@@ -2742,4 +2764,27 @@ void COldObject::SetFixed(bool fixed)
 bool COldObject::GetFixed()
 {
     return m_fixed;
+}
+
+void COldObject::SetShieldRadius(float shieldRadius)
+{
+    m_shieldRadius = shieldRadius;
+}
+
+float COldObject::GetShieldRadius()
+{
+    return m_shieldRadius;
+}
+
+float COldObject::GetActiveShieldRadius()
+{
+    if (IsBackgroundTask())
+    {
+        CTaskShield* taskShield = dynamic_cast<CTaskShield*>(GetBackgroundTask());
+        if (taskShield != nullptr)
+        {
+            return taskShield->GetActiveRadius();
+        }
+    }
+    return 0.0f;
 }

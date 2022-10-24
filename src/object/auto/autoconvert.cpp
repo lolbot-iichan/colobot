@@ -249,7 +249,8 @@ bool CAutoConvert::EventProcess(const Event &event)
                 m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
 
                 CObjectProductionAutomation matchedFinal = matched[ std::rand() % matched.size() ];
-                CreateMetal(matchedFinal.output);  // Create the metal
+                if (matchedFinal.output != OBJECT_NULL)
+                    CreateMetal(matchedFinal.output);  // Create the metal
                 m_main->DisplayText(matchedFinal.message, m_object, Ui::TT_INFO);
             }
 

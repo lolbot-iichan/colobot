@@ -2536,7 +2536,7 @@ int CPhysics::ObjectAdapt(const Math::Vector &pos, const Math::Vector &angle)
             Math::Vector oPos = crashSphere.sphere.pos;
             float oRad = crashSphere.sphere.radius;
 
-            float ignoredRadius = GetObjectPhysicsDetails(iType).collisionOtherObjectRadiusToIgnore;
+            float ignoredRadius = GetObjectDamageableDetails(m_object).collision.ignoreRadius;
             if ( ignoredRadius > 0 && oRad <= ignoredRadius )  continue;
 
             distance = Math::Distance(oPos, iPos);
@@ -2553,7 +2553,7 @@ int CPhysics::ObjectAdapt(const Math::Vector &pos, const Math::Vector &angle)
                         force = fabs(m_linMotion.realSpeed.x);
                         force *= crashSphere.hardness*2.0f;
                         if ( ExploOther(iType, pObj, oType, force) )  continue;
-                        colType = ExploHimself(iType, oType, force);
+                        colType = ExploHimself(iType, pObj, oType, force);
                         if ( colType == 2 )  return 2;  // destroyed?
                         if ( colType == 0 )  continue;  // ignores?
                     }
@@ -2683,12 +2683,12 @@ bool CPhysics::ExploOther(ObjectType iType,
         // TODO: CFragileObject::GetDestructionForce (I can't do this now because you can't inherit both in COldObject ~krzys_h)
         DamageType damageType = DamageType::Collision;
         float destructionForce = pObj->Implements(ObjectInterfaceType::Fragile) ? 50.0f : -1.0f; // Titanium, PowerCell, NuclearCell, default
-        if (pObj->GetType() == OBJECT_STONE   ) { destructionForce = 25.0f; } // TitaniumOre
-        if (pObj->GetType() == OBJECT_URANIUM ) { destructionForce = 25.0f; } // UraniumOre
-        if (pObj->GetType() == OBJECT_MOBILEtg) { destructionForce = 10.0f; damageType = DamageType::Explosive; } // TargetBot (something running into it)
-        if (iType           == OBJECT_MOBILEtg) { destructionForce =  0.0f; damageType = DamageType::Explosive; } // TargetBot (it running into something)
-        if (pObj->GetType() == OBJECT_TNT     ) { destructionForce = 10.0f; damageType = DamageType::Explosive; } // TNT
-        if (pObj->GetType() == OBJECT_BOMB    ) { destructionForce =  0.0f; damageType = DamageType::Explosive; } // Mine
+        if (oType == OBJECT_STONE   ) { destructionForce = 25.0f; } // TitaniumOre
+        if (oType == OBJECT_URANIUM ) { destructionForce = 25.0f; } // UraniumOre
+        if (oType == OBJECT_TNT     ) { destructionForce = 10.0f; damageType = DamageType::Explosive; } // TNT
+        if (oType == OBJECT_MOBILEtg) { destructionForce = 10.0f; damageType = DamageType::Explosive; } // TargetBot (something running into it)
+        if (iType == OBJECT_MOBILEtg) { destructionForce =  0.0f; damageType = DamageType::Explosive; } // TargetBot (it running into something)
+        if (oType == OBJECT_BOMB    ) { destructionForce =  0.0f; damageType = DamageType::Explosive; } // Mine
 
         if ( force > destructionForce && destructionForce >= 0.0f )
         {
@@ -2760,10 +2760,12 @@ bool CPhysics::ExploOther(ObjectType iType,
         }
     }
 
-    if ( GetObjectDestroyableDetails(pObj).squash.enabled && GetDriveFromObject(iType)==DriveType::Heavy)
+    if (pObj->Implements(ObjectInterfaceType::Destroyable))
     {
-        assert(pObj->Implements(ObjectInterfaceType::Destroyable));
-        dynamic_cast<CDestroyableObject*>(pObj)->DestroyObject(DestructionType::Squash);
+        if ( GetObjectDestroyableDetails(pObj).squash.enabled && GetDriveFromObject(iType)==DriveType::Heavy)
+        {
+            dynamic_cast<CDestroyableObject*>(pObj)->DestroyObject(DestructionType::Squash);
+        }
     }
 
     return false;
@@ -2774,7 +2776,7 @@ bool CPhysics::ExploOther(ObjectType iType,
 // Returns 1 -> immobile object
 // Returns 2 -> object destroyed
 
-int CPhysics::ExploHimself(ObjectType iType, ObjectType oType, float force)
+int CPhysics::ExploHimself(ObjectType iType, CObject *pObj, ObjectType oType, float force)
 {
     if (!m_object->Implements(ObjectInterfaceType::Damageable)) return 1;
 
@@ -2785,22 +2787,18 @@ int CPhysics::ExploHimself(ObjectType iType, ObjectType oType, float force)
     if ( iType == OBJECT_MOBILEtg ) destructionForce =  0.0f; // TargetBot (it running into something)
     if ( oType == OBJECT_BOMB     ) destructionForce =  0.0f; // Mine
 
+    // TODO: implement "killer"?
+
     if ( force > destructionForce && destructionForce >= 0.0f )
     {
-        // TODO: implement "killer"?
-        dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive);
-        return 2;
+        force = std::numeric_limits<float>::infinity();
+        if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive, force) )  return 2;
     }
 
     if ( force > 25.0f )
     {
-        if (GetObjectPhysicsDetails(iType).isCollisionDamagable)  // vehicle?
-        {
-            force /= GetObjectPhysicsDetails(oType).collisionSoftness;
-
-            // TODO: implement "killer"?
-            if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Collision, force) )  return 2;
-        }
+        force /= GetObjectPhysicsDetails(pObj).collisionSoftness;
+        if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Collision, force) )  return 2;
     }
 
     return 1;

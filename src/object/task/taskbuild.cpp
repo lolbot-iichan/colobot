@@ -377,9 +377,10 @@ bool CTaskBuild::EventProcess(const Event &event)
 
 Error CTaskBuild::Start(ObjectType type)
 {
-    Math::Vector    pos, speed, pv, pm;
-    Error       err;
-    float       iAngle, oAngle;
+    Error err;
+
+    Math::Vector pv, pm;
+    float iAngle, oAngle;
 
     m_type = type;
     m_lastParticle = 0.0f;
@@ -391,16 +392,10 @@ Error CTaskBuild::Start(ObjectType type)
 
     m_bError = true;  // operation impossible
 
-    pos = m_object->GetPosition();
-    if ( pos.y < m_water->GetLevel() )  return ERR_BUILD_WATER;
+    auto build = GetObjectTaskExecutorDetails(m_object).build;
 
-    if ( !m_physics->GetLand() && m_object->GetType()!=OBJECT_MOBILEfb)  return ERR_BUILD_FLY;
-
-    speed = m_physics->GetMotorSpeed();
-    if ( speed.x != 0.0f ||
-         speed.z != 0.0f )  return ERR_BUILD_MOTOR;
-
-    if (IsObjectCarryingCargo(m_object))  return ERR_MANIP_BUSY;
+    err = CanStartTask(&build);
+    if ( err != ERR_OK )  return err;
 
     m_metal = SearchMetalObject(oAngle, 2.0f, 100.0f, Math::PI*0.25f, err);
     if ( err == ERR_BUILD_METALNEAR && m_metal != nullptr )
@@ -813,7 +808,7 @@ CObject* CTaskBuild::SearchMetalObject(float &angle, float dMin, float dMax,
     float       min, iAngle, a, aa, aBest, distance, magic;
     bool        bMetal;
 
-    auto buildDetails = GetObjectTaskExecutorDetails(m_object).build;
+    auto build = GetObjectTaskExecutorDetails(m_object).build;
 
     iPos   = m_object->GetPosition();
     iAngle = m_object->GetRotationY();
@@ -828,7 +823,7 @@ CObject* CTaskBuild::SearchMetalObject(float &angle, float dMin, float dMax,
         if (IsObjectBeingTransported(pObj))  continue;
 
         bool bMatched = false;
-        for ( auto it: buildDetails.objects )
+        for ( auto it: build.objects )
         {
             if (pObj->GetType() == it.input && m_type == it.output)
             {

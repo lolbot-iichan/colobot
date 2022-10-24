@@ -54,12 +54,12 @@
 
 #include "object/interface/destroyable_object.h"
 #include "object/interface/programmable_object.h"
+#include "object/interface/shielder_object.h"
 #include "object/interface/task_executor_object.h"
 #include "object/interface/thumpable_object.h"
 #include "object/interface/trace_drawing_object.h"
 
 #include "object/subclass/exchange_post.h"
-#include "object/subclass/shielder.h"
 
 #include "object/task/taskinfo.h"
 
@@ -810,7 +810,7 @@ inline void fillSearchList(std::vector<ObjectType>& type_v, bool bArray, int typ
             type_v.push_back(t);
             for (auto it: GetObjectScriptingDetails(t).findableByRadar)
             {
-                type_v.push_back(it);
+                type_v.push_back(it.value);
             }
             array = array->GetNext();
         }
@@ -823,7 +823,7 @@ inline void fillSearchList(std::vector<ObjectType>& type_v, bool bArray, int typ
             type_v.push_back(t);
             for (auto it: GetObjectScriptingDetails(t).findableByRadar)
             {
-                type_v.push_back(it);
+                type_v.push_back(it.value);
             }
         }
     }
@@ -1388,7 +1388,7 @@ bool CScriptFunctions::rFlag(CBotVar* var, CBotVar* result, int& exception, void
                 color = var->GetValInt();
                 if ( color < 0 || color > static_cast<int>(TraceColor::Violet) ) color = 0;
             }
-            err = script->m_taskExecutor->StartTaskFlag(TFL_CREATE, color);
+            err = script->m_taskExecutor->StartTaskFlag(color);
         }
 
         if ( err != ERR_OK )
@@ -1424,7 +1424,7 @@ bool CScriptFunctions::rDeflag(CBotVar* var, CBotVar* result, int& exception, vo
         }
         else
         {
-            err = script->m_taskExecutor->StartTaskFlag(TFL_DELETE, 0);
+            err = script->m_taskExecutor->StartTaskDeflag();
         }
 
         if ( err != ERR_OK )
@@ -2487,7 +2487,8 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
         }
         else    // up ?
         {
-            dynamic_cast<CShielder&>(*pThis).SetShieldRadius(radius);
+            assert(pThis->Implements(ObjectInterfaceType::Shielder));
+            dynamic_cast<CShielderObject&>(*pThis).SetShieldRadius(radius);
             err = script->m_taskExecutor->StartTaskShield(TSM_UP, 1000.0f);
             if ( err != ERR_OK )
             {
@@ -2505,7 +2506,8 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
         else    // up?
         {
             //?         result->SetValInt(1);  // shows the error
-            dynamic_cast<CShielder&>(*pThis).SetShieldRadius(radius);
+            assert(pThis->Implements(ObjectInterfaceType::Shielder));
+            dynamic_cast<CShielderObject&>(*pThis).SetShieldRadius(radius);
             script->m_taskExecutor->StartTaskShield(TSM_UPDATE, 0.0f);
         }
     }

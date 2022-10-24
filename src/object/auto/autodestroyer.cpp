@@ -55,14 +55,6 @@ CAutoDestroyer::~CAutoDestroyer()
 }
 
 
-// Destroys the object.
-
-void CAutoDestroyer::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoDestroyer::Init()
@@ -288,14 +280,6 @@ CObject* CAutoDestroyer::SearchPlastic()
 
     return nullptr;
 }
-
-// Returns an error due the state of the automation.
-
-Error CAutoDestroyer::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

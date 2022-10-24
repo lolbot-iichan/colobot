@@ -53,6 +53,8 @@ const float TERRAIN_FLATLIMIT = (5.0f*Math::PI/180.0f);
  */
 enum TerrainRes
 {
+    //! Any resource
+    TR_ANY      = -1,
     //! No resource
     TR_NULL      = 0,
     //! Titanium

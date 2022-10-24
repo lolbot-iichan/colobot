@@ -273,15 +273,6 @@ Error CAutoEgg::IsEnded()
     return ERR_STOP;
 }
 
-
-// Returns an error due the state of the automation.
-
-Error CAutoEgg::GetError()
-{
-    return ERR_OK;
-}
-
-
 // Seeking the insect that starts in the egg.
 
 CObject* CAutoEgg::SearchAlien()

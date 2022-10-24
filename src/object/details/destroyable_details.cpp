@@ -38,16 +38,26 @@ void CObjectDestroyableDetails::ReadHardcode(ObjectType type)
     message = hardcode.GetDestroyMessage(type);
 
     explosion.effect = hardcode.GetDestructionByExplosion(type);
+
     water.effect = hardcode.GetDestructionByWater(type);
     water.enabled = hardcode.IsExplodesInWater(type);
+
     burning.effect = hardcode.GetDestructionByBurning(type);
     burning.isKilledByBurning = hardcode.IsDestructionKilledByBurning(type);
     burning.parts = hardcode.GetBurnParts(type);
     burning.ruins = hardcode.GetTypeAfterBurn(type);
+
     drowned.effect = hardcode.GetDestructionByDrowned(type);
+
     win.effect = hardcode.GetDestructionByWin(type);
+
     squash.effect = hardcode.GetDestructionBySquash(type);
     squash.enabled = hardcode.IsSquashedByHeavy(type);
+
+    thumper.enabled         = hardcode.GetThumperSafeRadius(type) != -1.0f;
+    thumper.safeRadius      = hardcode.GetThumperSafeRadius(type);
+    thumper.effect          = hardcode.GetThumperPyroType(type);
+    thumper.explosionDamage = hardcode.GetThumperExplosionDamage(type);
 }
 
 bool CObjectDestroyableDetails::Read(CLevelParserLine* line)
@@ -66,53 +76,54 @@ bool CObjectDestroyableDetails::Read(CLevelParserLine* line)
     READ_ARG( "xEffect",             AsPyroType,   win.effect                );
     READ_ARG( "sEffect",             AsPyroType,   squash.effect             );
     READ_ARG( "sDestroy",            AsBool,       squash.enabled            );
+    READ_ARG( "tEffect",             AsPyroType,   thumper.effect            );
+    READ_ARG( "tDestroy",            AsBool,       thumper.enabled           );
+    READ_ARG( "tSafe",               AsFloat,      thumper.safeRadius        );
+    READ_ARG( "tDamage",             AsFloat,      thumper.explosionDamage   );
     READ_END();
 
-    READ_LINE( "AddObjectBurningPart" );
-    READ_NEW( id,                     burning.parts                 );
-    READ_ARG( "partNum",     AsInt,   burning.parts[id].partNum     );
-    READ_ARG( "pos",         AsPoint, burning.parts[id].pos         );
-    READ_ARG( "posRandom",   AsPoint, burning.parts[id].posRandom   );
-    READ_ARG( "angle",       AsPoint, burning.parts[id].angle       );
-    READ_ARG( "angleRandom", AsPoint, burning.parts[id].angleRandom );
-    READ_ARG( "keep",        AsBool,  burning.parts[id].keep        );
-    READ_END();
+    READ_IT_LINE( "AddObjectBurningPart", "UpdObjectBurningPart", "ClrObjectBurningPart", burning.parts );
+    READ_IT_ARG( "partNum",     AsInt,   partNum     );
+    READ_IT_ARG( "position",    AsPoint, position    );
+    READ_IT_ARG( "posRandom",   AsPoint, posRandom   );
+    READ_IT_ARG( "angle",       AsPoint, angle       );
+    READ_IT_ARG( "angleRandom", AsPoint, angleRandom );
+    READ_IT_ARG( "keep",        AsBool,  keep        );
+    READ_IT_END();
 
     return false;
 }
 
 void CObjectDestroyableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectDestroyableDetails def;
-
     WRITE_LINE( "SetObjectDestroyable" );
-    WRITE_ARG( "enabled",             def, enabled                   );
-    WRITE_ARG( "removeBuildingLevel", def, removeBuildingLevel       );
-    WRITE_ARG( "message",             def, message                   );
-    WRITE_ARG( "eEffect",             def, explosion.effect          );
-    WRITE_ARG( "wEffect",             def, water.effect              );
-    WRITE_ARG( "wDestroy",            def, water.enabled             );
-    WRITE_ARG( "bEffect",             def, burning.effect            );
-    WRITE_ARG( "bKills",              def, burning.isKilledByBurning );
-    WRITE_ARG( "wreck",               def, burning.ruins             );
-    WRITE_ARG( "dEffect",             def, drowned.effect            );
-    WRITE_ARG( "xEffect",             def, win.effect                );
-    WRITE_ARG( "sEffect",             def, squash.effect             );
-    WRITE_ARG( "sDestroy",            def, squash.enabled            );
+    WRITE_ARG( "enabled",             AsBool,       enabled                   );
+    WRITE_ARG( "removeBuildingLevel", AsBool,       removeBuildingLevel       );
+    WRITE_ARG( "message",             AsString,     message                   );
+    WRITE_ARG( "eEffect",             AsPyroType,   explosion.effect          );
+    WRITE_ARG( "wEffect",             AsPyroType,   water.effect              );
+    WRITE_ARG( "wDestroy",            AsBool,       water.enabled             );
+    WRITE_ARG( "bEffect",             AsPyroType,   burning.effect            );
+    WRITE_ARG( "bKills",              AsBool,       burning.isKilledByBurning );
+    WRITE_ARG( "wreck",               AsObjectType, burning.ruins             );
+    WRITE_ARG( "dEffect",             AsPyroType,   drowned.effect            );
+    WRITE_ARG( "xEffect",             AsPyroType,   win.effect                );
+    WRITE_ARG( "sEffect",             AsPyroType,   squash.effect             );
+    WRITE_ARG( "sDestroy",            AsBool,       squash.enabled            );
+    WRITE_ARG( "tEffect",             AsPyroType,   thumper.effect            );
+    WRITE_ARG( "tDestroy",            AsBool,       thumper.enabled           );
+    WRITE_ARG( "tSafe",               AsFloat,      thumper.safeRadius        );
+    WRITE_ARG( "tDamage",             AsFloat,      thumper.explosionDamage   );
     WRITE_END();
 
-    CPyroBurnPartDetails defB;
-    for ( auto it: burning.parts )
-    {
-        WRITE_LINE( "AddObjectBurningPart" );
-        WRITE_IT( "partNum",     defB, partNum     );
-        WRITE_IT( "pos",         defB, pos         );
-        WRITE_IT( "posRandom",   defB, posRandom   );
-        WRITE_IT( "angle",       defB, angle       );
-        WRITE_IT( "angleRandom", defB, angleRandom );
-        WRITE_IT( "keep",        defB, keep        );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectBurningPart", burning.parts );
+    WRITE_IT_ARG( "partNum",     AsInt,   partNum     );
+    WRITE_IT_ARG( "position",    AsPoint, position    );
+    WRITE_IT_ARG( "posRandom",   AsPoint, posRandom   );
+    WRITE_IT_ARG( "angle",       AsPoint, angle       );
+    WRITE_IT_ARG( "angleRandom", AsPoint, angleRandom );
+    WRITE_IT_ARG( "keep",        AsBool,  keep        );
+    WRITE_IT_END();
 }
 
 CObjectDestroyableDetails GetObjectDestroyableDetails(CObject* obj)

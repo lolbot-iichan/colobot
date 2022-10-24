@@ -41,14 +41,6 @@ CAutoFlag::~CAutoFlag()
 }
 
 
-// Destroys the object.
-
-void CAutoFlag::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoFlag::Init()
@@ -120,12 +112,4 @@ bool CAutoFlag::EventProcess(const Event &event)
     }
 
     return true;
-}
-
-
-// Returns an error due the state of the automation
-
-Error CAutoFlag::GetError()
-{
-    return ERR_OK;
 }

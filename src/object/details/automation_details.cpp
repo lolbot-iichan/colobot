@@ -33,6 +33,8 @@ void CObjectAutomationDetails::ReadHardcode(ObjectType type)
 {
     CHardcodeCollection hardcode;
 
+    autoClass                      = hardcode.GetCreationAutoClass(type);
+
     blocking.blocksBuilding        = hardcode.IsBlockingBuilding(type);
     blocking.blocksPowerPlant      = hardcode.IsAutoBlockingPowerPlant(type);
     blocking.blocksNuclearPlant    = hardcode.IsAutoBlockingNuclearPlant(type);
@@ -44,15 +46,20 @@ void CObjectAutomationDetails::ReadHardcode(ObjectType type)
     targeted.commentedByAssistant  = hardcode.IsAutoCommentedByAssistant(type);
     
     production                     = hardcode.GetProduction(type);
+    digging                        = hardcode.GetDigging(type);
 }
 
 bool CObjectAutomationDetails::Read(CLevelParserLine* line)
 {
+    READ_LINE( "SetObjectAutomation" );
+    READ_ARG( "class", AsInt, autoClass );
+    READ_END();
+
     READ_LINE( "SetObjectAutomationBlock" );
-    READ_ARG( "building",   AsBool, blocking.blocksBuilding    );
-    READ_ARG( "powerplant", AsBool, blocking.blocksPowerPlant  );
-    READ_ARG( "nuclear",    AsBool, blocking.blocksNuclearPlant);
-    READ_ARG( "factory",    AsBool, blocking.blocksFactory     );
+    READ_ARG( "building",   AsBool, blocking.blocksBuilding     );
+    READ_ARG( "powerplant", AsBool, blocking.blocksPowerPlant   );
+    READ_ARG( "nuclear",    AsBool, blocking.blocksNuclearPlant );
+    READ_ARG( "factory",    AsBool, blocking.blocksFactory      );
     READ_END();
 
     READ_LINE( "SetObjectAutomationTarget" );
@@ -62,60 +69,78 @@ bool CObjectAutomationDetails::Read(CLevelParserLine* line)
     READ_ARG( "byAssistant",    AsBool, targeted.commentedByAssistant  );
     READ_END();
 
-    READ_LINE( "AddObjectAutomationProductionMsg" );
-    READ_ARG( "noInput",  AsString, production.noInput );
+    READ_LINE( "SetObjectAutomationDigging" );
+    READ_ARG( "noSoil",   AsString, digging.noSoil   );
+    READ_ARG( "partNum",  AsInt,    digging.partNum  );
+    READ_ARG( "position", AsPoint,  digging.position );
+    READ_END();
+
+    READ_IT_LINE( "AddObjectAutomationDigging", "UpdObjectAutomationDigging", "ClrObjectAutomationDigging", digging.objects );
+    READ_IT_ARG( "soil",     AsTerrainRes, soil     );
+    READ_IT_ARG( "output",   AsObjectType, output   );
+    READ_IT_ARG( "maxCount", AsInt,        maxCount );
+    READ_IT_ARG( "duration", AsFloat,      duration );
+    READ_IT_ARG( "message",  AsString,     message  );
+    READ_IT_END();
+
+    READ_LINE( "SetObjectAutomationProduction" );
+    READ_ARG( "noInput",  AsString, production.noInput  );
     READ_ARG( "badInput", AsString, production.badInput );
     READ_END();
 
-    READ_LINE( "AddObjectAutomationProduction" );
-    READ_NEW( id,                      production.objects             );
-    READ_ARG( "input",   AsObjectType, production.objects[id].input   );
-    READ_ARG( "output",  AsObjectType, production.objects[id].output  );
-    READ_ARG( "message", AsString,     production.objects[id].message );
-    READ_END();
-
-    READ_LINE( "UpdObjectAutomationProduction" );
-    READ_IDX( id );
-    READ_ARG( "input",   AsObjectType, production.objects[id].input   );
-    READ_ARG( "output",  AsObjectType, production.objects[id].output  );
-    READ_ARG( "message", AsString,     production.objects[id].message );
-    READ_END();
+    READ_IT_LINE( "AddObjectAutomationProduction", "UpdObjectAutomationProduction", "ClrObjectAutomationProduction", production.objects );
+    READ_IT_ARG( "input",   AsObjectType, input   );
+    READ_IT_ARG( "output",  AsObjectType, output  );
+    READ_IT_ARG( "message", AsString,     message );
+    READ_IT_END();
 
     return false;
 }
 
 void CObjectAutomationDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectAutomationDetails def;
+    WRITE_LINE( "SetObjectAutomation" );
+    WRITE_ARG( "class", AsInt, autoClass );
+    WRITE_END();
 
     WRITE_LINE( "SetObjectAutomationBlock" );
-    WRITE_ARG( "building",   def, blocking.blocksBuilding     );
-    WRITE_ARG( "powerplant", def, blocking.blocksPowerPlant   );
-    WRITE_ARG( "nuclear",    def, blocking.blocksNuclearPlant );
-    WRITE_ARG( "factory",    def, blocking.blocksFactory      );
+    WRITE_ARG( "building",   AsBool, blocking.blocksBuilding     );
+    WRITE_ARG( "powerplant", AsBool, blocking.blocksPowerPlant   );
+    WRITE_ARG( "nuclear",    AsBool, blocking.blocksNuclearPlant );
+    WRITE_ARG( "factory",    AsBool, blocking.blocksFactory      );
     WRITE_END();
 
     WRITE_LINE( "SetObjectAutomationTarget" );
-    WRITE_ARG( "byTower",        def, targeted.attackedByTower       );
-    WRITE_ARG( "byMushroom",     def, targeted.attackedByMushroom    );
-    WRITE_ARG( "byPowerStation", def, targeted.chargedByPowerStation );
-    WRITE_ARG( "byAssistant",    def, targeted.commentedByAssistant  );
+    WRITE_ARG( "byTower",        AsBool, targeted.attackedByTower       );
+    WRITE_ARG( "byMushroom",     AsBool, targeted.attackedByMushroom    );
+    WRITE_ARG( "byPowerStation", AsBool, targeted.chargedByPowerStation );
+    WRITE_ARG( "byAssistant",    AsBool, targeted.commentedByAssistant  );
     WRITE_END();
 
-    WRITE_LINE( "AddObjectAutomationProductionMsg" );
-    WRITE_ARG( "noInput",  def, production.noInput );
-    WRITE_ARG( "badInput", def, production.badInput );
+    WRITE_LINE( "SetObjectAutomationDigging" );
+    WRITE_ARG( "noSoil",   AsString, digging.noSoil   );
+    WRITE_ARG( "partNum",  AsInt,    digging.partNum  );
+    WRITE_ARG( "position", AsPoint,  digging.position );
     WRITE_END();
 
-    CObjectProductionAutomation defP;
-    for ( auto it : production.objects )
-    {
-        WRITE_LINE( "AddObjectAutomationProduction" );
-        WRITE_IT( "input",   defP, input   );
-        WRITE_IT( "output",  defP, output  );
-        WRITE_IT( "message", defP, message );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectAutomationDigging", digging.objects );
+    WRITE_IT_ARG( "soil",     AsTerrainRes, soil     );
+    WRITE_IT_ARG( "output",   AsObjectType, output   );
+    WRITE_IT_ARG( "maxCount", AsInt,        maxCount );
+    WRITE_IT_ARG( "duration", AsFloat,      duration );
+    WRITE_IT_ARG( "message",  AsString,     message  );
+    WRITE_IT_END();
+
+    WRITE_LINE( "SetObjectAutomationProduction" );
+    WRITE_ARG( "noInput",  AsString, production.noInput  );
+    WRITE_ARG( "badInput", AsString, production.badInput );
+    WRITE_END();
+
+    WRITE_IT_LINE( "AddObjectAutomationProduction", production.objects );
+    WRITE_IT_ARG( "input",   AsObjectType, input   );
+    WRITE_IT_ARG( "output",  AsObjectType, output  );
+    WRITE_IT_ARG( "message", AsString,     message );
+    WRITE_IT_END();
 }
 
 CObjectAutomationDetails GetObjectAutomationDetails(CObject* obj)

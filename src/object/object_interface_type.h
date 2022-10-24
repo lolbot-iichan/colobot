@@ -54,6 +54,7 @@ enum class ObjectInterfaceType
     Old, //!< old objects, TODO: remove once no longer necessary
     Slotted, //!< objects that can carry other objects (in their gripper, power cell slot, or other slots)
     Thumpable, //!< objects that can be temporary turned on the back by thumping
+    Shielder, //!< objects that can cast shields to heal other objects
     Max //!< maximum value (for getting number of items in enum)
 };
 

@@ -72,7 +72,7 @@ bool CTaskSearch::EventProcess(const Event &event)
          m_phase == TSP_UP   )
     {
         auto sniff = GetObjectTaskExecutorDetails(m_object).sniff;
-        if (sniff.execution == ExecutionAsSniffer)
+        if (sniff.execution == ExecutionAsRobot)
         {
             for ( i=0 ; i<3 ; i++ )
             {
@@ -129,31 +129,18 @@ void CTaskSearch::InitAngle()
     }
 }
 
-
 // Assigns the goal was achieved.
 
 Error CTaskSearch::Start()
 {
-    Math::Vector    speed;
-    int         i;
+    Error err;
 
     m_bError = true;
 
     auto sniff = GetObjectTaskExecutorDetails(m_object).sniff;
-    if ( sniff.execution != ExecutionNoMotion &&
-         sniff.execution != ExecutionAsSniffer )
-    {
-        return ERR_WRONG_BOT;
-    }
 
-    if (m_object->Implements(ObjectInterfaceType::Movable))
-    {
-        if ( !m_physics->GetLand() )  return ERR_SEARCH_FLY;
-    
-        speed = m_physics->GetMotorSpeed();
-        if ( speed.x != 0.0f ||
-             speed.z != 0.0f )  return ERR_SEARCH_MOTOR;
-    }
+    err = CanStartTask(&sniff);
+    if ( err != ERR_OK )  return err;
 
     m_hand     = TSH_DOWN;
     m_phase    = TSP_DOWN;
@@ -163,11 +150,12 @@ Error CTaskSearch::Start()
     m_lastParticle = 0.0f;
 
     InitAngle();
+
     m_bError = false;  // ok
 
     m_camera->StartCentering(m_object, Math::PI*0.50f, 99.9f, 0.0f, 1.0f);
 
-    i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
+    int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
     m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
     m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.9f, SOPER_CONTINUE);
     m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_STOP);
@@ -196,7 +184,7 @@ Error CTaskSearch::IsEnded()
          m_phase == TSP_UP   )
     {
         auto sniff = GetObjectTaskExecutorDetails(m_object).sniff;
-        if (sniff.execution == ExecutionAsSniffer)
+        if (sniff.execution == ExecutionAsRobot)
         {
             for ( i=0 ; i<3 ; i++ )
             {
@@ -243,7 +231,7 @@ bool CTaskSearch::Abort()
     InitAngle();
 
     auto sniff = GetObjectTaskExecutorDetails(m_object).sniff;
-    if (sniff.execution == ExecutionAsSniffer)
+    if (sniff.execution == ExecutionAsRobot)
     {
         for (int i = 0; i < 3; i++)
         {
@@ -262,18 +250,31 @@ bool CTaskSearch::Abort()
 bool CTaskSearch::CreateMark()
 {
     auto sniff = GetObjectTaskExecutorDetails(m_object).sniff;
-
     Math::Matrix* mat = m_object->GetWorldMatrix(sniff.partNum);
-    Math::Vector pos = Math::Transform(*mat, sniff.pos);  // sensor position
+    Math::Vector pos = Math::Transform(*mat, sniff.position);  // sensor position
 
     Gfx::TerrainRes res = m_terrain->GetResource(pos);
 
+    std::vector<CObjectSniffTaskExecutorObject> matched;
     for ( auto it : sniff.objects )
     {
-        if ( it.soil != res ) continue;
+        if (it.soil != Gfx::TR_ANY && it.soil != res)  continue;
+        matched.push_back(it);
+    }
 
-        CObject* mark = CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, it.output);
-        m_main->DisplayText(it.message, mark, Ui::TT_INFO, 5.0f, 50.0f);  // displays the message
+    if ( matched.size() > 0 )
+    {
+        CObjectSniffTaskExecutorObject matchedFinal = matched[ std::rand() % matched.size() ];
+
+        if ( matchedFinal.output != OBJECT_NULL )
+        {
+            CObject* mark = CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, matchedFinal.output);
+            m_main->DisplayText(matchedFinal.message, mark, Ui::TT_INFO, 5.0f, 50.0f);  // displays the message
+        }
+        else
+        {
+            m_main->DisplayText(matchedFinal.message, m_object, Ui::TT_INFO);  // displays the message
+        }
 
         return true;
     }

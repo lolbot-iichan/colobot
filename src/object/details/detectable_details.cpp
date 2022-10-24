@@ -56,14 +56,12 @@ bool CObjectDetectableDetails::Read(CLevelParserLine* line)
 
 void CObjectDetectableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectDetectableDetails def;
-
     WRITE_LINE( "SetObjectDetectable" );
-    WRITE_ARG( "radarExplicit", def, isExplicit   );
-    WRITE_ARG( "baseType",      def, baseType     );
-    WRITE_ARG( "icon",          def, map.icon     );
-    WRITE_ARG( "iconType",      def, map.color    );
-    WRITE_ARG( "mapForced",     def, map.isForced );
+    WRITE_ARG( "radarExplicit", AsBool,       isExplicit   );
+    WRITE_ARG( "baseType",      AsObjectType, baseType     );
+    WRITE_ARG( "icon",          AsInt,        map.icon     );
+    WRITE_ARG( "iconType",      AsInt,        map.color    );
+    WRITE_ARG( "mapForced",     AsBool,       map.isForced );
     WRITE_END();
 }
 

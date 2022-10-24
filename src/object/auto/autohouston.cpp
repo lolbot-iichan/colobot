@@ -172,14 +172,6 @@ CAutoHouston::~CAutoHouston()
 }
 
 
-// Destroys the object.
-
-void CAutoHouston::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoHouston::Init()
@@ -188,13 +180,6 @@ void CAutoHouston::Init()
 
     m_progress = 0.0f;
     m_speed    = 1.0f/2.0f;
-}
-
-
-// Start the object.
-
-void CAutoHouston::Start(int param)
-{
 }
 
 
@@ -246,18 +231,3 @@ bool CAutoHouston::EventProcess(const Event &event)
 
     return true;
 }
-
-// Stops the controller.
-
-bool CAutoHouston::Abort()
-{
-    return true;
-}
-
-// Returns an error due to state of the automation.
-
-Error CAutoHouston::GetError()
-{
-    return ERR_OK;
-}
-

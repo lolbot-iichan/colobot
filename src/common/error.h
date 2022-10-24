@@ -44,8 +44,6 @@ enum Error
     ERR_MANIP_RADIO       = 108,      //!<  impossible because radioactive
     ERR_MANIP_WATER       = 109,      //!<  not possible under water
     ERR_MANIP_EMPTY       = 110,      //!<  nothing to deposit
-    ERR_BUILD_FLY         = 120,      //!<  not possible in flight
-    ERR_BUILD_WATER       = 121,      //!<  not possible under water
     ERR_BUILD_METALAWAY   = 123,      //!<  lack of metal (too far)
     ERR_BUILD_METALNEAR   = 124,      //!<  lack of metal (too close)
     ERR_BUILD_METALINEX   = 125,      //!<  lack of metal
@@ -54,11 +52,8 @@ enum Error
     ERR_BUILD_BUSY        = 128,      //!<  location occupied
     ERR_BUILD_BASE        = 129,      //!<  too close to the rocket
     ERR_BUILD_NARROW      = 130,      //!<  buildings too close
-    ERR_BUILD_MOTOR       = 131,      //!<  built: not possible in movement
     ERR_BUILD_DISABLED    = 132,      //!<  built: can not produce this object in this mission
     ERR_BUILD_RESEARCH    = 133,      //!<  built: can not produce not researched object
-    ERR_SEARCH_FLY        = 140,      //!<  not possible in flight
-    ERR_SEARCH_MOTOR      = 142,      //!<  impossible in movement
     ERR_TERRA_ENERGY      = 151,      //!<  not enough energy
     ERR_FIRE_ENERGY       = 161,      //!<  not enough energy
     ERR_RECOVER_ENERGY    = 171,      //!<  not enough energy
@@ -91,10 +86,6 @@ enum Error
     ERR_WRONG_OBJ         = 420,      //!<  inappropriate vehicle
     ERR_VEH_POWER         = 500,      //!<  no battery
     ERR_VEH_ENERGY        = 501,      //!<  more energy
-    ERR_FLAG_FLY          = 510,      //!<  impossible in flight
-    ERR_FLAG_WATER        = 511,      //!<  impossible during swimming
-    ERR_FLAG_MOTOR        = 512,      //!<  impossible in movement
-    ERR_FLAG_BUSY         = 513,      //!<  taking: already creating flag
     ERR_FLAG_CREATE       = 514,      //!<  too many flags
     ERR_FLAG_PROXY        = 515,      //!<  too close
     ERR_FLAG_DELETE       = 516,      //!<  nothing to remove

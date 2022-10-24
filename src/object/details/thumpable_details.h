@@ -34,7 +34,10 @@ class CLevelParserLine;
 
 struct CObjectThumpableDetails
 {
-    bool enabled     = false;
+    bool  enabled     = false;
+    int   action      = -1;
+    float minDuration = 0.0f;
+    float maxDuration = 999999999.99f; 
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

@@ -19,30 +19,28 @@
 
 #pragma once
 
+#include "object/object_interface_type.h"
 
-#include "object/auto/auto.h"
-
-
-
-class CAutoJostle : public CAuto
+/**
+ * \class CShielderObject
+ * \brief Interface for objects that can create shield
+ */
+class CShielderObject
 {
 public:
-    CAutoJostle(COldObject* object);
-    ~CAutoJostle();
+    explicit CShielderObject(ObjectInterfaceTypes& types)
+    {
+        types[static_cast<int>(ObjectInterfaceType::Shielder)] = true;
+    }
+    virtual ~CShielderObject()
+    {}
 
-    void        Init() override;
-    void        Start(int param, float force);
-    bool        EventProcess(const Event &event) override;
-    Error       IsEnded() override;
+    //! Shielder radius (only while active) [0 or RADIUS_SHIELD_MIN..RADIUS_SHIELD_MAX]
+    virtual float GetActiveShieldRadius() = 0;
 
-private:
-    // Overriden to avoid warning about hiding virtual function
-    void Start(int param) override;
-
-protected:
-    float           m_force = 0.0f;
-    float           m_progress = 0.0f;
-    float           m_speed = 0.0f;
-    float           m_lastParticle = 0.0f;
-    Error           m_error = ERR_OK;
+    //! Shielder radius [0..1]
+    //@{
+    virtual void  SetShieldRadius(float shieldRadius) = 0;
+    virtual float GetShieldRadius() = 0;
+    //@}
 };

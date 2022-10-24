@@ -41,8 +41,7 @@
 #include "object/details/damageable_details.h"
 
 #include "object/interface/damageable_object.h"
-
-#include "object/subclass/shielder.h"
+#include "object/interface/shielder_object.h"
 
 #include "sound/sound.h"
 
@@ -1209,7 +1208,7 @@ void CParticle::FrameParticle(float rTime)
                 m_particle[i].goal = m_particle[i].pos;
                 if (object != nullptr)
                 {
-                    if (object->GetType() == OBJECT_MOBILErs && dynamic_cast<CShielder&>(*object).GetActiveShieldRadius() > 0.0f)  // protected by shield?
+                    if (object->Implements(ObjectInterfaceType::Shielder) && dynamic_cast<CShielderObject&>(*object).GetActiveShieldRadius() > 0.0f)  // protected by shield?
                     {
                         CreateParticle(m_particle[i].pos, Math::Vector(0.0f, 0.0f, 0.0f), Math::Point(6.0f, 6.0f), PARTIGUNDEL, 2.0f);
                         if (m_lastTimeGunDel > 0.2f)
@@ -1257,7 +1256,7 @@ void CParticle::FrameParticle(float rTime)
                 m_particle[i].goal = m_particle[i].pos;
                 if (object != nullptr)
                 {
-                    if (object->GetType() == OBJECT_MOBILErs && dynamic_cast<CShielder&>(*object).GetActiveShieldRadius() > 0.0f)
+                    if (object->Implements(ObjectInterfaceType::Shielder) && dynamic_cast<CShielderObject&>(*object).GetActiveShieldRadius() > 0.0f)
                     {
                         CreateParticle(m_particle[i].pos, Math::Vector(0.0f, 0.0f, 0.0f), Math::Point(6.0f, 6.0f), PARTIGUNDEL, 2.0f);
                         if (m_lastTimeGunDel > 0.2f)
@@ -3533,9 +3532,9 @@ CObject* CParticle::SearchObjectGun(Math::Vector old, Math::Vector pos,
 
         Math::Vector oPos = obj->GetPosition();
 
-        if (obj->GetType() == OBJECT_MOBILErs)
+        if (obj->Implements(ObjectInterfaceType::Shielder))
         {
-            CShielder* shielder = dynamic_cast<CShielder*>(obj);
+            CShielderObject* shielder = dynamic_cast<CShielderObject*>(obj);
             if ( type == PARTIGUN2 ||  // shooting insect?
                  type == PARTIGUN3 )   // suiciding spider?
             {

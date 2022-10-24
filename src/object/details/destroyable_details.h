@@ -48,7 +48,7 @@ struct CObjectWaterDestroyableDetails
 struct CPyroBurnPartDetails
 {
     int          partNum = -1;
-    Math::Vector pos;
+    Math::Vector position;
     Math::Vector posRandom;
     Math::Vector angle;
     Math::Vector angleRandom;
@@ -79,6 +79,14 @@ struct CObjectSquashDestroyableDetails
     Gfx::PyroType effect      = Gfx::PT_SQUASH;
 };
 
+struct CObjectThumperDestroyableDetails
+{
+    bool          enabled         = false;
+    float         safeRadius      = 5.0f;
+    Gfx::PyroType effect          = Gfx::PT_FRAGT;
+    float         explosionDamage = 0.0f;
+};
+
 //////////////////////////////////////////////////////////////////////////////
 // Main struct
 //////////////////////////////////////////////////////////////////////////////
@@ -96,6 +104,7 @@ struct CObjectDestroyableDetails
     CObjectDrownedDestroyableDetails   drowned;
     CObjectWinDestroyableDetails       win;
     CObjectSquashDestroyableDetails    squash;
+    CObjectThumperDestroyableDetails   thumper;
 
     void ReadHardcode(ObjectType type);
     bool Read(CLevelParserLine* line);

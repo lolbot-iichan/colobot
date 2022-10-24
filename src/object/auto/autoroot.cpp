@@ -43,14 +43,6 @@ CAutoRoot::~CAutoRoot()
 }
 
 
-// Destroys the object.
-
-void CAutoRoot::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoRoot::Init()
@@ -110,12 +102,3 @@ bool CAutoRoot::EventProcess(const Event &event)
 
     return true;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoRoot::GetError()
-{
-    return ERR_OK;
-}
-

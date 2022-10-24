@@ -34,7 +34,6 @@ void CObjectCreationDetails::ReadHardcode(ObjectType type)
     CHardcodeCollection hardcode;
 
     baseClass              = hardcode.GetCreationBaseClass(type);
-    autoClass              = hardcode.GetCreationAutoClass(type);
 
     isForceLoadTextures    = hardcode.IsCreationForceLoadTextures(type);
     isSetFloorHeight       = hardcode.IsCreationSetFloorHeight(type);
@@ -55,8 +54,7 @@ void CObjectCreationDetails::ReadHardcode(ObjectType type)
 bool CObjectCreationDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectCreation" );
-    READ_ARG( "baseClass",     AsInt,    baseClass           );
-    READ_ARG( "autoClass",     AsInt,    autoClass           );
+    READ_ARG( "class", AsInt, baseClass );
     READ_END();
 
     READ_LINE( "SetObjectModel" );
@@ -74,119 +72,93 @@ bool CObjectCreationDetails::Read(CLevelParserLine* line)
     READ_END();
 
     READ_LINE( "SetObjectModelShadowCircle" );
-    READ_ARG( "radius",    AsFloat,            shadowCircle.radius    );
-    READ_ARG( "intensity", AsFloat,            shadowCircle.intensity );
-    READ_ARG( "shadow",    AsEngineShadowType, shadowCircle.shadowType    );
-    READ_ARG( "factored",  AsBool,             shadowCircle.factored  );
+    READ_ARG( "radius",    AsFloat,            shadowCircle.radius     );
+    READ_ARG( "intensity", AsFloat,            shadowCircle.intensity  );
+    READ_ARG( "shadow",    AsEngineShadowType, shadowCircle.shadowType );
+    READ_ARG( "factored",  AsBool,             shadowCircle.factored   );
     READ_END();
 
-    READ_LINE( "AddObjectModelNode" );
-    READ_NEW( id,                              model);
-    READ_ARG( "partNum",   AsInt,              model[id].chunkId   );
-    READ_ARG( "parent",    AsInt,              model[id].parentId  );
-    READ_ARG( "gfxType",   AsEngineObjectType, model[id].gfxType );
-    READ_ARG( "modFile",   AsString,           model[id].modFile   );
-    READ_ARG( "position",  AsPoint,            model[id].position  );
-    READ_ARG( "rotation",  AsPoint,            model[id].rotation  );
-    READ_ARG( "zoom",      AsPoint,            model[id].zoom      );
-    READ_ARG( "mirrored",  AsBool,             model[id].mirrored  );
-    READ_ARG( "copyModel", AsBool,             model[id].copyModel );
-    READ_END();
+    READ_IT_LINE( "AddObjectModelNode", "UpdObjectModelNode", "ClrObjectModelNode", model );
+    READ_IT_ARG( "partNum",   AsInt,              chunkId   );
+    READ_IT_ARG( "parent",    AsInt,              parentId  );
+    READ_IT_ARG( "gfxType",   AsEngineObjectType, gfxType   );
+    READ_IT_ARG( "modFile",   AsString,           modFile   );
+    READ_IT_ARG( "position",  AsPoint,            position  );
+    READ_IT_ARG( "rotation",  AsPoint,            rotation  );
+    READ_IT_ARG( "zoom",      AsPoint,            zoom      );
+    READ_IT_ARG( "mirrored",  AsBool,             mirrored  );
+    READ_IT_ARG( "copyModel", AsBool,             copyModel );
+    READ_IT_END();
 
-    READ_LINE( "AddObjectModelCrashSphere" );
-    READ_NEW( id,                              crashSpheres);
-    READ_ARG( "pos",       AsPoint,            crashSpheres[id].sphere.pos    );
-    READ_ARG( "radius",    AsFloat,            crashSpheres[id].sphere.radius );
-    READ_ARG( "sound",     AsSoundType,        crashSpheres[id].sound         );
-    READ_ARG( "hardness",  AsFloat,            crashSpheres[id].hardness      );
-    READ_END();
+    READ_IT_LINE( "AddObjectModelCrashSphere", "UpdObjectModelCrashSphere", "ClrObjectModelCrashSphere", crashSpheres );
+    READ_IT_ARG( "position",  AsPoint,            sphere.pos    );
+    READ_IT_ARG( "radius",    AsFloat,            sphere.radius );
+    READ_IT_ARG( "sound",     AsSoundType,        sound         );
+    READ_IT_ARG( "hardness",  AsFloat,            hardness      );
+    READ_IT_END();
 
-    READ_LINE( "AddObjectModelBuildingLevel" );
-    READ_NEW( id,                              buildingLevels);
-    READ_ARG( "min",       AsFloat,            buildingLevels[id].min    );
-    READ_ARG( "max",       AsFloat,            buildingLevels[id].max    );
-    READ_ARG( "height",    AsFloat,            buildingLevels[id].height );
-    READ_ARG( "factor",    AsFloat,            buildingLevels[id].factor );
-    READ_END();
-
-    READ_LINE( "UpdObjectModelCrashSphere" );
-    READ_IDX( id );
-    READ_ARG( "pos",       AsPoint,            crashSpheres[id].sphere.pos    );
-    READ_ARG( "radius",    AsFloat,            crashSpheres[id].sphere.radius );
-    READ_ARG( "sound",     AsSoundType,        crashSpheres[id].sound         );
-    READ_ARG( "hardness",  AsFloat,            crashSpheres[id].hardness      );
-    READ_END();
+    READ_IT_LINE( "AddObjectModelBuildingLevel", "UpdObjectModelBuildingLevel", "ClrObjectModelBuildingLevel", buildingLevels );
+    READ_IT_ARG( "min",       AsFloat,            min    );
+    READ_IT_ARG( "max",       AsFloat,            max    );
+    READ_IT_ARG( "height",    AsFloat,            height );
+    READ_IT_ARG( "factor",    AsFloat,            factor );
+    READ_IT_END();
 
     return false;
 }
 
 void CObjectCreationDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectCreationDetails def;
-
     WRITE_LINE( "SetObjectCreation" );
-    WRITE_ARG( "baseClass",     def, baseClass           );
-    WRITE_ARG( "autoClass",     def, autoClass           );
+    WRITE_ARG( "class", AsInt, baseClass );
     WRITE_END();
 
     WRITE_LINE( "SetObjectModel" );
-    WRITE_ARG( "forceTextures", def, isForceLoadTextures );
-    WRITE_ARG( "floorHeight",   def, isSetFloorHeight    );
-    WRITE_ARG( "floorAdjust",   def, isFloorAdjust       );
-    WRITE_ARG( "fixedPos",      def, isFixedPosition     );
-    WRITE_ARG( "zoom",          def, zoom                );
-    WRITE_ARG( "name",          def, displayedName       );
+    WRITE_ARG( "forceTextures", AsBool,   isForceLoadTextures );
+    WRITE_ARG( "floorHeight",   AsBool,   isSetFloorHeight    );
+    WRITE_ARG( "floorAdjust",   AsBool,   isFloorAdjust       );
+    WRITE_ARG( "fixedPos",      AsBool,   isFixedPosition     );
+    WRITE_ARG( "zoom",          AsFloat,  zoom                );
+    WRITE_ARG( "name",          AsString, displayedName       );
     WRITE_END();
 
     WRITE_LINE( "SetObjectModelCameraCollisionSphere" );
-    WRITE_ARG( "position",      def, cameraCollisionSphere.pos    );
-    WRITE_ARG( "radius",        def, cameraCollisionSphere.radius );
+    WRITE_ARG( "position",  AsPoint,            cameraCollisionSphere.pos    );
+    WRITE_ARG( "radius",    AsFloat,            cameraCollisionSphere.radius );
     WRITE_END();
 
     WRITE_LINE( "SetObjectModelShadowCircle" );
-    WRITE_ARG( "radius",        def, shadowCircle.radius     );
-    WRITE_ARG( "intensity",     def, shadowCircle.intensity  );
-    WRITE_ARG( "shadow",        def, shadowCircle.shadowType );
-    WRITE_ARG( "factored",      def, shadowCircle.factored   );
+    WRITE_ARG( "radius",    AsFloat,            shadowCircle.radius     );
+    WRITE_ARG( "intensity", AsFloat,            shadowCircle.intensity  );
+    WRITE_ARG( "shadow",    AsEngineShadowType, shadowCircle.shadowType );
+    WRITE_ARG( "factored",  AsBool,             shadowCircle.factored   );
     WRITE_END();
 
-    CObjectCreationModelNode defM;
-    for ( auto it : model )
-    {
-        WRITE_LINE( "AddObjectModelNode" );
-        WRITE_IT( "partNum",  defM, chunkId   );
-        WRITE_IT( "parent",   defM, parentId  );
-        WRITE_IT( "gfxType",  defM, gfxType   );
-        WRITE_IT( "modFile",  defM, modFile   );
-        WRITE_IT( "position", defM, position  );
-        WRITE_IT( "rotation", defM, rotation  );
-        WRITE_IT( "zoom",     defM, zoom      );
-        WRITE_IT( "mirrored", defM, mirrored  );
-        WRITE_IT( "copyModel",defM, copyModel );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectModelNode", model );
+    WRITE_IT_ARG( "partNum",   AsInt,              chunkId   );
+    WRITE_IT_ARG( "parent",    AsInt,              parentId  );
+    WRITE_IT_ARG( "gfxType",   AsEngineObjectType, gfxType   );
+    WRITE_IT_ARG( "modFile",   AsString,           modFile   );
+    WRITE_IT_ARG( "position",  AsPoint,            position  );
+    WRITE_IT_ARG( "rotation",  AsPoint,            rotation  );
+    WRITE_IT_ARG( "zoom",      AsPoint,            zoom      );
+    WRITE_IT_ARG( "mirrored",  AsBool,             mirrored  );
+    WRITE_IT_ARG( "copyModel", AsBool,             copyModel );
+    WRITE_IT_END();
 
-    CrashSphere defC;
-    for ( auto it : crashSpheres )
-    {
-        WRITE_LINE( "AddObjectModelCrashSphere" );
-        WRITE_IT( "pos",      defC, sphere.pos    );
-        WRITE_IT( "radius",   defC, sphere.radius );
-        WRITE_IT( "sound",    defC, sound         );
-        WRITE_IT( "hardness", defC, hardness      );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectModelCrashSphere", crashSpheres );
+    WRITE_IT_ARG( "position",  AsPoint,            sphere.pos    );
+    WRITE_IT_ARG( "radius",    AsFloat,            sphere.radius );
+    WRITE_IT_ARG( "sound",     AsSoundType,        sound         );
+    WRITE_IT_ARG( "hardness",  AsFloat,            hardness      );
+    WRITE_IT_END();
 
-    CObjectCreationBuildingLevel defB;
-    for ( auto it : buildingLevels )
-    {
-        WRITE_LINE( "AddObjectModelBuildingLevel" );
-        WRITE_IT( "min",      defB, min    );
-        WRITE_IT( "max",      defB, max    );
-        WRITE_IT( "height",   defB, height );
-        WRITE_IT( "factor",   defB, factor );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectModelBuildingLevel", buildingLevels );
+    WRITE_IT_ARG( "min",       AsFloat,            min    );
+    WRITE_IT_ARG( "max",       AsFloat,            max    );
+    WRITE_IT_ARG( "height",    AsFloat,            height );
+    WRITE_IT_ARG( "factor",    AsFloat,            factor );
+    WRITE_IT_END();
 }
 
 CObjectCreationDetails GetObjectCreationDetails(CObject* obj)

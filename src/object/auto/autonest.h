@@ -43,15 +43,17 @@ public:
 
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
 
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
 protected:
     bool        SearchFree(Math::Vector pos);
-    void        CreateCargo(Math::Vector pos, float angle, ObjectType type);
+    void        CreateCargo(Math::Vector pos, float angle);
     CObject*    SearchCargo();
+
+    void         FindSomethingToDig();
+    Math::Vector GetCargoPos();
 
 protected:
     AutoNestPhase   m_phase = ANP_WAIT;
@@ -59,4 +61,5 @@ protected:
     float           m_speed = 0.0f;
     float           m_lastParticle = 0.0f;
     Math::Vector    m_cargoPos;
+    std::string     m_onCompleted;
 };

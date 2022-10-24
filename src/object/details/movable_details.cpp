@@ -138,76 +138,74 @@ bool CObjectMovableDetails::Read(CLevelParserLine* line)
 
 void CObjectMovableDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectMovableDetails def;
-
     WRITE_LINE( "SetObjectMovable" );
-    WRITE_ARG( "enabled", def, enabled );
-    WRITE_ARG( "drive",   def, drive   );
+    WRITE_ARG( "enabled",      AsBool,      enabled );
+    WRITE_ARG( "drive",        AsDriveType, drive   );
     WRITE_END();
 
     WRITE_LINE( "SetObjectMovableLinear" );
-    WRITE_ARG( "advanceAccel", def, linMotion.advanceAccel );
-    WRITE_ARG( "recedeAccel",  def, linMotion.recedeAccel  );
-    WRITE_ARG( "stopAccel",    def, linMotion.stopAccel    );
-    WRITE_ARG( "motorAccel",   def, linMotion.motorAccel   );
-    WRITE_ARG( "advanceSpeed", def, linMotion.advanceSpeed );
-    WRITE_ARG( "recedeSpeed",  def, linMotion.recedeSpeed  );
-    WRITE_ARG( "motorSpeed",   def, linMotion.motorSpeed   );
-    WRITE_ARG( "currentSpeed", def, linMotion.currentSpeed );
-    WRITE_ARG( "terrainForce", def, linMotion.terrainForce );
-    WRITE_ARG( "terrainSpeed", def, linMotion.terrainSpeed );
-    WRITE_ARG( "terrainSlide", def, linMotion.terrainSlide );
-    WRITE_ARG( "realSpeed",    def, linMotion.realSpeed    );
-    WRITE_ARG( "finalInclin",  def, linMotion.finalInclin  );
+    WRITE_ARG( "advanceAccel", AsPoint, linMotion.advanceAccel );
+    WRITE_ARG( "recedeAccel",  AsPoint, linMotion.recedeAccel  );
+    WRITE_ARG( "stopAccel",    AsPoint, linMotion.stopAccel    );
+    WRITE_ARG( "motorAccel",   AsPoint, linMotion.motorAccel   );
+    WRITE_ARG( "advanceSpeed", AsPoint, linMotion.advanceSpeed );
+    WRITE_ARG( "recedeSpeed",  AsPoint, linMotion.recedeSpeed  );
+    WRITE_ARG( "motorSpeed",   AsPoint, linMotion.motorSpeed   );
+    WRITE_ARG( "currentSpeed", AsPoint, linMotion.currentSpeed );
+    WRITE_ARG( "terrainForce", AsPoint, linMotion.terrainForce );
+    WRITE_ARG( "terrainSpeed", AsPoint, linMotion.terrainSpeed );
+    WRITE_ARG( "terrainSlide", AsPoint, linMotion.terrainSlide );
+    WRITE_ARG( "realSpeed",    AsPoint, linMotion.realSpeed    );
+    WRITE_ARG( "finalInclin",  AsPoint, linMotion.finalInclin  );
     WRITE_END();
 
     WRITE_LINE( "SetObjectMovableCircular" );
-    WRITE_ARG( "advanceAccel", def, cirMotion.advanceAccel );
-    WRITE_ARG( "recedeAccel",  def, cirMotion.recedeAccel  );
-    WRITE_ARG( "stopAccel",    def, cirMotion.stopAccel    );
-    WRITE_ARG( "motorAccel",   def, cirMotion.motorAccel   );
-    WRITE_ARG( "advanceSpeed", def, cirMotion.advanceSpeed );
-    WRITE_ARG( "recedeSpeed",  def, cirMotion.recedeSpeed  );
-    WRITE_ARG( "motorSpeed",   def, cirMotion.motorSpeed   );
-    WRITE_ARG( "currentSpeed", def, cirMotion.currentSpeed );
-    WRITE_ARG( "terrainForce", def, cirMotion.terrainForce );
-    WRITE_ARG( "terrainSpeed", def, cirMotion.terrainSpeed );
-    WRITE_ARG( "terrainSlide", def, cirMotion.terrainSlide );
-    WRITE_ARG( "realSpeed",    def, cirMotion.realSpeed    );
-    WRITE_ARG( "finalInclin",  def, cirMotion.finalInclin  );
+    WRITE_ARG( "advanceAccel", AsPoint, cirMotion.advanceAccel );
+    WRITE_ARG( "recedeAccel",  AsPoint, cirMotion.recedeAccel  );
+    WRITE_ARG( "stopAccel",    AsPoint, cirMotion.stopAccel    );
+    WRITE_ARG( "motorAccel",   AsPoint, cirMotion.motorAccel   );
+    WRITE_ARG( "advanceSpeed", AsPoint, cirMotion.advanceSpeed );
+    WRITE_ARG( "recedeSpeed",  AsPoint, cirMotion.recedeSpeed  );
+    WRITE_ARG( "motorSpeed",   AsPoint, cirMotion.motorSpeed   );
+    WRITE_ARG( "currentSpeed", AsPoint, cirMotion.currentSpeed );
+    WRITE_ARG( "terrainForce", AsPoint, cirMotion.terrainForce );
+    WRITE_ARG( "terrainSpeed", AsPoint, cirMotion.terrainSpeed );
+    WRITE_ARG( "terrainSlide", AsPoint, cirMotion.terrainSlide );
+    WRITE_ARG( "realSpeed",    AsPoint, cirMotion.realSpeed    );
+    WRITE_ARG( "finalInclin",  AsPoint, cirMotion.finalInclin  );
     WRITE_END();
 
     WRITE_LINE( "SetObjectMovableWheels" );
-    WRITE_ARG( "front",        def, wheels.wheelFront      );
-    WRITE_ARG( "back",         def, wheels.wheelBack       );
-    WRITE_ARG( "left",         def, wheels.wheelLeft       );
-    WRITE_ARG( "right",        def, wheels.wheelRight      );
-    WRITE_ARG( "height",       def, wheels.height          );
+    WRITE_ARG( "front",        AsFloat, wheels.wheelFront      );
+    WRITE_ARG( "back",         AsFloat, wheels.wheelBack       );
+    WRITE_ARG( "left",         AsFloat, wheels.wheelLeft       );
+    WRITE_ARG( "right",        AsFloat, wheels.wheelRight      );
+    WRITE_ARG( "height",       AsFloat, wheels.height          );
     WRITE_END();
 
     WRITE_LINE( "SetObjectMovableExhaust" );
-    WRITE_ARG( "bubblesOnEnteringWater",     def,  exhaust.bubblesOnEnteringWater     );
-    WRITE_ARG( "bubblesOnEnteringWaterTime", def, exhaust.bubblesOnEnteringWaterTime );
-    WRITE_ARG( "dropsOnLeavingWater",        def,  exhaust.dropsOnLeavingWater        );
-    WRITE_ARG( "onCrashAsHuman",             def,  exhaust.onCrashAsHuman             );
-    WRITE_ARG( "onCrashAsTrackedRobot",      def,  exhaust.onCrashAsTrackedRobot      );
-    WRITE_ARG( "onCrashAsHeavyRobot",        def,  exhaust.onCrashAsHeavyRobot        );
-    WRITE_ARG( "onLandAsHuman",              def,  exhaust.onLandAsHuman              );
-    WRITE_ARG( "onLandAsWingedRobot",        def,  exhaust.onLandAsWingedRobot        );
-    WRITE_ARG( "onLandAsHeavyRobot",         def,  exhaust.onLandAsHeavyRobot         );
-    WRITE_ARG( "onLandAsNormalRobot",        def,  exhaust.onLandAsNormalRobot        );
-    WRITE_ARG( "onFlightAsHuman",            def,  exhaust.onFlightAsHuman            );
-    WRITE_ARG( "onFlightAsWingedRobot",      def,  exhaust.onFlightAsWingedRobot      );
-    WRITE_ARG( "onSwimAsHuman",              def,  exhaust.onSwimAsHuman              );
-    WRITE_ARG( "onSwimAsAmphibiousRobot",    def,  exhaust.onSwimAsAmphibiousRobot    );
+    WRITE_ARG( "bubblesOnEnteringWater",     AsBool,  exhaust.bubblesOnEnteringWater     );
+    WRITE_ARG( "bubblesOnEnteringWaterTime", AsFloat, exhaust.bubblesOnEnteringWaterTime );
+    WRITE_ARG( "dropsOnLeavingWater",        AsBool,  exhaust.dropsOnLeavingWater        );
+    WRITE_ARG( "onCrashAsHuman",             AsBool,  exhaust.onCrashAsHuman             );
+    WRITE_ARG( "onCrashAsTrackedRobot",      AsBool,  exhaust.onCrashAsTrackedRobot      );
+    WRITE_ARG( "onCrashAsHeavyRobot",        AsBool,  exhaust.onCrashAsHeavyRobot        );
+    WRITE_ARG( "onLandAsHuman",              AsBool,  exhaust.onLandAsHuman              );
+    WRITE_ARG( "onLandAsWingedRobot",        AsBool,  exhaust.onLandAsWingedRobot        );
+    WRITE_ARG( "onLandAsHeavyRobot",         AsBool,  exhaust.onLandAsHeavyRobot         );
+    WRITE_ARG( "onLandAsNormalRobot",        AsBool,  exhaust.onLandAsNormalRobot        );
+    WRITE_ARG( "onFlightAsHuman",            AsBool,  exhaust.onFlightAsHuman            );
+    WRITE_ARG( "onFlightAsWingedRobot",      AsBool,  exhaust.onFlightAsWingedRobot      );
+    WRITE_ARG( "onSwimAsHuman",              AsBool,  exhaust.onSwimAsHuman              );
+    WRITE_ARG( "onSwimAsAmphibiousRobot",    AsBool,  exhaust.onSwimAsAmphibiousRobot    );
     WRITE_END();
 
     WRITE_LINE( "SetObjectMovableWater" );
-    WRITE_ARG( "waterLevel",     def, water.waterLevel      );
-    WRITE_ARG( "splashLevelMin", def, water.splashLevelMin  );
-    WRITE_ARG( "splashLevelMax", def, water.splashLevelMax  );
-    WRITE_ARG( "splashDiameter", def, water.splashDiameter  );
-    WRITE_ARG( "splashForce",    def, water.splashForce     );
+    WRITE_ARG( "waterLevel",     AsFloat, water.waterLevel      );
+    WRITE_ARG( "splashLevelMin", AsFloat, water.splashLevelMin  );
+    WRITE_ARG( "splashLevelMax", AsFloat, water.splashLevelMax  );
+    WRITE_ARG( "splashDiameter", AsFloat, water.splashDiameter  );
+    WRITE_ARG( "splashForce",    AsFloat, water.splashForce     );
     WRITE_END();
 }
 

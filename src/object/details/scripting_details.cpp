@@ -60,38 +60,31 @@ bool CObjectScriptingDetails::Read(CLevelParserLine* line)
     READ_ARG( "container", AsObjectType, produce.container         );
     READ_END();
 
-    READ_LINE( "AddObjectScriptingRadarAlias" );
-    READ_NEW( id,                    findableByRadar     );
-    READ_ARG( "value", AsObjectType, findableByRadar[id] );
-    READ_END();
+    READ_IT_LINE( "AddObjectScriptingRadarAlias", "UpdObjectScriptingRadarAlias", "ClrObjectScriptingRadarAlias", findableByRadar );
+    READ_IT_ARG( "value", AsObjectType, value );
+    READ_IT_END();
 
     return false;
 }
 
 void CObjectScriptingDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectScriptingDetails def;
-
     WRITE_LINE( "SetObjectScripting" );
-    WRITE_ARG( "name",  def, name          );
-    WRITE_ARG( "alias", def, alias         );
-    WRITE_ARG( "help",  def, helpTopicPath );
+    WRITE_ARG( "name",  AsString, name          );
+    WRITE_ARG( "alias", AsString, alias         );
+    WRITE_ARG( "help",  AsString, helpTopicPath );
     WRITE_END();
 
     WRITE_LINE( "SetObjectScriptingProduce" );
-    WRITE_ARG( "enabled",   def, produce.isProducable      );
-    WRITE_ARG( "charged",   def, produce.isProducedCharged );
-    WRITE_ARG( "manual",    def, produce.isProducedManual  );
-    WRITE_ARG( "container", def, produce.container         );
+    WRITE_ARG( "enabled",   AsBool,       produce.isProducable      );
+    WRITE_ARG( "charged",   AsBool,       produce.isProducedCharged );
+    WRITE_ARG( "manual",    AsBool,       produce.isProducedManual  );
+    WRITE_ARG( "container", AsObjectType, produce.container         );
     WRITE_END();
 
-    ObjectType defO = OBJECT_NULL;
-    for ( auto it : findableByRadar )
-    {
-        WRITE_LINE( "AddObjectScriptingRadarAlias" );
-        WRITE_VAR( "value", defO, it );
-        WRITE_END();
-    }
+    WRITE_IT_LINE( "AddObjectScriptingRadarAlias", findableByRadar );
+    WRITE_IT_ARG( "value", AsObjectType, value );
+    WRITE_IT_END();
 }
 
 CObjectScriptingDetails GetObjectScriptingDetails(ObjectType type)

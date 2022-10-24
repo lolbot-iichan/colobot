@@ -506,8 +506,6 @@ void InitializeRestext()
     stringsErr[ERR_MANIP_RADIO]     = TR("You can not carry a radioactive object");
     stringsErr[ERR_MANIP_WATER]     = TR("You can not carry an object under water");
     stringsErr[ERR_MANIP_EMPTY]     = TR("Nothing to drop");
-    stringsErr[ERR_BUILD_FLY]       = TR("Impossible when flying");
-    stringsErr[ERR_BUILD_WATER]     = TR("Impossible under water");
     stringsErr[ERR_BUILD_METALAWAY] = TR("Titanium too far away");
     stringsErr[ERR_BUILD_METALNEAR] = TR("Titanium too close");
     stringsErr[ERR_BUILD_METALINEX] = TR("No titanium around");
@@ -516,12 +514,10 @@ void InitializeRestext()
     stringsErr[ERR_BUILD_BUSY]      = TR("Place occupied");
     stringsErr[ERR_BUILD_BASE]      = TR("Too close to space ship");
     stringsErr[ERR_BUILD_NARROW]    = TR("Too close to a building");
-    stringsErr[ERR_BUILD_MOTOR]     = TR("Impossible when moving");
-    stringsErr[ERR_SEARCH_FLY]      = TR("Impossible when flying");
     stringsErr[ERR_BUILD_DISABLED]  = TR("Can not produce this object in this mission");
     stringsErr[ERR_BUILD_RESEARCH]  = TR("Can not produce not researched object");
-    stringsErr[ERR_SEARCH_MOTOR]    = TR("Impossible when moving");
     stringsErr[ERR_TERRA_ENERGY]    = TR("Not enough energy");
+    stringsErr[ERR_FIRE_ENERGY]     = TR("Not enough energy");
     stringsErr[ERR_RECOVER_ENERGY]  = TR("Not enough energy");
     stringsErr[ERR_RECOVER_NULL]    = TR("Nothing to recycle");
     stringsErr[ERR_SHIELD_ENERGY]   = TR("No more energy");
@@ -529,7 +525,6 @@ void InitializeRestext()
     stringsErr[ERR_GOTO_IMPOSSIBLE] = TR("Goto: inaccessible destination");
     stringsErr[ERR_GOTO_ITER]       = TR("Goto: inaccessible destination");
     stringsErr[ERR_GOTO_BUSY]       = TR("Goto: destination occupied");
-    stringsErr[ERR_FIRE_ENERGY]     = TR("Not enough energy");
     stringsErr[ERR_DERRICK_NULL]    = TR("No ore in the subsoil");
     stringsErr[ERR_STATION_NULL]    = TR("No energy in the subsoil");
     stringsErr[ERR_TOWER_ENERGY]    = TR("No more energy");
@@ -549,19 +544,16 @@ void InitializeRestext()
     stringsErr[ERR_INFO_NULL]       = TR("No information exchange post within range");
     stringsErr[ERR_VEH_VIRUS]       = TR("Program infected by a virus");
     stringsErr[ERR_BAT_VIRUS]       = TR("Infected by a virus; temporarily out of order");
+    stringsErr[ERR_DESTROY_NOTFOUND]= TR("Not found anything to destroy");
+    stringsErr[ERR_WRONG_OBJ]       = TR("Inappropriate object");
     stringsErr[ERR_VEH_POWER]       = TR("No power cell");
     stringsErr[ERR_VEH_ENERGY]      = TR("No more energy");
-    stringsErr[ERR_FLAG_FLY]        = TR("Impossible when flying");
-    stringsErr[ERR_FLAG_WATER]      = TR("Impossible when swimming");
-    stringsErr[ERR_FLAG_MOTOR]      = TR("Impossible when moving");
-    stringsErr[ERR_FLAG_BUSY]       = TR("Impossible when carrying an object");
     stringsErr[ERR_FLAG_CREATE]     = TR("Too many flags of this color (maximum 5)");
     stringsErr[ERR_FLAG_PROXY]      = TR("Too close to an existing flag");
     stringsErr[ERR_FLAG_DELETE]     = TR("No flag nearby");
-    stringsErr[ERR_DESTROY_NOTFOUND]= TR("Not found anything to destroy");
-    stringsErr[ERR_WRONG_OBJ]       = TR("Inappropriate object");
     stringsErr[ERR_MISSION_NOTERM]  = TR("The mission is not accomplished yet (press \\key help; for more details)");
     stringsErr[ERR_ENEMY_OBJECT]    = TR("Unable to control enemy objects");
+
     stringsErr[ERR_WRONG_BOT]       = TR("Inappropriate bot");
     stringsErr[ERR_NO_QUICK_SLOT]   = TR("Quicksave slot not found");
 

@@ -43,7 +43,6 @@ public:
 
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
     void        StartLightning();
 
     bool        CreateInterface(bool bSelect) override;

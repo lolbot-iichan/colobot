@@ -39,13 +39,12 @@
 #include "object/details/task_executor_details.h"
 
 #include "object/interface/programmable_object.h"
+#include "object/interface/shielder_object.h"
 #include "object/interface/slotted_object.h"
 #include "object/interface/task_executor_object.h"
 
 #include "object/motion/motion.h"
 #include "object/motion/motionvehicle.h"
-
-#include "object/subclass/shielder.h"
 
 #include "physics/physics.h"
 
@@ -502,11 +501,11 @@ bool CObjectInterface::EventProcess(const Event &event)
         }
         if ( action == EVENT_OBJECT_FCREATE )
         {
-            err = m_taskExecutor->StartTaskFlag(TFL_CREATE, m_flagColor);
+            err = m_taskExecutor->StartTaskFlag(m_flagColor);
         }
         if ( action == EVENT_OBJECT_FDELETE )
         {
-            err = m_taskExecutor->StartTaskFlag(TFL_DELETE, m_flagColor);
+            err = m_taskExecutor->StartTaskDeflag();
         }
         if ( action == EVENT_OBJECT_FCOLORb ||
              action == EVENT_OBJECT_FCOLORr ||
@@ -550,7 +549,8 @@ bool CObjectInterface::EventProcess(const Event &event)
                 ps = static_cast< CSlider* >(pw->SearchControl(EVENT_OBJECT_DIMSHIELD));
                 if ( ps != nullptr )
                 {
-                    dynamic_cast<CShielder&>(*m_object).SetShieldRadius((ps->GetVisibleValue()-(RADIUS_SHIELD_MIN/g_unit))/((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
+                    assert(m_object->Implements(ObjectInterfaceType::Shielder));
+                    dynamic_cast<CShielderObject&>(*m_object).SetShieldRadius((ps->GetVisibleValue()-(RADIUS_SHIELD_MIN/g_unit))/((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
                 }
             }
         }
@@ -723,9 +723,9 @@ void CObjectInterface::GroundFlat()
 
     if ( !m_physics->GetLand() )
     {
-        err = ERR_FLAG_FLY;
+        err = ERR_MANIP_FLY;
         pos = m_object->GetPosition();
-        if ( pos.y < m_water->GetLevel() )  err = ERR_FLAG_WATER;
+        if ( pos.y < m_water->GetLevel() )  err = ERR_MANIP_WATER;
         m_main->DisplayError(err, m_object);
         return;
     }
@@ -1485,7 +1485,8 @@ void CObjectInterface::UpdateInterface()
         ps = static_cast< CSlider* >(pw->SearchControl(EVENT_OBJECT_DIMSHIELD));
         if ( ps != nullptr )
         {
-            ps->SetVisibleValue((RADIUS_SHIELD_MIN/g_unit)+dynamic_cast<CShielder&>(*m_object).GetShieldRadius()*((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
+            assert(m_object->Implements(ObjectInterfaceType::Shielder));
+            ps->SetVisibleValue((RADIUS_SHIELD_MIN/g_unit)+dynamic_cast<CShielderObject&>(*m_object).GetShieldRadius()*((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
         }
     }
 

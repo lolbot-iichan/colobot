@@ -223,15 +223,6 @@ bool CAutoPowerCaptor::CreateInterface(bool bSelect)
     return true;
 }
 
-
-// Returns an error due the state of the automation.
-
-Error CAutoPowerCaptor::GetError()
-{
-    return ERR_OK;
-}
-
-
 // Load all objects under the lightning rod.
 
 void CAutoPowerCaptor::ChargeObject(float rTime)

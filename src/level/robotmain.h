@@ -228,7 +228,7 @@ public:
     //! \brief Update the shortcuts at the top of the screen
     //! \see CMainShort::UpdateShortcuts
     void        UpdateShortcuts();
-    //! Find the astronaut (::OBJECT_HUMAN) object
+    //! Find the astronaut object
     CObject*    SearchHuman();
     /**
      * \brief Select an object
@@ -606,7 +606,7 @@ protected:
     float           m_winDelay = 0.0f;
     float           m_lostDelay = 0.0f;
     bool            m_fixScene = false;        // scene fixed, no interraction
-    CObject*        m_base = nullptr;        // OBJECT_BASE exists in mission
+    CObject*        m_base = nullptr;        // Base exists in mission
     CObject*        m_selectObject = nullptr;
 
     Phase           m_phase = PHASE_WELCOME1;

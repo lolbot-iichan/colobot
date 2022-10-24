@@ -33,13 +33,13 @@ void CObjectJetFlyingDetails::ReadHardcode(ObjectType type)
 {
     CHardcodeCollection hardcode;
 
-    enabled     = hardcode.IsJetFlying(type);
+    enabled = hardcode.IsJetFlying(type);
 }
 
 bool CObjectJetFlyingDetails::Read(CLevelParserLine* line)
 {
     READ_LINE( "SetObjectJetFlying" );
-    READ_ARG( "enabled",     AsBool, enabled );
+    READ_ARG( "enabled", AsBool, enabled );
     READ_END();
 
     return false;
@@ -47,10 +47,8 @@ bool CObjectJetFlyingDetails::Read(CLevelParserLine* line)
 
 void CObjectJetFlyingDetails::Write(CLevelParser* parser, ObjectType type)
 {
-    CObjectJetFlyingDetails def;
-
     WRITE_LINE( "SetObjectJetFlying" );
-    WRITE_ARG( "enabled",     def, enabled );
+    WRITE_ARG( "enabled", AsBool, enabled );
     WRITE_END();
 }
 

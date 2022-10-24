@@ -382,15 +382,6 @@ bool CAutoPortico::Abort()
     return true;
 }
 
-
-// Returns an error due the state of the automation.
-
-Error CAutoPortico::GetError()
-{
-    return ERR_OK;
-}
-
-
 // Updates the mapping of the texture of the caterpillars.
 
 void CAutoPortico::UpdateTrackMapping(float left, float right)
