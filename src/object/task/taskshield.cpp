@@ -29,15 +29,15 @@
 #include "level/robotmain.h"
 
 #include "math/geometry.h"
-
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
 
-#include "object/subclass/shielder.h"
+#include "object/helpers/power_helpers.h"
 
-#include "physics/physics.h"
+#include "object/interface/shielder_object.h"
 
 #include "sound/sound.h"
 
@@ -55,8 +55,9 @@ CTaskShield::CTaskShield(COldObject* object) : CBackgroundTask(object)
     m_soundChannel = -1;
     m_effectLight = -1;
 
-    assert(HasPowerCellSlot(m_object));
-    m_shielder = dynamic_cast<CShielder*>(object);
+    assert(m_object->Implements(ObjectInterfaceType::Shielder));
+
+    m_shielder = dynamic_cast<CShielderObject*>(m_object);
 }
 
 // Object's destructor.
@@ -115,10 +116,10 @@ bool CTaskShield::EventProcess(const Event &event)
 
     if ( m_phase == TS_SHIELD )
     {
-        energy = (1.0f/ENERGY_TIME)*event.rTime;
+        float energy = (1.0f/ENERGY_TIME)*event.rTime;
         energy *= GetRadius()/RADIUS_SHIELD_MAX;
-        if (CPowerContainerObject *power = GetObjectPowerCell(m_object))
-            power->SetEnergy(power->GetEnergy()-energy);
+        DecreaseObjectEnergy(m_object, energy);
+
         m_energyUsed += energy;
 
         if ( m_soundChannel == -1 )
@@ -297,16 +298,12 @@ Error CTaskShield::Start(TaskShieldMode mode, float delay)
         return ERR_OK;
     }
 
-    ObjectType type = m_object->GetType();
-    if ( type != OBJECT_MOBILErs )  return ERR_WRONG_BOT;
-
     m_bError = true;  // operation impossible
-    if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
 
-    CPowerContainerObject* power = GetObjectPowerCell(m_object);
-    if (power == nullptr)  return ERR_SHIELD_ENERGY;
-    float energy = power->GetEnergy();
-    if ( energy == 0.0f )  return ERR_SHIELD_ENERGY;
+    auto task = GetObjectTaskExecutorDetails(m_object).shield;
+
+    Error err = CanStartTask(&task, 0.0f);
+    if ( err != ERR_OK )  return err;
 
     glm::mat4 mat = m_object->GetWorldMatrix(0);
     glm::vec3 pos = glm::vec3(7.0f, 15.0f, 0.0f);

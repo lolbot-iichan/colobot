@@ -32,10 +32,15 @@
 
 #include "math/const.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/modeled_details.h"
+#include "object/details/global_details.h"
+
 #include "script/scriptfunc.h"
 
 #include <stdexcept>
 
+#include <libintl.h>
 
 CObject::CObject(int id, ObjectType type)
     : m_id(id)
@@ -43,6 +48,7 @@ CObject::CObject(int id, ObjectType type)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_rotation(0.0f, 0.0f, 0.0f)
     , m_scale(1.0f, 1.0f, 1.0f)
+    , m_scaleFactor(1.0f)
     , m_animateOnReset(false)
     , m_collisions(true)
     , m_team(0)
@@ -95,7 +101,7 @@ CrashSphere CObject::GetFirstCrashSphere()
     assert(m_crashSpheres.size() >= 1);
 
     CrashSphere transformedFirstCrashSphere = m_crashSpheres[0];
-    TransformCrashSphere(transformedFirstCrashSphere.sphere);
+    TransformCrashSphere(transformedFirstCrashSphere.sphere, transformedFirstCrashSphere.partNum);
     return transformedFirstCrashSphere;
 }
 
@@ -106,7 +112,7 @@ std::vector<CrashSphere> CObject::GetAllCrashSpheres()
     for (const auto& crashSphere : m_crashSpheres)
     {
         CrashSphere transformedCrashSphere = crashSphere;
-        TransformCrashSphere(transformedCrashSphere.sphere);
+        TransformCrashSphere(transformedCrashSphere.sphere, transformedCrashSphere.partNum);
         allCrashSpheres.push_back(transformedCrashSphere);
     }
 
@@ -203,13 +209,20 @@ float CObject::GetRotationZ()
 
 glm::vec3 CObject::GetScale() const
 {
-    return m_scale;
+    return m_scale / m_scaleFactor;
 }
 
 void CObject::SetScale(const glm::vec3& scale)
 {
     // TODO: provide default implementation...
     throw std::logic_error("CObject::SetScale() - not implemented!");
+}
+
+void CObject::SetScaleFactor(float factor)
+{
+    glm::vec3 scale = GetScale();
+    m_scaleFactor = factor;
+    SetScale(scale);
 }
 
 void CObject::SetScale(float scale)
@@ -271,7 +284,7 @@ void CObject::SetCameraCollisionSphere(const Math::Sphere& sphere)
 Math::Sphere CObject::GetCameraCollisionSphere()
 {
     Math::Sphere transformedSphere = m_cameraCollisionSphere;
-    TransformCrashSphere(transformedSphere);
+    TransformCameraCollisionSphere(transformedSphere);
     return transformedSphere;
 }
 
@@ -333,7 +346,15 @@ CBot::CBotVar* CObject::GetBotVar()
 std::string CObject::GetTooltipText()
 {
     std::string name;
-    GetResource(RES_OBJECT, m_type, name);
+
+    if (m_type == GetObjectGlobalDetails().defaults.player)
+        name = GetGlobalGamerName();
+    else
+    {
+        auto textStr = GetObjectModeledDetails(this).displayedName;
+        name = textStr.size() ? gettext(textStr.c_str()) : "";
+    }
+
     if (GetTeam() != 0)
     {
         name += " ["+CRobotMain::GetInstancePointer()->GetTeamName(GetTeam())+" ("+StrUtils::ToString<int>(GetTeam())+")]";

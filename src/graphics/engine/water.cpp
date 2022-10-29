@@ -36,6 +36,9 @@
 
 #include "object/object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/movable_details.h"
+
 #include "sound/sound.h"
 
 
@@ -561,52 +564,7 @@ float CWater::GetLevel()
 
 float CWater::GetLevel(CObject* object)
 {
-    ObjectType type = object->GetType();
-
-    if ( type == OBJECT_HUMAN ||
-         type == OBJECT_TECH  )
-    {
-        return m_level-3.0f;
-    }
-
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr )
-    {
-        return m_level-2.0f;
-    }
-
-    return m_level;
+    return m_level - GetObjectMovableDetails(object).water.waterLevel;
 }
 
 void CWater::SetLava(bool lava)

@@ -26,8 +26,10 @@
 #include "common/resources/resourcemanager.h"
 
 #include "level/player_profile.h"
+#include "level/robotmain.h"
 
 #include "level/parser/parser.h"
+#include "level/parser/parserexceptions.h"
 
 #include "ui/maindialog.h"
 

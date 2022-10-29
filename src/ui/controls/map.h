@@ -23,7 +23,7 @@
 
 #include "common/event.h"
 
-#include "object/object_type.h"
+#include "object/details/detectable_details.h"
 
 class CObject;
 
@@ -39,26 +39,12 @@ namespace Ui
 
 const int MAPMAXOBJECT = 100;
 
-enum MapColor
-{
-    MAPCOLOR_NULL,
-    MAPCOLOR_BASE,
-    MAPCOLOR_FIX,
-    MAPCOLOR_MOVE,
-    MAPCOLOR_ALIEN,
-    MAPCOLOR_WAYPOINTb,
-    MAPCOLOR_WAYPOINTr,
-    MAPCOLOR_WAYPOINTg,
-    MAPCOLOR_WAYPOINTy,
-    MAPCOLOR_WAYPOINTv,
-    MAPCOLOR_BBOX,
-};
-
 struct MapObject
 {
     bool        bUsed = false;
     CObject*    object = nullptr;
     MapColor    color = MAPCOLOR_NULL;
+    int         icon = -1;
     ObjectType  type = OBJECT_NULL;
     glm::vec2   pos = { 0, 0 };
     float       dir = 0.0f;
@@ -107,9 +93,9 @@ protected:
     glm::vec2   AdjustOffset(const glm::vec2& offset);
     void        SelectObject(const glm::vec2& pos);
     glm::vec2   MapInter(const glm::vec2& pos, float dir);
-    void        DrawFocus(const glm::vec2& pos, float dir, ObjectType type, MapColor color);
-    void        DrawObject(const glm::vec2& pos, float dir, ObjectType type, MapColor color, bool bSelect, bool bHilite);
-    void        DrawObjectIcon(const glm::vec2& pos, const glm::vec2& dim, MapColor color, ObjectType type, bool bHilite);
+    void        DrawFocus(const glm::vec2& pos, float dir, MapColor color);
+    void        DrawObject(const glm::vec2& pos, float dir, ObjectType type, MapColor color, int icon, bool bSelect, bool bHilite);
+    void        DrawObjectIcon(const glm::vec2& pos, const glm::vec2& dim, MapColor color, int icon, bool bHilite);
     void        DrawHighlight(const glm::vec2& pos);
     void        DrawTriangle(const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3, const glm::vec2& uv1, const glm::vec2& uv2);
     void        DrawPenta(const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3, const glm::vec2& p4, const glm::vec2& p5, const glm::vec2& uv1, const glm::vec2& uv2);

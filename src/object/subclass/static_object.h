@@ -37,6 +37,14 @@ class CTerrain;
 class CStaticObject;
 using CStaticObjectUPtr = std::unique_ptr<CStaticObject>;
 
+struct ObjectTypeHash
+{
+    inline std::size_t operator()(ObjectType t) const
+    {
+        return std::hash<int>()(t);
+    }
+};
+
 class CStaticObject : public CObject
 {
 public:
@@ -68,7 +76,7 @@ public:
                                     Gfx::CTerrain* terrain);
 
 protected:
-    void TransformCrashSphere(Math::Sphere& crashSphere) override;
+    void TransformCrashSphere(Math::Sphere& crashSphere, int partNum) override;
     void TransformCameraCollisionSphere(Math::Sphere& collisionSphere) override;
 
 private:

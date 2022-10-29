@@ -32,6 +32,10 @@
 #include "object/object.h"
 #include "object/object_manager.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/assistant_details.h"
+#include "object/details/controllable_details.h"
+
 #include "object/interface/movable_object.h"
 
 #include "object/motion/motion.h"
@@ -120,12 +124,14 @@ bool CDisplayText::EventProcess(const Event &event)
 
 void CDisplayText::DisplayError(Error err, CObject* pObj, float time)
 {
-    if (pObj == nullptr)
-        return;
+    if (pObj == nullptr)  return;
 
     glm::vec3 pos = pObj->GetPosition();
-    float h = GetIdealHeight(pObj);
-    float d = GetIdealDist(pObj);
+
+    auto cameraDetails = GetObjectControllableDetails(pObj).camera.visit;
+    float h = cameraDetails.height;
+    float d = cameraDetails.distance;
+
     DisplayError(err, pos, h, d, time);
 }
 
@@ -143,8 +149,6 @@ void CDisplayText::DisplayError(Error err, glm::vec3 goal, float height,
     }
     if ( err == ERR_BAT_VIRUS      ||
          err == ERR_VEH_VIRUS      ||
-         err == ERR_DELETEMOBILE   ||
-         err == ERR_DELETEBUILDING ||
          err == INFO_LOST          )
     {
         type = TT_ERROR;
@@ -163,8 +167,11 @@ void CDisplayText::DisplayText(const char *text, CObject* pObj,
     if (pObj == nullptr)  return;
 
     glm::vec3 pos = pObj->GetPosition();
-    float h = GetIdealHeight(pObj);
-    float d = GetIdealDist(pObj);
+
+    auto cameraDetails = GetObjectControllableDetails(pObj).camera.visit;
+    float h = cameraDetails.height;
+    float d = cameraDetails.distance;
+
     DisplayText(text, pos, h, d, time, type);
 }
 
@@ -447,54 +454,6 @@ float CDisplayText::GetVisitHeight(EventType event)
 }
 
 
-// Ranges from ideal visit for a given object.
-
-float CDisplayText::GetIdealDist(CObject* pObj)
-{
-    ObjectType  type;
-
-    if ( pObj == nullptr )  return 40.0f;
-
-    type = pObj->GetType();
-    if ( type == OBJECT_PORTICO )  return 200.0f;
-    if ( type == OBJECT_BASE    )  return 200.0f;
-    if ( type == OBJECT_NUCLEAR )  return 100.0f;
-    if ( type == OBJECT_PARA    )  return 100.0f;
-    if ( type == OBJECT_SAFE    )  return 100.0f;
-    if ( type == OBJECT_TOWER   )  return  80.0f;
-
-    return 60.0f;
-}
-
-// Returns the height of ideal visit for a given object.
-
-float CDisplayText::GetIdealHeight(CObject* pObj)
-{
-    ObjectType  type;
-
-    if ( pObj == nullptr )  return 5.0f;
-
-    type = pObj->GetType();
-    if ( type == OBJECT_DERRICK  )  return 35.0f;
-    if ( type == OBJECT_FACTORY  )  return 22.0f;
-    if ( type == OBJECT_REPAIR   )  return 30.0f;
-    if ( type == OBJECT_DESTROYER)  return 30.0f;
-    if ( type == OBJECT_STATION  )  return 13.0f;
-    if ( type == OBJECT_CONVERT  )  return 20.0f;
-    if ( type == OBJECT_TOWER    )  return 30.0f;
-    if ( type == OBJECT_RESEARCH )  return 22.0f;
-    if ( type == OBJECT_RADAR    )  return 19.0f;
-    if ( type == OBJECT_INFO     )  return 19.0f;
-    if ( type == OBJECT_ENERGY   )  return 20.0f;
-    if ( type == OBJECT_LABO     )  return 16.0f;
-    if ( type == OBJECT_NUCLEAR  )  return 40.0f;
-    if ( type == OBJECT_PARA     )  return 40.0f;
-    if ( type == OBJECT_SAFE     )  return 20.0f;
-
-    return 15.0f;
-}
-
-
 // Removes all visits.
 
 void CDisplayText::ClearVisit()
@@ -555,7 +514,10 @@ bool CDisplayText::IsVisit(EventType event)
 
 CObject* CDisplayText::SearchToto()
 {
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, OBJECT_TOTO);
+    CObject* obj = CObjectManager::GetInstancePointer()->SearchToto();
+
+    auto assistant = GetObjectAssistantDetails(obj);
+    return assistant.reactOnMessages ? obj : nullptr;
 }
 
 } // namespace Ui

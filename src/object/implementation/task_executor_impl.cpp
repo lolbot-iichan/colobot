@@ -24,9 +24,11 @@
 
 #include "object/task/taskadvance.h"
 #include "object/task/taskbuild.h"
+#include "object/task/taskdeflag.h"
 #include "object/task/taskdeletemark.h"
 #include "object/task/taskfire.h"
 #include "object/task/taskfireant.h"
+#include "object/task/taskflag.h"
 #include "object/task/taskgungoal.h"
 #include "object/task/taskinfo.h"
 #include "object/task/taskpen.h"
@@ -187,9 +189,14 @@ Error CTaskExecutorObjectImpl::StartTaskManip(TaskManipOrder order, TaskManipArm
     return StartForegroundTask<CTaskManip>(order, arm);
 }
 
-Error CTaskExecutorObjectImpl::StartTaskFlag(TaskFlagOrder order, int rank)
+Error CTaskExecutorObjectImpl::StartTaskDeflag()
 {
-    return StartForegroundTask<CTaskFlag>(order, rank);
+    return StartForegroundTask<CTaskDeflag>();
+}
+
+Error CTaskExecutorObjectImpl::StartTaskFlag(int rank)
+{
+    return StartForegroundTask<CTaskFlag>(rank);
 }
 
 Error CTaskExecutorObjectImpl::StartTaskBuild(ObjectType type)

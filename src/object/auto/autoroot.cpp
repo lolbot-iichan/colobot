@@ -26,13 +26,13 @@
 
 #include "math/geometry.h"
 
-#include "object/old_object.h"
+#include "object/object.h"
 
-
+#include "object/helpers/modeled_helpers.h"
 
 // Object's constructor.
 
-CAutoRoot::CAutoRoot(COldObject* object) : CAuto(object)
+CAutoRoot::CAutoRoot(CObject* object) : CAuto(object)
 {
     Init();
 }
@@ -41,14 +41,6 @@ CAutoRoot::CAutoRoot(COldObject* object) : CAuto(object)
 
 CAutoRoot::~CAutoRoot()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoRoot::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -88,9 +80,9 @@ bool CAutoRoot::EventProcess(const Event &event)
     if ( m_engine->GetPause() )  return true;
     if ( event.type != EVENT_FRAME )  return true;
 
-    m_object->SetPartScaleX(1, 1.0f+sinf(m_time*2.0f)*0.2f);
-    m_object->SetPartScaleY(1, 1.0f+sinf(m_time*2.3f)*0.2f);
-    m_object->SetPartScaleZ(1, 1.0f+sinf(m_time*2.7f)*0.2f);
+    SetPartScaleX(m_object, 1, 1.0f+sinf(m_time*2.0f)*0.2f);
+    SetPartScaleY(m_object, 1, 1.0f+sinf(m_time*2.3f)*0.2f);
+    SetPartScaleZ(m_object, 1, 1.0f+sinf(m_time*2.7f)*0.2f);
 
     if ( m_lastParticle+m_engine->ParticleAdapt(0.10f) <= m_time )
     {
@@ -110,12 +102,3 @@ bool CAutoRoot::EventProcess(const Event &event)
 
     return true;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoRoot::GetError()
-{
-    return ERR_OK;
-}
-

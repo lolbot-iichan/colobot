@@ -23,6 +23,14 @@
 
 #include "object/interface/flying_object.h"
 
+
+struct CJetFlyingCoolingFactors
+{
+    float onLand     = 0.2f;
+    float onObstacle = 0.6f;
+    float onWater    = 0.6f;
+};
+
 /**
  * \class CJetFlyingObject
  * \brief Interface for objects that can fly using a jet engine
@@ -49,4 +57,7 @@ public:
     virtual void SetReactorRange(float reactorRange) = 0;
     //! Returns current jet engine heat level (this is actually how much is left before it overheats, so smaller = more hot)
     virtual float GetReactorRange() = 0;
+
+    //! Returns struct with cooling factors in different environments
+    virtual CJetFlyingCoolingFactors GetCoolingFactors() = 0;
 };

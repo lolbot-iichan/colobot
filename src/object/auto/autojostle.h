@@ -27,10 +27,8 @@
 class CAutoJostle : public CAuto
 {
 public:
-    CAutoJostle(COldObject* object);
+    CAutoJostle(CObject* object);
     ~CAutoJostle();
-
-    void        DeleteObject(bool bAll=false) override;
 
     void        Init() override;
     void        Start(int param, float force);

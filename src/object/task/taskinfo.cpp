@@ -26,8 +26,11 @@
 #include "graphics/engine/particle.h"
 
 #include "object/object_manager.h"
+#include "object/old_object.h"
 
-#include "object/subclass/exchange_post.h"
+#include "object/details/details_provider.h"
+#include "object/details/global_details.h"
+#include "object/details/task_executor_details.h"
 
 #include <string.h>
 
@@ -71,13 +74,18 @@ Error CTaskInfo::Start(const char *name, float value, float power, bool send)
 {
     m_error = true;
 
-    CExchangePost* exchangePost = FindExchangePost(power);
-    if (exchangePost == nullptr)
-    {
-        return ERR_INFO_NULL;
-    }
+    auto task = GetObjectTaskExecutorDetails(m_object).info;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
+    CObject* obj = FindExchangePost(power);
+    if (obj == nullptr)  return ERR_INFO_NULL;
+    if (!obj->Implements(ObjectInterfaceType::ExchangePost))  return ERR_WRONG_OBJ;
 
     int op = 1;  // transmission impossible
+    CExchangePostObject* exchangePost = dynamic_cast<CExchangePostObject*>(obj);
+
     if (send)  // send?
     {
         bool infoValueSet = exchangePost->SetInfo(name, value);
@@ -94,12 +102,12 @@ Error CTaskInfo::Start(const char *name, float value, float power, bool send)
         }
     }
 
-    exchangePost->GetAuto()->Start(op);
+    obj->GetAuto()->Start(op);
 
     glm::vec3 pos, goal;
     if (op == 0)  // transmission?
     {
-        pos = exchangePost->GetPosition();
+        pos = obj->GetPosition();
         pos.y += 9.5f;
         goal = m_object->GetPosition();
         goal.y += 4.0f;
@@ -107,7 +115,7 @@ Error CTaskInfo::Start(const char *name, float value, float power, bool send)
     }
     if (op == 2)  // reception?
     {
-        goal = exchangePost->GetPosition();
+        goal = obj->GetPosition();
         goal.y += 9.5f;
         pos = m_object->GetPosition();
         pos.y += 4.0f;
@@ -147,8 +155,8 @@ bool CTaskInfo::Abort()
 
 // Seeks the nearest information terminal.
 
-CExchangePost* CTaskInfo::FindExchangePost(float power)
+CObject* CTaskInfo::FindExchangePost(float power)
 {
-    return dynamic_cast<CExchangePost*>(
-        CObjectManager::GetInstancePointer()->FindNearest(m_object, OBJECT_INFO, power/g_unit));
+    ObjectType type = GetObjectGlobalDetails().defaults.receivePerformer;
+    return CObjectManager::GetInstancePointer()->FindNearest(m_object, type, power/g_unit);
 }

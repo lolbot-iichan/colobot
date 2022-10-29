@@ -30,8 +30,13 @@
 
 #include "math/func.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/destroyable_details.h"
+
+#include "object/helpers/modeled_helpers.h"
 
 #include "sound/sound.h"
 
@@ -43,7 +48,7 @@
 
 // Object's constructor.
 
-CAutoDestroyer::CAutoDestroyer(COldObject* object) : CAuto(object)
+CAutoDestroyer::CAutoDestroyer(CObject* object) : CAuto(object)
 {
     Init();
     m_phase = ADEP_WAIT;  // paused until the first Init ()
@@ -53,14 +58,6 @@ CAutoDestroyer::CAutoDestroyer(COldObject* object) : CAuto(object)
 
 CAutoDestroyer::~CAutoDestroyer()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoDestroyer::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -98,7 +95,6 @@ Error CAutoDestroyer::StartAction(int param)
         if ( m_phase == ADEP_WAIT )
         {
             scrap->SetLock(true);  // usable waste
-//?         scrap->SetTransporter(m_object);  // usable waste
 
             m_sound->Play(SOUND_PSHHH2, m_object->GetPosition(), 1.0f, 1.0f);
 
@@ -117,10 +113,9 @@ Error CAutoDestroyer::StartAction(int param)
 
 bool CAutoDestroyer::EventProcess(const Event &event)
 {
-    CObject*        scrap;
-    glm::vec3    pos, speed;
-    glm::vec2     dim;
-    Ui::CWindow*    pw;
+    CObject*     scrap;
+    glm::vec3    pos;
+    Ui::CWindow* pw;
 
     CAuto::EventProcess(event);
 
@@ -186,11 +181,11 @@ bool CAutoDestroyer::EventProcess(const Event &event)
         {
             pos = glm::vec3(0.0f, -10.0f, 0.0f);
             pos.y = -Math::Bounce(m_progress, 0.3f)*10.0f;
-            m_object->SetPartPosition(1, pos);
+            SetPartPosition(m_object, 1, pos);
         }
         else
         {
-            m_object->SetPartPosition(1, glm::vec3(0.0f, -10.0f, 0.0f));
+            SetPartPosition(m_object, 1, glm::vec3(0.0f, -10.0f, 0.0f));
             m_sound->Play(SOUND_REPAIR, m_object->GetPosition());
 
             m_phase    = ADEP_REPAIR;
@@ -220,11 +215,11 @@ bool CAutoDestroyer::EventProcess(const Event &event)
         {
             pos = glm::vec3(0.0f, -10.0f, 0.0f);
             pos.y = -(1.0f-m_progress)*10.0f;
-            m_object->SetPartPosition(1, pos);
+            SetPartPosition(m_object, 1, pos);
         }
         else
         {
-            m_object->SetPartPosition(1, glm::vec3(0.0f, 0.0f, 0.0f));
+            SetPartPosition(m_object, 1, glm::vec3(0.0f, 0.0f, 0.0f));
 
             m_phase    = ADEP_WAIT;
             m_progress = 0.0f;
@@ -257,12 +252,6 @@ bool CAutoDestroyer::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 106, EVENT_OBJECT_TYPE);
-
     pos.x = ox+sx*8.00f;
     pos.y = oy+sy*0.25f;
     ddim.x = (33.0f/640.0f)*1.5f;
@@ -286,7 +275,7 @@ CObject* CAutoDestroyer::SearchPlastic()
     {
         if (obj == m_object) continue;
         if (!obj->Implements(ObjectInterfaceType::Destroyable)) continue;
-        if (obj->GetType() == OBJECT_HUMAN || obj->GetType() == OBJECT_TECH) continue;
+        if (!GetObjectDestroyableDetails(obj).destroyer.enabled) continue;
 
         glm::vec3 oPos = obj->GetPosition();
         float dist = glm::distance(oPos, sPos);
@@ -295,19 +284,6 @@ CObject* CAutoDestroyer::SearchPlastic()
 
     return nullptr;
 }
-
-// Returns an error due the state of the automation.
-
-Error CAutoDestroyer::GetError()
-{
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

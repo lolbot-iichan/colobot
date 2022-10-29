@@ -40,9 +40,13 @@
 #include "object/object.h"
 #include "object/object_manager.h"
 
-#include "object/interface/damageable_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/damageable_details.h"
 
-#include "object/subclass/shielder.h"
+#include "object/helpers/cargo_helpers.h"
+
+#include "object/interface/damageable_object.h"
+#include "object/interface/shielder_object.h"
 
 #include "sound/sound.h"
 
@@ -57,21 +61,6 @@ namespace Gfx
 const float FOG_HSUP    = 10.0f;
 const float FOG_HINF    = 100.0f;
 
-
-//! Check if an object is a destroyable enemy
-static bool IsAlien(ObjectType type)
-{
-    return ( type == OBJECT_ANT      ||
-             type == OBJECT_SPIDER   ||
-             type == OBJECT_BEE      ||
-             type == OBJECT_WORM     ||
-             type == OBJECT_MOTHER   ||
-             type == OBJECT_NEST     ||
-             type == OBJECT_BULLET   ||
-             type == OBJECT_EGG      ||
-             type == OBJECT_TEEN28   ||
-             type == OBJECT_TEEN31   );
-}
 
 CParticle::CParticle(CEngine* engine)
     : m_engine(engine), m_triangle(MAXPARTICULE)
@@ -1225,7 +1214,7 @@ void CParticle::FrameParticle(float rTime)
                 m_particle[i].goal = m_particle[i].pos;
                 if (object != nullptr)
                 {
-                    if (object->GetType() == OBJECT_MOBILErs && dynamic_cast<CShielder&>(*object).GetActiveShieldRadius() > 0.0f)  // protected by shield?
+                    if (object->Implements(ObjectInterfaceType::Shielder) && dynamic_cast<CShielderObject&>(*object).GetActiveShieldRadius() > 0.0f)  // protected by shield?
                     {
                         CreateParticle(m_particle[i].pos, glm::vec3(0.0f, 0.0f, 0.0f), { 6.0f, 6.0f }, PARTIGUNDEL, 2.0f);
                         if (m_lastTimeGunDel > 0.2f)
@@ -1238,11 +1227,10 @@ void CParticle::FrameParticle(float rTime)
                     }
                     else
                     {
-                        if (object->GetType() != OBJECT_HUMAN)
-                            Play(SOUND_TOUCH, m_particle[i].pos, 1.0f);
-
                         if (object->Implements(ObjectInterfaceType::Damageable))
                         {
+                            SoundType sound = GetObjectDamageableDetails(object).organic.sound;
+                            Play(sound, m_particle[i].pos, 1.0f);
                             dynamic_cast<CDamageableObject&>(*object).DamageObject(DamageType::Organic, 0.1f, m_particle[i].objFather);  // starts explosion
                         }
                     }
@@ -1273,7 +1261,7 @@ void CParticle::FrameParticle(float rTime)
                 m_particle[i].goal = m_particle[i].pos;
                 if (object != nullptr)
                 {
-                    if (object->GetType() == OBJECT_MOBILErs && dynamic_cast<CShielder&>(*object).GetActiveShieldRadius() > 0.0f)
+                    if (object->Implements(ObjectInterfaceType::Shielder) && dynamic_cast<CShielderObject&>(*object).GetActiveShieldRadius() > 0.0f)
                     {
                         CreateParticle(m_particle[i].pos, glm::vec3(0.0f, 0.0f, 0.0f), { 6.0f, 6.0f }, PARTIGUNDEL, 2.0f);
                         if (m_lastTimeGunDel > 0.2f)
@@ -2617,8 +2605,6 @@ void CParticle::TrackDraw(int i, ParticleType type)
 
         glm::vec3 p2 = m_track[i].pos[h];
 
-        glm::vec3 n = glm::normalize(p1-eye);
-
         glm::vec2 rot;
 
         glm::vec3 p = p1;
@@ -3534,6 +3520,8 @@ CObject* CParticle::SearchObjectGun(glm::vec3 old, glm::vec3 pos,
     box2.y += min;
     box2.z += min;
 
+    CObject* transporter = father ? GetObjectTransporter(father) : nullptr;
+
     CObject* best = nullptr;
     float best_dist = std::numeric_limits<float>::infinity();
     bool shield = false;
@@ -3541,42 +3529,44 @@ CObject* CParticle::SearchObjectGun(glm::vec3 old, glm::vec3 pos,
     {
         if (!obj->GetDetectable()) continue;  // inactive?
         if (obj == father) continue;
+        if (obj == transporter) continue;
 
-        ObjectType oType = obj->GetType();
-
-        if (oType == OBJECT_TOTO)  continue;
-
+        auto damageDetails = GetObjectDamageableDetails(obj);
         if (type == PARTIGUN1)  // fireball shooting?
         {
-            if (oType == OBJECT_MOTHER)  continue;
+            if (!damageDetails.fire.enabled)  continue;
         }
         else if (type == PARTIGUN2)  // shooting insect?
         {
-            if (IsAlien(obj->GetType()))  continue;
+            if (!damageDetails.organic.enabled)    continue;
+            if (!damageDetails.organic.byInsects)  continue;
         }
         else if (type == PARTIGUN3)  // suiciding spider?
         {
-            if (IsAlien(obj->GetType()))  continue;
+            if (!damageDetails.spider.enabled)  continue;
         }
         else if (type == PARTIGUN4)  // orgaball shooting?
         {
-            if (oType == OBJECT_MOTHER)  continue;
+            if (!damageDetails.organic.enabled)   continue;
+            if (!damageDetails.organic.byRobots)  continue;
         }
         else if (type == PARTITRACK11)  // phazer shooting?
         {
+            if (!damageDetails.phazer.enabled)  continue;
         }
         else
         {
             continue;
         }
+
         if (!obj->Implements(ObjectInterfaceType::Damageable) && !obj->IsBulletWall())  continue;
         if (obj->Implements(ObjectInterfaceType::Jostleable))  continue;
 
         glm::vec3 oPos = obj->GetPosition();
 
-        if (obj->GetType() == OBJECT_MOBILErs)
+        if (obj->Implements(ObjectInterfaceType::Shielder))
         {
-            CShielder* shielder = dynamic_cast<CShielder*>(obj);
+            CShielderObject* shielder = dynamic_cast<CShielderObject*>(obj);
             if ( type == PARTIGUN2 ||  // shooting insect?
                  type == PARTIGUN3 )   // suiciding spider?
             {
@@ -3652,20 +3642,8 @@ CObject* CParticle::SearchObjectRay(glm::vec3 pos, glm::vec3 goal,
         if (!obj->GetDetectable()) continue;  // inactive?
         if (obj == father) continue;
 
-        ObjectType oType = obj->GetType();
-
-        if (oType == OBJECT_TOTO)  continue;
-
-        if ( type  == PARTIRAY1       &&
-             oType != OBJECT_MOBILEtg &&
-             oType != OBJECT_TEEN28   &&
-             oType != OBJECT_TEEN31   &&
-             oType != OBJECT_ANT      &&
-             oType != OBJECT_SPIDER   &&
-             oType != OBJECT_BEE      &&
-             oType != OBJECT_WORM     &&
-             oType != OBJECT_MOTHER   &&
-             oType != OBJECT_NEST     )  continue;
+        auto damageDetails = GetObjectDamageableDetails(obj);
+        if ( type  == PARTIRAY1 && !damageDetails.tower.enabled ) continue;
 
         glm::vec3 oPos = obj->GetPosition();
 

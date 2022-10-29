@@ -29,10 +29,12 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/common_helpers.h"
+#include "object/helpers/modeled_helpers.h"
 
 #include "sound/sound.h"
 
@@ -48,7 +50,7 @@ const float LABO_DELAY = 20.0f; // duration of the analysis
 
 // Object's constructor.
 
-CAutoLabo::CAutoLabo(COldObject* object) : CAuto(object)
+CAutoLabo::CAutoLabo(CObject* object) : CAuto(object)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -59,7 +61,7 @@ CAutoLabo::CAutoLabo(COldObject* object) : CAuto(object)
     m_soundChannel = -1;
     Init();
 
-    assert(object->GetNumSlots() == 1);
+    assert(GetNumSlots(object) > 0);
 }
 
 // Object's destructor.
@@ -103,13 +105,14 @@ void CAutoLabo::DeleteObject(bool bAll)
 
 void CAutoLabo::Init()
 {
-    m_time = 0.0f;
-    m_timeVirus = 0.0f;
-    m_lastParticle = 0.0f;
-
     m_phase    = ALAP_WAIT;  // waiting ...
     m_progress = 0.0f;
     m_speed    = 1.0f/2.0f;
+
+    m_time = 0.0f;
+    m_timeVirus = 0.0f;
+    m_lastUpdateTime = 0.0f;
+    m_lastParticle = 0.0f;
 
     CAuto::Init();
 }
@@ -131,7 +134,12 @@ Error CAutoLabo::StartAction(int param)
         return ERR_LABO_ALREADY;
     }
 
-    CObject* power = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObject(0);
+    if ( !m_main->IsResearchEnabled(m_research) )
+    {
+        return ERR_BUILD_DISABLED;
+    }
+
+    CObject* power = GetObjectInSlot(m_object, 0);
     if (power == nullptr)
     {
         return ERR_LABO_NULL;
@@ -175,10 +183,10 @@ bool CAutoLabo::EventProcess(const Event &event)
 
     if ( event.type == EVENT_UPDINTERFACE )
     {
-        if ( m_object->GetSelect() )  CreateInterface(true);
+        if ( IsObjectSelected(m_object) )  CreateInterface(true);
     }
 
-    if ( m_object->GetSelect() )  // center selected?
+    if ( IsObjectSelected(m_object) )  // center selected?
     {
         Error err = ERR_UNKNOWN;
         if ( event.type == EVENT_OBJECT_RTARGET ) err = StartAction(RESEARCH_TARGET);
@@ -223,15 +231,15 @@ bool CAutoLabo::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = 80.0f-(35.0f*m_progress);
-            m_object->SetPartRotationZ(3, angle*Math::PI/180.0f);
-            m_object->SetPartRotationZ(4, angle*Math::PI/180.0f);
-            m_object->SetPartRotationZ(5, angle*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 3, angle*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 4, angle*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 5, angle*Math::PI/180.0f);
         }
         else
         {
-            m_object->SetPartRotationZ(3, 45.0f*Math::PI/180.0f);
-            m_object->SetPartRotationZ(4, 45.0f*Math::PI/180.0f);
-            m_object->SetPartRotationZ(5, 45.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 3, 45.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 4, 45.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 5, 45.0f*Math::PI/180.0f);
 
             SoundManip(1.5f, 1.0f, 0.7f);
             m_phase    = ALAP_OPEN2;
@@ -247,11 +255,11 @@ bool CAutoLabo::EventProcess(const Event &event)
             pos.x = -9.0f;
             pos.y =  3.0f+m_progress*10.0f;
             pos.z =  0.0f;
-            m_object->SetPartPosition(1, pos);
+            SetPartPosition(m_object, 1, pos);
         }
         else
         {
-            m_object->SetPartPosition(1, glm::vec3(-9.0f, 13.0f, 0.0f));
+            SetPartPosition(m_object, 1, glm::vec3(-9.0f, 13.0f, 0.0f));
 
             SoundManip(1.5f, 1.0f, 0.5f);
             m_phase    = ALAP_OPEN3;
@@ -265,11 +273,11 @@ bool CAutoLabo::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = (1.0f-m_progress)*Math::PI/2.0f;
-            m_object->SetPartRotationZ(1, angle);
+            SetPartRotationZ(m_object, 1, angle);
         }
         else
         {
-            m_object->SetPartRotationZ(1, 0.0f);
+            SetPartRotationZ(m_object, 1, 0.0f);
 
             goal = m_object->GetPosition();
             goal.y += 3.0f;
@@ -308,13 +316,12 @@ bool CAutoLabo::EventProcess(const Event &event)
     {
         if ( m_progress < 1.0f )
         {
-            power = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObject(0);
-            if ( power != nullptr )
+            if ( power = GetObjectInSlot(m_object, 0) )
             {
                 power->SetScale(1.0f-m_progress);
             }
 
-            angle = m_object->GetPartRotationY(2);
+            angle = GetPartRotationY(m_object, 2);
             if ( m_progress < 0.5f )
             {
                 angle -= event.rTime*m_progress*20.0f;
@@ -323,7 +330,7 @@ bool CAutoLabo::EventProcess(const Event &event)
             {
                 angle -= event.rTime*(20.0f-m_progress*20.0f);
             }
-            m_object->SetPartRotationY(2, angle);  // rotates the analyzer
+            SetPartRotationY(m_object, 2, angle);  // rotates the analyzer
 
             angle += m_object->GetRotationY();
             for ( i=0 ; i<3 ; i++ )
@@ -366,12 +373,7 @@ bool CAutoLabo::EventProcess(const Event &event)
             m_eventQueue->AddEvent(Event(EVENT_UPDINTERFACE));
             UpdateInterface();
 
-            power = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObject(0);
-            if ( power != nullptr )
-            {
-                dynamic_cast<CSlottedObject&>(*m_object).SetSlotContainedObject(0, nullptr);
-                CObjectManager::GetInstancePointer()->DeleteObject(power);
-            }
+            CObjectManager::GetInstancePointer()->DeleteObjectInSlot(m_object, 0);
 
             m_main->DisplayError(INFO_LABO, m_object);
 
@@ -387,11 +389,11 @@ bool CAutoLabo::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = m_progress*Math::PI/2.0f;
-            m_object->SetPartRotationZ(1, angle);
+            SetPartRotationZ(m_object, 1, angle);
         }
         else
         {
-            m_object->SetPartRotationZ(1, Math::PI/2.0f);
+            SetPartRotationZ(m_object, 1, Math::PI/2.0f);
 
             SoundManip(1.5f, 1.0f, 0.7f);
             m_phase    = ALAP_CLOSE2;
@@ -407,11 +409,11 @@ bool CAutoLabo::EventProcess(const Event &event)
             pos.x = -9.0f;
             pos.y =  3.0f+(1.0f-m_progress)*10.0f;;
             pos.z =  0.0f;
-            m_object->SetPartPosition(1, pos);
+            SetPartPosition(m_object, 1, pos);
         }
         else
         {
-            m_object->SetPartPosition(1, glm::vec3(-9.0f, 3.0f, 0.0f));
+            SetPartPosition(m_object, 1, glm::vec3(-9.0f, 3.0f, 0.0f));
 
             SoundManip(1.0f, 1.0f, 1.0f);
             m_phase    = ALAP_CLOSE3;
@@ -425,15 +427,15 @@ bool CAutoLabo::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = 45.0f+(35.0f*m_progress);
-            m_object->SetPartRotationZ(3, angle*Math::PI/180.0f);
-            m_object->SetPartRotationZ(4, angle*Math::PI/180.0f);
-            m_object->SetPartRotationZ(5, angle*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 3, angle*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 4, angle*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 5, angle*Math::PI/180.0f);
         }
         else
         {
-            m_object->SetPartRotationZ(3, 80.0f*Math::PI/180.0f);
-            m_object->SetPartRotationZ(4, 80.0f*Math::PI/180.0f);
-            m_object->SetPartRotationZ(5, 80.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 3, 80.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 4, 80.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 5, 80.0f*Math::PI/180.0f);
 
             SetBusy(false);
             UpdateInterface();
@@ -448,16 +450,11 @@ bool CAutoLabo::EventProcess(const Event &event)
 }
 
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAutoLabo::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    CObject* obj = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObject(0);
+    CObject* obj = GetObjectInSlot(m_object, 0);
     if (obj == nullptr)  return ERR_LABO_NULL;
     ObjectType type = obj->GetType();
     if ( type != OBJECT_BULLET && type != OBJECT_TNT )  return ERR_LABO_BAD;
@@ -471,7 +468,7 @@ Error CAutoLabo::GetError()
 bool CAutoLabo::CreateInterface(bool bSelect)
 {
     Ui::CWindow*    pw;
-    glm::vec2     pos, dim, ddim;
+    glm::vec2     pos, dim;
     float       ox, oy, sx, sy;
 
     CAuto::CreateInterface(bSelect);
@@ -487,7 +484,7 @@ bool CAutoLabo::CreateInterface(bool bSelect)
     oy = 3.0f/480.0f;
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
-    if( !m_object->GetTrainer() )
+    if( !IsObjectTrainer(m_object) )
     {
         pos.x = ox+sx*6.0f;
         pos.y = oy+sy*0.5f;
@@ -502,12 +499,6 @@ bool CAutoLabo::CreateInterface(bool bSelect)
         pw->CreateButton(pos, dim, 64+46, EVENT_OBJECT_RiGUN);
     }
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 111, EVENT_OBJECT_TYPE);
-
     UpdateInterface();
 
     return true;
@@ -519,7 +510,7 @@ void CAutoLabo::UpdateInterface()
 {
     Ui::CWindow*    pw;
 
-    if ( !m_object->GetSelect() )  return;
+    if ( !IsObjectSelected(m_object) )  return;
 
     CAuto::UpdateInterface();
 
@@ -604,6 +595,7 @@ bool CAutoLabo::Read(CLevelParserLine* line)
     m_speed = line->GetParam("aSpeed")->AsFloat(1.0f);
     m_research = static_cast< ResearchType >(line->GetParam("aResearch")->AsInt(0));
 
+    m_lastUpdateTime = 0.0f;
     m_lastParticle = 0.0f;
 
     return true;

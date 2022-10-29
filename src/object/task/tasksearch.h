@@ -22,10 +22,6 @@
 
 #include "object/task/task.h"
 
-#include "object/object_type.h"
-
-
-
 enum TaskSearchHand
 {
     TSH_UP      = 1,    // sensor at the top
@@ -56,7 +52,6 @@ public:
 protected:
     void    InitAngle();
     bool    CreateMark();
-    void    DeleteMark(ObjectType type);
 
 protected:
     TaskSearchHand  m_hand = TSH_UP;

@@ -20,8 +20,6 @@
 
 #include "object/motion/motionworm.h"
 
-#include "app/app.h"
-
 #include "graphics/engine/engine.h"
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/particle.h"
@@ -33,10 +31,7 @@
 
 #include "physics/physics.h"
 
-
 #include <stdio.h>
-
-
 
 
 const float START_TIME      = 1000.0f;  // beginning of the relative time
@@ -76,109 +71,12 @@ CMotionWorm::~CMotionWorm()
 {
 }
 
-
-// Removes an object.
-
-void CMotionWorm::DeleteObject(bool bAll)
-{
-}
-
-
 // Creates a vehicle traveling any lands on the ground.
 
-void CMotionWorm::Create(glm::vec3 pos, float angle, ObjectType type,
-                         float power, Gfx::COldModelManager* modelManager)
+void CMotionWorm::Create()
 {
-    int         rank, i;
-    float       px;
-
-    m_object->SetType(type);
-
-    // Creates the main base.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
-    m_object->SetObjectRank(0, rank);
-    // This is an "empty" object, without triangles
-    m_object->SetPosition(pos);
-    m_object->SetRotationY(angle);
-
-    // A vehicle must have a obligatory collision with a sphere of center (0, y, 0) (see GetCrashSphere).
-    m_object->AddCrashSphere(CrashSphere(glm::vec3(0.0f, 0.0f, 0.0f), 4.0f, SOUND_BOUM, 0.20f));
-    m_object->SetCameraCollisionSphere(Math::Sphere(glm::vec3(0.0f, 0.0f, 0.0f), 5.0f));
-
-    px = 1.0f+WORM_PART/2;
-
-    // Creates the head.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(1, rank);
-    m_object->SetObjectParent(1, 0);
-    modelManager->AddModelReference("worm1", false, rank);
-    m_object->SetPartPosition(1, glm::vec3(px, 0.0f, 0.0f));
-    px -= 1.0f;
-
-    // Creates the body.
-    for ( i=0 ; i<WORM_PART ; i++ )
-    {
-        rank = m_engine->CreateObject();
-        m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-        m_object->SetObjectRank(2+i, rank);
-        m_object->SetObjectParent(2+i, 0);
-        modelManager->AddModelReference("worm2", false, rank);
-        m_object->SetPartPosition(2+i, glm::vec3(px, 0.0f, 0.0f));
-        px -= 1.0f;
-    }
-
-    // Creates the tail.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(2+WORM_PART, rank);
-    m_object->SetObjectParent(2+WORM_PART, 0);
-    modelManager->AddModelReference("worm3", false, rank);
-    m_object->SetPartPosition(2+WORM_PART, glm::vec3(px, 0.0f, 0.0f));
-
-    m_object->CreateShadowCircle(0.0f, 1.0f, Gfx::EngineShadowType::WORM);
-
-    CreatePhysics();
-    m_object->SetFloorHeight(0.0f);
-
-    pos = m_object->GetPosition();
-    m_object->SetPosition(pos);  // to display the shadows immediately
-
-    m_engine->LoadAllTextures();
+    CMotion::Create();
 }
-
-// Creates the physics of the object.
-
-void CMotionWorm::CreatePhysics()
-{
-    Character*  character;
-
-    character = m_object->GetCharacter();
-    character->wheelFront = 10.0f;
-    character->wheelBack  = 10.0f;
-    character->wheelLeft  =  2.0f;
-    character->wheelRight =  2.0f;
-    character->height     = -0.2f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,   3.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,   3.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  10.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  10.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  40.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  40.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   0.2f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   0.2f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  10.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  10.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  20.0f);
-}
-
 
 
 // Specifies a special parameter.
@@ -254,7 +152,7 @@ bool CMotionWorm::EventFrame(const Event &event)
     under = 0;  // no piece under the ground
     for ( i=0 ; i<WORM_PART+2 ; i++ )
     {
-        phase = Math::Mod(m_armTimeMarch-START_TIME-i*0.3f, TIME_UPDOWN+m_timeDown+TIME_UPDOWN+m_timeUp);
+        phase = Math::Mod(m_armTimeMarch-i*0.3f, TIME_UPDOWN+m_timeDown+TIME_UPDOWN+m_timeUp);
         if ( phase < TIME_UPDOWN )  // descends?
         {
             h = -(phase/TIME_UPDOWN)*DOWN_ALTITUDE;

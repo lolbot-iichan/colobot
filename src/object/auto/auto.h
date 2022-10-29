@@ -24,11 +24,10 @@
 
 #include "object/object_type.h"
 
-
 class CRobotMain;
 class CSoundInterface;
 class CLevelParserLine;
-class COldObject;
+class CObject;
 
 namespace Ui
 {
@@ -53,7 +52,7 @@ class CLightning;
 class CAuto
 {
 public:
-    CAuto(COldObject* object);
+    CAuto(CObject* object);
     virtual ~CAuto();
 
     virtual void    DeleteObject(bool bAll=false);
@@ -76,6 +75,7 @@ public:
     virtual bool    GetBusy();
     virtual void    SetBusy(bool busy);
     virtual void    InitProgressTotal(float total);
+    virtual float   GetProgress();
     virtual void    EventProgress(float rTime);
 
     virtual bool    GetMotor();
@@ -104,7 +104,7 @@ protected:
     Gfx::CCamera*       m_camera = nullptr;
     Ui::CInterface*     m_interface = nullptr;
     CRobotMain*         m_main = nullptr;
-    COldObject*         m_object = nullptr;
+    CObject*            m_object = nullptr;
     CSoundInterface*    m_sound = nullptr;
 
     ObjectType  m_type = OBJECT_NULL;
@@ -112,6 +112,7 @@ protected:
     bool        m_bMotor = false;
     float       m_time = 0.0f;
     float       m_lastUpdateTime = 0.0f;
+    float       m_lastAlarmTime = 0.0f;
     float       m_progressTime = 0.0f;
     float       m_progressTotal = 0.0f;
 };

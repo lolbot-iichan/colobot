@@ -21,21 +21,25 @@
 #include "object/auto/automush.h"
 
 #include "graphics/engine/engine.h"
+#include "graphics/engine/particle.h"
 
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
 #include "math/func.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
 
 #include "sound/sound.h"
 
 
 // Object's constructor.
 
-CAutoMush::CAutoMush(COldObject* object) : CAuto(object)
+CAutoMush::CAutoMush(CObject* object) : CAuto(object)
 {
     Init();
 }
@@ -44,14 +48,6 @@ CAutoMush::CAutoMush(COldObject* object) : CAuto(object)
 
 CAutoMush::~CAutoMush()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoMush::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -216,7 +212,9 @@ bool CAutoMush::EventProcess(const Event &event)
     {
         m_object->SetRotationX(0.0f);
         m_object->SetRotationZ(0.0f);
-        m_object->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
+        m_object->SetScaleX(1.0f);
+        m_object->SetScaleY(1.0f);
+        m_object->SetScaleZ(1.0f);
     }
 
     return true;
@@ -233,55 +231,8 @@ bool CAutoMush::SearchTarget()
     {
         if ( obj->GetLock() )  continue;
 
-        ObjectType type = obj->GetType();
-        if ( type != OBJECT_MOBILEfa &&
-             type != OBJECT_MOBILEta &&
-             type != OBJECT_MOBILEwa &&
-             type != OBJECT_MOBILEia &&
-             type != OBJECT_MOBILEfb &&
-             type != OBJECT_MOBILEtb &&
-             type != OBJECT_MOBILEwb &&
-             type != OBJECT_MOBILEib &&
-             type != OBJECT_MOBILEfc &&
-             type != OBJECT_MOBILEtc &&
-             type != OBJECT_MOBILEwc &&
-             type != OBJECT_MOBILEic &&
-             type != OBJECT_MOBILEfi &&
-             type != OBJECT_MOBILEti &&
-             type != OBJECT_MOBILEwi &&
-             type != OBJECT_MOBILEii &&
-             type != OBJECT_MOBILEfs &&
-             type != OBJECT_MOBILEts &&
-             type != OBJECT_MOBILEws &&
-             type != OBJECT_MOBILEis &&
-             type != OBJECT_MOBILErt &&
-             type != OBJECT_MOBILErc &&
-             type != OBJECT_MOBILErr &&
-             type != OBJECT_MOBILErs &&
-             type != OBJECT_MOBILEsa &&
-             type != OBJECT_MOBILEtg &&
-             type != OBJECT_MOBILEft &&
-             type != OBJECT_MOBILEtt &&
-             type != OBJECT_MOBILEwt &&
-             type != OBJECT_MOBILEit &&
-             type != OBJECT_MOBILErp &&
-             type != OBJECT_MOBILEst &&
-             type != OBJECT_MOBILEdr &&
-             type != OBJECT_DERRICK  &&
-             type != OBJECT_STATION  &&
-             type != OBJECT_FACTORY  &&
-             type != OBJECT_REPAIR   &&
-             type != OBJECT_DESTROYER&&
-             type != OBJECT_CONVERT  &&
-             type != OBJECT_TOWER    &&
-             type != OBJECT_RESEARCH &&
-             type != OBJECT_RADAR    &&
-             type != OBJECT_INFO     &&
-             type != OBJECT_ENERGY   &&
-             type != OBJECT_LABO     &&
-             type != OBJECT_NUCLEAR  &&
-             type != OBJECT_PARA     &&
-             type != OBJECT_HUMAN    )  continue;
+        auto targeted = GetObjectAutomatedDetails(obj).targeted; 
+        if (!targeted.attackedByMushroom)  continue;
 
         glm::vec3 oPos = obj->GetPosition();
         float dist = glm::distance(oPos, iPos);
@@ -290,15 +241,6 @@ bool CAutoMush::SearchTarget()
 
     return false;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoMush::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

@@ -34,6 +34,7 @@
 enum class ObjectInterfaceType
 {
     Interactive, //!< interactive objects can process events from event loop
+    Modeled, //!< objects that can be viewed as a 3D model with bones and parts
     Transportable, //!< objects that can be carried by robots or astronaut
     ProgramStorage, //!< objects that store CBOT programs
     Programmable, //!< objects that can be programmed in CBOT
@@ -53,6 +54,9 @@ enum class ObjectInterfaceType
     ShieldedAutoRegen, //!< shielded objects with auto shield regeneration
     Old, //!< old objects, TODO: remove once no longer necessary
     Slotted, //!< objects that can carry other objects (in their gripper, power cell slot, or other slots)
+    Thumpable, //!< objects that can be temporary turned on the back by thumping
+    Shielder, //!< objects that can cast shields to heal other objects
+    ExchangePost, //!< objects that can act as information servers
     Max //!< maximum value (for getting number of items in enum)
 };
 

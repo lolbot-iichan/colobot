@@ -29,6 +29,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <glm/fwd.hpp>
 
 class CLevelParser;
 class CLevelParserLine;
@@ -55,6 +56,8 @@ public:
 
     CLevelParserParam* GetParam(std::string name);
     void AddParam(std::string name, CLevelParserParamUPtr value);
+
+    std::vector<std::string> GetKeys();
 
     friend std::ostream& operator<<(std::ostream& str, const CLevelParserLine& line);
 

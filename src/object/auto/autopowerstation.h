@@ -28,7 +28,7 @@ class CObject;
 class CAutoPowerStation : public CAuto
 {
 public:
-    CAutoPowerStation(COldObject* object);
+    CAutoPowerStation(CObject* object);
     ~CAutoPowerStation();
 
     void        DeleteObject(bool bAll=false) override;
@@ -37,11 +37,7 @@ public:
     bool        EventProcess(const Event &event) override;
     Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
 protected:
-    void        UpdateInterface(float rTime);
-
     CObject*    SearchVehicle();
 
 protected:

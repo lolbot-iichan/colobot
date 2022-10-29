@@ -38,6 +38,9 @@
 #include "object/object.h"
 #include "object/object_manager.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/assistant_details.h"
+
 #include "object/interface/movable_object.h"
 
 #include "object/motion/motion.h"
@@ -905,7 +908,10 @@ void CDisplayInfo::ViewDisplayInfo()
 
 CObject* CDisplayInfo::SearchToto()
 {
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, OBJECT_TOTO);
+    CObject* obj = CObjectManager::GetInstancePointer()->SearchToto();
+
+    auto assistant = GetObjectAssistantDetails(obj);
+    return assistant.reactOnSatcom ? obj : nullptr;
 }
 
 }

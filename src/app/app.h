@@ -29,8 +29,6 @@
 #include "common/singleton.h"
 #include "common/system/system.h"
 
-#include "level/level_category.h"
-
 #include <glm/glm.hpp>
 
 #include <string>
@@ -46,6 +44,8 @@ class CModManager;
 class CPathManager;
 class CConfigFile;
 class CSystemUtils;
+
+enum class LevelCategory;
 
 namespace Gfx
 {

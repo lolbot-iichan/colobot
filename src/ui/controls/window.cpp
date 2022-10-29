@@ -32,6 +32,7 @@
 #include "ui/controls/key.h"
 #include "ui/controls/label.h"
 #include "ui/controls/list.h"
+#include "ui/controls/logo.h"
 #include "ui/controls/map.h"
 #include "ui/controls/scroll.h"
 #include "ui/controls/shortcut.h"
@@ -143,6 +144,13 @@ CKey* CWindow::CreateKey(const glm::vec2& pos, const glm::vec2& dim, int icon, E
 CGroup* CWindow::CreateGroup(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg)
 {
     return CreateControl<CGroup>(pos, dim, icon, eventMsg);
+}
+
+// Creates a new button.
+
+CLogo* CWindow::CreateLogo(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg)
+{
+    return CreateControl<CLogo>(pos, dim, icon, eventMsg);
 }
 
 // Creates a new button.

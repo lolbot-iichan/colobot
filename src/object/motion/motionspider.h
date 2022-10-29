@@ -48,12 +48,10 @@ public:
     CMotionSpider(COldObject* object);
     ~CMotionSpider();
 
-    void    DeleteObject(bool bAll=false) override;
-    void    Create(glm::vec3 pos, float angle, ObjectType type, float power, Gfx::COldModelManager* modelManager) override;
+    void    Create() override;
     bool    EventProcess(const Event &event) override;
 
 protected:
-    void    CreatePhysics();
     bool    EventFrame(const Event &event);
 
 protected:

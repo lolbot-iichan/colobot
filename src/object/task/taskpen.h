@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "object/task/task.h"
+#include "graphics/engine/trace_color.h"
 
-#include "object/interface/trace_drawing_object.h"
+#include "object/task/task.h"
 
 #include <glm/glm.hpp>
 

@@ -20,6 +20,8 @@
 #pragma once
 
 
+#include "object/object_type.h"
+
 #include "object/task/task.h"
 
 #include <glm/glm.hpp>
@@ -64,4 +66,5 @@ protected:
     CObject*        m_metal = nullptr;
     glm::vec3       m_recoverPos = { 0, 0, 0 };
     int             m_soundChannel = 0;
+    ObjectType      m_metalType = OBJECT_NULL;
 };

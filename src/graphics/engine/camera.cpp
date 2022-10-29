@@ -40,10 +40,13 @@
 #include "object/object.h"
 #include "object/object_manager.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/controllable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+
 #include "object/interface/controllable_object.h"
 #include "object/interface/movable_object.h"
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
 
 #include "physics/physics.h"
 
@@ -59,15 +62,10 @@ static void SetGhostMode(CObject* obj, bool enabled)
 {
     obj->SetGhostMode(enabled);
 
-    if (obj->Implements(ObjectInterfaceType::Slotted))
+    for(int slot = 0; slot < GetNumSlots(obj); slot++)
     {
-        CSlottedObject *slotted = dynamic_cast<CSlottedObject*>(obj);
-        for(int slot = slotted->GetNumSlots()-1; slot >= 0; slot--)
-        {
-            CObject *contained = slotted->GetSlotContainedObject(slot);
-            if (contained != nullptr)
-                contained->SetGhostMode(enabled);
-        }
+        if (CObject *contained = GetObjectInSlot(obj, slot))
+            contained->SetGhostMode(enabled);
     }
 }
 
@@ -316,35 +314,9 @@ void CCamera::SetType(CameraType type)
         m_addDirectionH = 0.0f;
         m_addDirectionV = -Math::PI*0.05f;
 
-        ObjectType oType;
-        if ( m_cameraObj == nullptr )  oType = OBJECT_NULL;
-        else                     oType = m_cameraObj->GetType();
-
-        m_backDist = 30.0f;
-        if ( oType == OBJECT_BASE     )  m_backDist = 200.0f;
-        if ( oType == OBJECT_HUMAN    )  m_backDist =  20.0f;
-        if ( oType == OBJECT_TECH     )  m_backDist =  20.0f;
-        if ( oType == OBJECT_FACTORY  )  m_backDist =  50.0f;
-        if ( oType == OBJECT_RESEARCH )  m_backDist =  40.0f;
-        if ( oType == OBJECT_DERRICK  )  m_backDist =  40.0f;
-        if ( oType == OBJECT_REPAIR   )  m_backDist =  35.0f;
-        if ( oType == OBJECT_DESTROYER)  m_backDist =  35.0f;
-        if ( oType == OBJECT_TOWER    )  m_backDist =  45.0f;
-        if ( oType == OBJECT_NUCLEAR  )  m_backDist =  70.0f;
-        if ( oType == OBJECT_PARA     )  m_backDist = 180.0f;
-        if ( oType == OBJECT_SAFE     )  m_backDist =  50.0f;
-        if ( oType == OBJECT_HUSTON   )  m_backDist = 120.0f;
-        if ( oType == OBJECT_MOTHER   )  m_backDist =  55.0f;
-
-        m_backMin = m_backDist/3.0f;
-        if ( oType == OBJECT_HUMAN    )  m_backMin =  10.0f;
-        if ( oType == OBJECT_TECH     )  m_backMin =  10.0f;
-        if ( oType == OBJECT_FACTORY  )  m_backMin =  30.0f;
-        if ( oType == OBJECT_RESEARCH )  m_backMin =  20.0f;
-        if ( oType == OBJECT_NUCLEAR  )  m_backMin =  32.0f;
-        if ( oType == OBJECT_PARA     )  m_backMin =  40.0f;
-        if ( oType == OBJECT_SAFE     )  m_backMin =  25.0f;
-        if ( oType == OBJECT_HUSTON   )  m_backMin =  80.0f;
+        auto cameraDetails = GetObjectControllableDetails(m_cameraObj).camera.back;
+        m_backDist = cameraDetails.distance;
+        m_backMin = cameraDetails.distanceMin;
     }
 
     //if ( type != CAM_TYPE_ONBOARD && m_cameraObj != 0 )
@@ -816,11 +788,8 @@ void CCamera::IsCollision(glm::vec3 &eye, glm::vec3 lookat)
 
 void CCamera::IsCollisionBack()
 {
-    ObjectType iType;
-    if (m_cameraObj == nullptr)
-        iType = OBJECT_NULL;
-    else
-        iType = m_cameraObj->GetType();
+    auto cameraDetails = GetObjectControllableDetails(m_cameraObj).camera.back;
+    bool noTransparency = cameraDetails.disableOtherObjectsTransparency;
 
     glm::vec3 min{};
     min.x = Math::Min(m_actualEye.x, m_actualLookat.x);
@@ -840,32 +809,10 @@ void CCamera::IsCollisionBack()
         SetGhostMode(obj, false);  // opaque object
 
         if (obj == m_cameraObj) continue;
+        if ( noTransparency ) continue;
 
-        if ( iType == OBJECT_BASE     ||  // building?
-             iType == OBJECT_DERRICK  ||
-             iType == OBJECT_FACTORY  ||
-             iType == OBJECT_STATION  ||
-             iType == OBJECT_CONVERT  ||
-             iType == OBJECT_REPAIR   ||
-             iType == OBJECT_DESTROYER||
-             iType == OBJECT_TOWER    ||
-             iType == OBJECT_RESEARCH ||
-             iType == OBJECT_RADAR    ||
-             iType == OBJECT_ENERGY   ||
-             iType == OBJECT_LABO     ||
-             iType == OBJECT_NUCLEAR  ||
-             iType == OBJECT_PARA     ||
-             iType == OBJECT_SAFE     ||
-             iType == OBJECT_HUSTON   )  continue;
-
-        ObjectType oType = obj->GetType();
-        if ( oType == OBJECT_HUMAN  ||
-             oType == OBJECT_TECH   ||
-             oType == OBJECT_TOTO   ||
-             oType == OBJECT_ANT    ||
-             oType == OBJECT_SPIDER ||
-             oType == OBJECT_BEE    ||
-             oType == OBJECT_WORM   )  continue;
+        auto otherObjectCameraDetails = GetObjectControllableDetails(obj).camera.back;
+        if ( otherObjectCameraDetails.disableObjectTransparency ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         glm::vec3 oPos = objSphere.pos;
@@ -883,7 +830,7 @@ void CCamera::IsCollisionBack()
         float dpp = glm::distance(proj, oPos);
         if ( dpp > oRadius )  continue;
 
-        if ( oType == OBJECT_FACTORY )
+        if ( otherObjectCameraDetails.hasGateTransparency )
         {
             float angle = Math::RotateAngle(m_actualEye.x-oPos.x, oPos.z-m_actualEye.z);  // CW !
             angle = Math::Direction(angle, obj->GetRotationY());
@@ -891,7 +838,7 @@ void CCamera::IsCollisionBack()
         }
 
         float del = glm::distance(m_actualEye, m_actualLookat);
-        if (oType == OBJECT_FACTORY)
+        if ( otherObjectCameraDetails.hasGateTransparency )
             del += oRadius;
 
         float len = glm::distance(m_actualEye, proj);
@@ -907,23 +854,8 @@ void CCamera::IsCollisionFix(glm::vec3 &eye, glm::vec3 lookat)
     {
         if (obj == m_cameraObj) continue;
 
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_TOTO    ||
-             type == OBJECT_STONE   ||
-             type == OBJECT_URANIUM ||
-             type == OBJECT_METAL   ||
-             type == OBJECT_POWER   ||
-             type == OBJECT_ATOMIC  ||
-             type == OBJECT_BULLET  ||
-             type == OBJECT_BBOX    ||
-             type == OBJECT_KEYa    ||
-             type == OBJECT_KEYb    ||
-             type == OBJECT_KEYc    ||
-             type == OBJECT_KEYd    ||
-             type == OBJECT_ANT     ||
-             type == OBJECT_SPIDER  ||
-             type == OBJECT_BEE     ||
-             type == OBJECT_WORM )  continue;
+        auto cameraDetails = GetObjectControllableDetails(obj).camera.fixed;
+        if ( cameraDetails.disableCollisions ) continue;
 
         Math::Sphere objSphere = obj->GetCameraCollisionSphere();
         glm::vec3 objPos = objSphere.pos;
@@ -1175,51 +1107,23 @@ bool CCamera::EventFrameBack(const Event &event)
 
     if (m_cameraObj != nullptr)
     {
-        ObjectType type = m_cameraObj->GetType();
+        auto cameraDetails = GetObjectControllableDetails(m_cameraObj).camera.back;
 
-        glm::vec3 lookatPt = m_cameraObj->GetPosition();
-             if (type == OBJECT_BASE ) lookatPt.y += 40.0f;
-        else if (type == OBJECT_HUMAN) lookatPt.y +=  1.0f;
-        else if (type == OBJECT_TECH ) lookatPt.y +=  1.0f;
-        else                           lookatPt.y +=  4.0f;
+        glm::vec3 lookatPt = {0.0f, cameraDetails.height, 0.0f};
+        for(CObject* it = m_cameraObj; it != nullptr; it = GetObjectTransporter(it))
+        {
+            lookatPt += it->GetPosition();
+        }
 
         float h = -m_cameraObj->GetRotationY();  // angle vehicle / building
-
-        if ( type == OBJECT_DERRICK  ||
-             type == OBJECT_FACTORY  ||
-             type == OBJECT_REPAIR   ||
-             type == OBJECT_DESTROYER||
-             type == OBJECT_STATION  ||
-             type == OBJECT_CONVERT  ||
-             type == OBJECT_TOWER    ||
-             type == OBJECT_RESEARCH ||
-             type == OBJECT_RADAR    ||
-             type == OBJECT_INFO     ||
-             type == OBJECT_ENERGY   ||
-             type == OBJECT_LABO     ||
-             type == OBJECT_NUCLEAR  ||
-             type == OBJECT_PARA     ||
-             type == OBJECT_SAFE     ||
-             type == OBJECT_HUSTON   ||
-             type == OBJECT_START    ||
-             type == OBJECT_END      )  // building?
-        {
-            h += Math::PI * 0.20f;  // nearly face
-        }
-        else    // vehicle?
-        {
-            h += Math::PI;  // back
-        }
+        h += Math::PI * cameraDetails.rotationY;
         h = Math::NormAngle(h);
-        float v = 0.0f;  //?
 
         h += m_centeringCurrentH;
         h += m_addDirectionH * (1.0f - centeringH);
         h = Math::NormAngle(h);
 
-        if (type == OBJECT_MOBILEdr)  // designer?
-            v -= 0.3f;  // Camera top
-
+        float v = 0.0f - Math::PI * cameraDetails.rotationZ;  // Camera top
         v += m_centeringCurrentV;
         v += m_addDirectionV * (1.0f - centeringV);
 
@@ -1233,7 +1137,11 @@ bool CCamera::EventFrameBack(const Event &event)
 
         bool ground = true;
         if (m_cameraObj->Implements(ObjectInterfaceType::Movable))
-            ground = dynamic_cast<CMovableObject&>(*m_cameraObj).GetPhysics()->GetLand();
+        {
+            CPhysics* physics = dynamic_cast<CMovableObject&>(*m_cameraObj).GetPhysics();
+            if ( physics != nullptr ) 
+                ground = physics->GetLand();
+        }
         if ( ground )  // ground?
         {
             glm::vec3 pos = lookatPt + (lookatPt - m_eyePt);

@@ -21,17 +21,18 @@
 #include "object/auto/autopowercaptor.h"
 
 #include "graphics/engine/engine.h"
+#include "graphics/engine/particle.h"
 
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
 
 #include "sound/sound.h"
 
@@ -42,7 +43,7 @@
 
 // Object's constructor.
 
-CAutoPowerCaptor::CAutoPowerCaptor(COldObject* object) : CAuto(object)
+CAutoPowerCaptor::CAutoPowerCaptor(CObject* object) : CAuto(object)
 {
     m_channelSound = -1;
     Init();
@@ -191,55 +192,6 @@ bool CAutoPowerCaptor::EventProcess(const Event &event)
     return true;
 }
 
-
-// Creates all the interface when the object is selected.
-
-bool CAutoPowerCaptor::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 113, EVENT_OBJECT_TYPE);
-
-    pos.x = ox+sx*10.2f;
-    pos.y = oy+sy*0.5f;
-    ddim.x = 33.0f/640.0f;
-    ddim.y = 33.0f/480.0f;
-    pw->CreateButton(pos, ddim, 41, EVENT_OBJECT_LIMIT);
-
-    return true;
-}
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoPowerCaptor::GetError()
-{
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-    return ERR_OK;
-}
-
-
 // Load all objects under the lightning rod.
 
 void CAutoPowerCaptor::ChargeObject(float rTime)
@@ -254,33 +206,17 @@ void CAutoPowerCaptor::ChargeObject(float rTime)
 
         if (! IsObjectBeingTransported(obj) && obj->Implements(ObjectInterfaceType::PowerContainer) )
         {
-            CPowerContainerObject* powerContainer = dynamic_cast<CPowerContainerObject*>(obj);
-            if (powerContainer->IsRechargeable())
-            {
-                float energy = powerContainer->GetEnergy();
-                energy += rTime/2.0f;
-                if ( energy > 1.0f )  energy = 1.0f;
-                powerContainer->SetEnergy(energy);
-            }
+            float energy = rTime/2.0f;
+            ChargeObjectEnergy(obj, energy);
         }
 
-        if (obj->Implements(ObjectInterfaceType::Slotted))
+        for (int slot = GetNumSlots(obj) - 1; slot >= 0; slot--)
         {
-            CSlottedObject* slotted = dynamic_cast<CSlottedObject*>(obj);
-            for (int slot = slotted->GetNumSlots() - 1; slot >= 0; slot--)
+            CObject *held = GetObjectInSlot(obj, slot);
+            if (held != nullptr && held->Implements(ObjectInterfaceType::PowerContainer))
             {
-                CObject *held = slotted->GetSlotContainedObject(slot);
-                if (held != nullptr && held->Implements(ObjectInterfaceType::PowerContainer))
-                {
-                    CPowerContainerObject* powerContainer = dynamic_cast<CPowerContainerObject*>(held);
-                    if (powerContainer->IsRechargeable())
-                    {
-                        float energy = powerContainer->GetEnergy();
-                        energy += rTime/2.0f;
-                        if ( energy > 1.0f )  energy = 1.0f;
-                        powerContainer->SetEnergy(energy);
-                    }
-                }
+                float energy = rTime/2.0f;
+                ChargeObjectEnergy(held, energy);
             }
         }
     }

@@ -39,7 +39,7 @@ enum AutoEggPhase
 class CAutoEgg : public CAuto
 {
 public:
-    CAutoEgg(COldObject* object);
+    CAutoEgg(CObject* object);
     ~CAutoEgg();
 
     void        DeleteObject(bool all=false) override;
@@ -48,7 +48,6 @@ public:
     void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
     Error       IsEnded() override;
-    Error       GetError() override;
 
     bool        SetType(ObjectType type) override;
     bool        SetValue(int rank, float value) override;

@@ -24,11 +24,6 @@
 
 #pragma once
 
-
-#include "graphics/core/color.h"
-#include "graphics/core/type.h"
-
-#include <sstream>
 #include <cstdint>
 
 #include <glm/glm.hpp>

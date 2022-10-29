@@ -27,9 +27,12 @@
 
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
 #include "object/motion/motionant.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -61,10 +64,12 @@ bool CTaskFireAnt::EventProcess(const Event &event)
     if ( event.type != EVENT_FRAME )  return true;
     if ( m_bError )  return false;
 
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  // insect on its back?
+    // insect on its back?
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_bError = true;
-        return false;
+        return true;
     }
 
     m_time += event.rTime;
@@ -89,23 +94,20 @@ bool CTaskFireAnt::EventProcess(const Event &event)
 
 Error CTaskFireAnt::Start(glm::vec3 impact)
 {
-    glm::vec3    pos;
-    ObjectType  type;
-
     m_impact = impact;
 
-    m_bError = true;  // operation impossible
-    if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
+    auto task = GetObjectTaskExecutorDetails(m_object).fireant;
 
-    type = m_object->GetType();
-    if ( type != OBJECT_ANT )  return ERR_WRONG_BOT;
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
 
-    // Insect on its back?
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  return ERR_WRONG_BOT;
+    // insect on its back?
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )  return ERR_WRONG_BOT;
 
     m_physics->SetMotorSpeed(glm::vec3(0.0f, 0.0f, 0.0f));
 
-    pos = m_object->GetPosition();
+    glm::vec3 pos = m_object->GetPosition();
     m_angle = Math::RotateAngle(m_impact.x-pos.x, pos.z-m_impact.z);  // CW !
 
     m_phase = TFA_TURN;
@@ -130,7 +132,10 @@ Error CTaskFireAnt::IsEnded()
 
     if ( m_engine->GetPause() )  return ERR_CONTINUE;
     if ( m_bError )  return ERR_STOP;
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )  return ERR_STOP;  // insect on its back?
+
+    // insect on its back?
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )  return ERR_STOP;
 
     if ( m_phase == TFA_TURN )  // rotation ?
     {

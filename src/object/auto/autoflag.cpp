@@ -25,12 +25,13 @@
 
 #include "math/geometry.h"
 
-#include "object/old_object.h"
+#include "object/object.h"
 
+#include "object/helpers/modeled_helpers.h"
 
 // Object's constructor.
 
-CAutoFlag::CAutoFlag(COldObject* object) : CAuto(object)
+CAutoFlag::CAutoFlag(CObject* object) : CAuto(object)
 {
     Init();
 }
@@ -39,14 +40,6 @@ CAutoFlag::CAutoFlag(COldObject* object) : CAuto(object)
 
 CAutoFlag::~CAutoFlag()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoFlag::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -117,16 +110,8 @@ bool CAutoFlag::EventProcess(const Event &event)
     for ( i=0 ; i<4 ; i++ )
     {
         angle = sinf(m_time*6.0f+i*2.0f)*((i+2.0f)*0.1f);
-        m_object->SetPartRotationY(1+i, angle);
+        SetPartRotationY(m_object, 1+i, angle);
     }
 
     return true;
-}
-
-
-// Returns an error due the state of the automation
-
-Error CAutoFlag::GetError()
-{
-    return ERR_OK;
 }

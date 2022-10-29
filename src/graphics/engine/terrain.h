@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "graphics/core/color.h"
 #include "graphics/core/vertex.h"
 
 #include "math/const.h"
@@ -50,8 +51,10 @@ const float TERRAIN_FLATLIMIT = (5.0f*Math::PI/180.0f);
  * \enum TerrainRes
  * \brief Underground resource type
  */
-enum TerrainRes
+enum TerrainRes: signed char
 {
+    //! Any resource
+    TR_ANY      = -1,
     //! No resource
     TR_NULL      = 0,
     //! Titanium

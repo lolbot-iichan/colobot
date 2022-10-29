@@ -166,6 +166,8 @@ public:
 
     //! Deletes the object
     bool      DeleteObject(CObject* instance);
+    //! Deletes the object in a slot
+    bool      DeleteObjectInSlot(CObject* instance, int slotNum);
     //! Deletes all objects
     void      DeleteAllObjects();
 
@@ -301,11 +303,10 @@ public:
                           std::vector<ObjectType> type = std::vector<ObjectType>(),
                           float maxDist = 1000.0f,
                           bool cbotTypes = false);
+    CObject* SearchToto();
     //@}
 
 private:
-    //! Prevents creation of overcharged power cells
-    float ClampPower(ObjectType type, float power);
     void CleanRemovedObjectsIfNeeded();
 
 private:

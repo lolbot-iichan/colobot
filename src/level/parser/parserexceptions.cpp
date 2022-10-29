@@ -21,6 +21,8 @@
 
 #include "level/parser/parser.h"
 
+#include "level/parser/parserparam.h"
+
 #include <boost/lexical_cast.hpp>
 
 

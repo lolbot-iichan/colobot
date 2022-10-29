@@ -20,8 +20,6 @@
 
 #include "object/motion/motionant.h"
 
-#include "app/app.h"
-
 #include "graphics/engine/engine.h"
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/particle.h"
@@ -30,10 +28,9 @@
 
 #include "object/old_object.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
-
 
 #include <stdio.h>
 
@@ -61,213 +58,11 @@ CMotionAnt::~CMotionAnt()
 {
 }
 
-
-// Removes an object.
-
-void CMotionAnt::DeleteObject(bool bAll)
-{
-}
-
-
 // Creates a vehicle poses some rolling on the floor.
 
-void CMotionAnt::Create(glm::vec3 pos, float angle, ObjectType type,
-                        float power, Gfx::COldModelManager* modelManager)
+void CMotionAnt::Create()
 {
-    int rank;
-
-    m_object->SetType(type);
-
-    // Creates the main base.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
-    m_object->SetObjectRank(0, rank);
-    modelManager->AddModelReference("ant1", false, rank);
-    m_object->SetPosition(pos);
-    m_object->SetRotationY(angle);
-
-    // A vehicle must have necessarily a collision
-    //with a sphere of center (0, y, 0) (see GetCrashSphere).
-    m_object->AddCrashSphere(CrashSphere(glm::vec3(0.0f, -2.0f, 0.0f), 4.0f, SOUND_BOUM, 0.20f));
-    m_object->SetCameraCollisionSphere(Math::Sphere(glm::vec3(-0.5f, 1.0f, 0.0f), 4.0f));
-
-    // Creates the head.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(1, rank);
-    m_object->SetObjectParent(1, 0);
-    modelManager->AddModelReference("ant2", false, rank);
-    m_object->SetPartPosition(1, glm::vec3(2.0f, 0.0f, 0.0f));
-
-    // Creates the tail.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(2, rank);
-    m_object->SetObjectParent(2, 0);
-    modelManager->AddModelReference("ant3", false, rank);
-    m_object->SetPartPosition(2, glm::vec3(-1.0f, 0.0f, 0.0f));
-
-    // Creates a right-back thigh.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(3, rank);
-    m_object->SetObjectParent(3, 0);
-    modelManager->AddModelReference("ant4", false, rank);
-    m_object->SetPartPosition(3, glm::vec3(-0.4f, -0.1f, -0.3f));
-
-    // Creates a right-back leg.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank,Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(4, rank);
-    m_object->SetObjectParent(4, 3);
-    modelManager->AddModelReference("ant5", false, rank);
-    m_object->SetPartPosition(4, glm::vec3(0.0f, 0.0f, -1.0f));
-
-    // Creates a right-back foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(5, rank);
-    m_object->SetObjectParent(5, 4);
-    modelManager->AddModelReference("ant6", false, rank);
-    m_object->SetPartPosition(5, glm::vec3(0.0f, 0.0f, -2.0f));
-
-    // Creates two middle-right thighs.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(6, rank);
-    m_object->SetObjectParent(6, 0);
-    modelManager->AddModelReference("ant4", false, rank);
-    m_object->SetPartPosition(6, glm::vec3(0.1f, -0.1f, -0.4f));
-
-    // Creates two middle-right legs.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(7, rank);
-    m_object->SetObjectParent(7, 6);
-    modelManager->AddModelReference("ant5", false, rank);
-    m_object->SetPartPosition(7, glm::vec3(0.0f, 0.0f, -1.0f));
-
-    // Creates two middle-right foots.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(8, rank);
-    m_object->SetObjectParent(8, 7);
-    modelManager->AddModelReference("ant6", false, rank);
-    m_object->SetPartPosition(8, glm::vec3(0.0f, 0.0f, -2.0f));
-
-    // Creates the right front thigh.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(9, rank);
-    m_object->SetObjectParent(9, 0);
-    modelManager->AddModelReference("ant4", false, rank);
-    m_object->SetPartPosition(9, glm::vec3(1.4f, -0.1f, -0.6f));
-
-    // Creates the right front leg.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(10, rank);
-    m_object->SetObjectParent(10, 9);
-    modelManager->AddModelReference("ant5", false, rank);
-    m_object->SetPartPosition(10, glm::vec3(0.0f, 0.0f, -1.0f));
-
-    // Creates the right front foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(11, rank);
-    m_object->SetObjectParent(11, 10);
-    modelManager->AddModelReference("ant6", false, rank);
-    m_object->SetPartPosition(11, glm::vec3(0.0f, 0.0f, -2.0f));
-
-    // Creates a left-back thigh.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(12, rank);
-    m_object->SetObjectParent(12, 0);
-    modelManager->AddModelReference("ant4", true, rank);
-    m_object->SetPartPosition(12, glm::vec3(-0.4f, -0.1f, 0.3f));
-
-    // Creates a left-back leg.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(13, rank);
-    m_object->SetObjectParent(13, 12);
-    modelManager->AddModelReference("ant5", true, rank);
-    m_object->SetPartPosition(13, glm::vec3(0.0f, 0.0f, 1.0f));
-
-    // Creates a left-back foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(14, rank);
-    m_object->SetObjectParent(14, 13);
-    modelManager->AddModelReference("ant6", true, rank);
-    m_object->SetPartPosition(14, glm::vec3(0.0f, 0.0f, 2.0f));
-
-    // Creates two middle-left thighs.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(15, rank);
-    m_object->SetObjectParent(15, 0);
-    modelManager->AddModelReference("ant4", true, rank);
-    m_object->SetPartPosition(15, glm::vec3(0.1f, -0.1f, 0.4f));
-
-    // Creates two middle-left legs.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(16, rank);
-    m_object->SetObjectParent(16, 15);
-    modelManager->AddModelReference("ant5", true, rank);
-    m_object->SetPartPosition(16, glm::vec3(0.0f, 0.0f, 1.0f));
-
-    // Creates two middle-left foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(17, rank);
-    m_object->SetObjectParent(17, 16);
-    modelManager->AddModelReference("ant6", true, rank);
-    m_object->SetPartPosition(17, glm::vec3(0.0f, 0.0f, 2.0f));
-
-    // Creates the left front thigh.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(18, rank);
-    m_object->SetObjectParent(18, 0);
-    modelManager->AddModelReference("ant4", true, rank);
-    m_object->SetPartPosition(18, glm::vec3(1.4f, -0.1f, 0.6f));
-
-    // Creates the left front leg.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(19, rank);
-    m_object->SetObjectParent(19, 18);
-    modelManager->AddModelReference("ant5", true, rank);
-    m_object->SetPartPosition(19, glm::vec3(0.0f, 0.0f, 1.0f));
-
-    // Creates the left front foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(20, rank);
-    m_object->SetObjectParent(20, 19);
-    modelManager->AddModelReference("ant6", true, rank);
-    m_object->SetPartPosition(20, glm::vec3(0.0f, 0.0f, 2.0f));
-
-    m_object->CreateShadowCircle(4.0f, 0.5f);
-
-    CreatePhysics();
-    m_object->SetFloorHeight(0.0f);
-
-    pos = m_object->GetPosition();
-    m_object->SetPosition(pos);  // to display the shadows immediately
-
-    m_engine->LoadAllTextures();
-}
-
-// Creates the physics of the object.
-
-void CMotionAnt::CreatePhysics()
-{
-    Character*  character;
-    int         i;
+    CMotion::Create();
 
     int member_march[] =
     {
@@ -337,30 +132,7 @@ void CMotionAnt::CreatePhysics()
         -35,35,0,   -25,40,0,   -40,65,0,   // s7: feet 1..3
     };
 
-    character = m_object->GetCharacter();
-    character->wheelFront = 3.0f;
-    character->wheelBack  = 3.0f;
-    character->wheelLeft  = 5.0f;
-    character->wheelRight = 5.0f;
-    character->height     = 1.2f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  40.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  10.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  40.0f);
-
+    int i;
     for ( i=0 ; i<3*3*3*3 ; i++ )
     {
         m_armAngles[3*3*3*3*MA_MARCH+i] = member_march[i];
@@ -432,7 +204,8 @@ bool CMotionAnt::EventFrame(const Event &event)
     assert(m_object->Implements(ObjectInterfaceType::Destroyable));
     if ( dynamic_cast<CDestroyableObject*>(m_object)->GetDying() == DeathType::Burning )  // burning?
     {
-        if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
+        if ( dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
         {
             m_actionType = MAS_BURN;
         }
@@ -727,7 +500,8 @@ bool CMotionAnt::EventFrame(const Event &event)
         if ( m_progress >= 1.0f )
         {
             SetAction(-1);
-            dynamic_cast<CBaseAlien&>(*m_object).SetFixed(false);  // moving again
+            assert(m_object->Implements(ObjectInterfaceType::Thumpable));
+            dynamic_cast<CThumpableObject*>(m_object)->SetFixed(false);  // moving again
         }
     }
     else

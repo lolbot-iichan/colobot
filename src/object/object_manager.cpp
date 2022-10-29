@@ -31,6 +31,13 @@
 
 #include "object/auto/auto.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/detectable_details.h"
+#include "object/details/global_details.h"
+#include "object/details/shielder_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+
 #include "physics/physics.h"
 
 #include <algorithm>
@@ -71,6 +78,21 @@ bool CObjectManager::DeleteObject(CObject* instance)
         m_shouldCleanRemovedObjects = true;
         return true;
     } else assert(false);
+
+    return false;
+}
+
+bool CObjectManager::DeleteObjectInSlot(CObject* instance, int slotNum)
+{
+    assert(instance != nullptr);
+    assert(instance->Implements(ObjectInterfaceType::Slotted));
+
+    CObject* cargo = GetObjectInSlot(instance, slotNum);
+    if ( cargo != nullptr )
+    {
+        SetObjectInSlot(instance, slotNum, nullptr);
+        return CObjectManager::GetInstancePointer()->DeleteObject(cargo);
+    }
 
     return false;
 }
@@ -141,8 +163,6 @@ CObject* CObjectManager::CreateObject(ObjectCreateParams params)
         }
     }
 
-    params.power = ClampPower(params.type,params.power);
-
     assert(m_objects.find(params.id) == m_objects.end());
 
     auto objectUPtr = m_objectFactory->CreateObject(params);
@@ -165,17 +185,6 @@ CObject* CObjectManager::CreateObject(glm::vec3 pos, float angle, ObjectType typ
     params.type = type;
     params.power = power;
     return CreateObject(params);
-}
-
-float CObjectManager::ClampPower(ObjectType type, float power)
-{
-    float min = 0;
-    float max = 100;
-    if (type == OBJECT_POWER || type == OBJECT_ATOMIC)
-    {
-        max = 1;
-    }
-    return glm::clamp(power, min, max);
 }
 
 std::vector<CObject*> CObjectManager::GetObjectsOfTeam(int team)
@@ -308,55 +317,17 @@ std::vector<CObject*> CObjectManager::RadarAll(CObject* pThis, glm::vec3 thisPos
         if (cbotTypes)
         {
             // TODO: handle this differently (new class describing types? CObjectType::GetBaseType()?)
-            if ( oType == OBJECT_RUINmobilew2 ||
-                oType == OBJECT_RUINmobilet1 ||
-                oType == OBJECT_RUINmobilet2 ||
-                oType == OBJECT_RUINmobiler1 ||
-                oType == OBJECT_RUINmobiler2 )
-            {
-                oType = OBJECT_RUINmobilew1;  // any wreck
-            }
 
-            if ( oType == OBJECT_BARRIER2 ||
-                 oType == OBJECT_BARRIER3 ||
-                 oType == OBJECT_BARRICADE0 ||
-                 oType == OBJECT_BARRICADE1 )  // barriers?
-            {
-                oType = OBJECT_BARRIER1;  // any barrier
-            }
+            auto detectable = GetObjectDetectableDetails(pObj);
+            if ( detectable.baseType != OBJECT_NULL )
+                oType = detectable.baseType;
 
-            if ( oType == OBJECT_RUINdoor    ||
-                 oType == OBJECT_RUINsupport ||
-                 oType == OBJECT_RUINradar   ||
-                 oType == OBJECT_RUINconvert )  // ruins?
-            {
-                oType = OBJECT_RUINfactory;  // any ruin
-            }
-
-            if ( oType == OBJECT_PLANT1  ||
-                 oType == OBJECT_PLANT2  ||
-                 oType == OBJECT_PLANT3  ||
-                 oType == OBJECT_PLANT4  ||
-                 oType == OBJECT_PLANT15 ||
-                 oType == OBJECT_PLANT16 ||
-                 oType == OBJECT_PLANT17 ||
-                 oType == OBJECT_PLANT18 )  // bushes?
-            {
-                oType = OBJECT_PLANT0;  // any bush
-            }
-
-            if ( oType == OBJECT_QUARTZ1 ||
-                 oType == OBJECT_QUARTZ2 ||
-                 oType == OBJECT_QUARTZ3 )  // crystals?
-            {
-                oType = OBJECT_QUARTZ0;  // any crystal
-            }
             // END OF TODO
         }
 
         if ( std::find(type.begin(), type.end(), oType) == type.end() && type.size() > 0 )  continue;
 
-        if ( (oType == OBJECT_TOTO || oType == OBJECT_CONTROLLER) && type.size() == 0 )  continue; // allow OBJECT_TOTO and OBJECT_CONTROLLER only if explicitly asked in type parameter
+        if ( GetObjectDetectableDetails(pObj).isExplicit && type.size() == 0 )  continue; // allow only if explicitly asked in type parameter
 
         if ( filter_flying == FILTER_ONLYLANDING )
         {
@@ -461,4 +432,10 @@ CObject*  CObjectManager::FindNearest(CObject* pThis, glm::vec3 thisPosition, Ob
 CObject*  CObjectManager::FindNearest(CObject* pThis, glm::vec3 thisPosition, std::vector<ObjectType> type, float maxDist, bool cbotTypes)
 {
     return Radar(pThis, thisPosition, 0.0f, type, 0.0f, Math::PI*2.0f, 0.0f, maxDist, false, FILTER_NONE, cbotTypes);
+}
+
+CObject*  CObjectManager::SearchToto()
+{
+    ObjectType type = GetObjectGlobalDetails().defaults.assistant;
+    return FindNearest(nullptr, type);
 }

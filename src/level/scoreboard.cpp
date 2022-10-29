@@ -17,6 +17,9 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
+#include <boost/lexical_cast.hpp>
+#include <glm/glm.hpp>
+
 #include "level/scoreboard.h"
 
 #include "common/restext.h"
@@ -29,8 +32,6 @@
 #include "object/object.h"
 
 #include "ui/displaytext.h"
-
-#include <boost/lexical_cast.hpp>
 
 void CScoreboard::CScoreboardRule::Read(CLevelParserLine* line)
 {
@@ -143,12 +144,12 @@ void CScoreboard::SetScore(int team, int points)
     m_score[team].points = points;
 }
 
-CScoreboard::SortType CScoreboard::GetSortType()
+ScoreboardSortType CScoreboard::GetSortType()
 {
     return m_sortType;
 }
 
-void CScoreboard::SetSortType(SortType type)
+void CScoreboard::SetSortType(ScoreboardSortType type)
 {
     m_sortType = type;
 }
@@ -162,7 +163,7 @@ std::vector<std::pair<int, CScoreboard::Score>> CScoreboard::GetSortedScores()
     {
         return *m_score.find(team);
     });
-    if (m_sortType == SortType::SORT_POINTS)
+    if (m_sortType == ScoreboardSortType::SORT_POINTS)
     {
         std::sort(sortedTeams.begin(), sortedTeams.end(), [&](std::pair<int, Score> teamA, std::pair<int, Score> teamB)
         {

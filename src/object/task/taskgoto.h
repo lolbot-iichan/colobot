@@ -87,8 +87,6 @@ public:
     Error       IsEnded() override;
 
 protected:
-    CObject*    WormSearch(glm::vec3 &impact);
-    void        WormFrame(float rTime);
     CObject*    SearchTarget(glm::vec3 pos, float margin);
     bool        AdjustTarget(CObject* pObj, glm::vec3 &pos, float &distance);
     bool        AdjustBuilding(glm::vec3 &pos, float margin, float &distance);
@@ -129,9 +127,7 @@ protected:
     float           m_stopLength = 0.0f;   // braking distance
     float           m_time = 0.0f;
     glm::vec3       m_pos = { 0, 0, 0 };
-    bool            m_bWorm = false;
     bool            m_bApprox = false;
-    float           m_wormLastTime = 0.0f;
     float           m_lastDistance = 0.0f;
 
     bool            m_bmChanged = true;

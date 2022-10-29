@@ -39,14 +39,11 @@ enum AutoDestroyerPhase
 class CAutoDestroyer : public CAuto
 {
 public:
-    CAutoDestroyer(COldObject* object);
+    CAutoDestroyer(CObject* object);
     ~CAutoDestroyer();
-
-    void        DeleteObject(bool bAll=false) override;
 
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
 
     Error       StartAction(int param) override;
 

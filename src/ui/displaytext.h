@@ -72,9 +72,6 @@ public:
     float       GetVisitDist(EventType event);
     float       GetVisitHeight(EventType event);
 
-    float       GetIdealDist(CObject* pObj);
-    float       GetIdealHeight(CObject* pObj);
-
     void        ClearVisit();
     void        SetVisit(EventType event);
     bool        IsVisit(EventType event);

@@ -31,6 +31,17 @@
 #include <map>
 
 class CObject;
+class CLevelParserLine;
+
+/**
+ * \enum ScoreboardSortType
+ * \brief Enum defining the scoreboard sorting criteria
+*/
+enum class ScoreboardSortType : unsigned char
+{
+    SORT_ID,     //!< Sort by team ID
+    SORT_POINTS, //!< Sort by points
+};
 
 /**
  * \class CScoreboard
@@ -63,16 +74,6 @@ public:
     {
         int points = 0; //!< Team score
         float time = 0; //!< Time when points were scored
-    };
-
-    /**
-     * \enum SortType
-     * \brief Enum defining the scoreboard sorting criteria
-    */
-    enum class SortType
-    {
-        SORT_ID,     //!< Sort by team ID
-        SORT_POINTS, //!< Sort by points
     };
 
     //! Creates the scoreboard
@@ -161,8 +162,8 @@ public:
     Score GetScore(int team);
     void SetScore(int team, int points);
 
-    SortType GetSortType();
-    void SetSortType(SortType type);
+    ScoreboardSortType GetSortType();
+    void SetSortType(ScoreboardSortType type);
 
     std::vector<std::pair<int, Score>> GetSortedScores();
 
@@ -172,5 +173,5 @@ private:
     std::vector<std::unique_ptr<CScoreboardEndTakeRule>> m_rulesEndTake = {};
     std::map<int, Score> m_score;
     int m_finishCounter = 0;
-    SortType m_sortType = SortType::SORT_ID;
+    ScoreboardSortType m_sortType = ScoreboardSortType::SORT_ID;
 };

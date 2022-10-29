@@ -23,43 +23,48 @@
 
 #include "math/geometry.h"
 
-#include "object/old_object.h"
+#include "object/object.h"
 
-#include "ui/controls/interface.h"
-#include "ui/controls/window.h"
-
+#include "object/helpers/modeled_helpers.h"
 
 // Object's constructor.
 
-CAutoHouston::CAutoHouston(COldObject* object) : CAuto(object)
+CAutoHouston::CAutoHouston(CObject* object) : CAuto(object)
 {
     for (int i = 0; i < HUSTONMAXLENS; i++)
     {
         m_lens[i].parti = -1;
     }
 
-    m_lens[0].type = Gfx::PARTISELR;
-    m_lens[1].type = Gfx::PARTISELR;
-    m_lens[2].type = Gfx::PARTISELR;
-    m_lens[3].type = Gfx::PARTISELR;
-    m_lens[0].pos = glm::vec3(0.0f+13.0f, 34.0f, 30.0f      );
-    m_lens[1].pos = glm::vec3(0.0f-13.0f, 34.0f, 30.0f      );
-    m_lens[2].pos = glm::vec3(0.0f      , 34.0f, 30.0f+13.0f);
-    m_lens[3].pos = glm::vec3(0.0f      , 34.0f, 30.0f-13.0f);
-    m_lens[0].dim = 4.0f;
-    m_lens[1].dim = 4.0f;
-    m_lens[2].dim = 4.0f;
-    m_lens[3].dim = 4.0f;
-    m_lens[0].total = 1.0f;
-    m_lens[1].total = 1.0f;
-    m_lens[2].total = 1.0f;
-    m_lens[3].total = 1.0f;
-    m_lens[0].off = 0.4f;
-    m_lens[1].off = 0.4f;
-    m_lens[2].off = 0.4f;
-    m_lens[3].off = 0.4f;
+    int i = 0;
 
-    int i = 4;
+    m_lens[i].type = Gfx::PARTISELR;
+    m_lens[i].pos = glm::vec3(0.0f+13.0f, 34.0f, 30.0f      );
+    m_lens[i].dim = 4.0f;
+    m_lens[i].total = 1.0f;
+    m_lens[i].off = 0.4f;
+    i ++;
+
+    m_lens[i].type = Gfx::PARTISELR;
+    m_lens[i].pos = glm::vec3(0.0f-13.0f, 34.0f, 30.0f      );
+    m_lens[i].dim = 4.0f;
+    m_lens[i].total = 1.0f;
+    m_lens[i].off = 0.4f;
+    i ++;
+
+    m_lens[i].type = Gfx::PARTISELR;
+    m_lens[i].pos = glm::vec3(0.0f, 34.0f, 30.0f+13.0f);
+    m_lens[i].dim = 4.0f;
+    m_lens[i].total = 1.0f;
+    m_lens[i].off = 0.4f;
+    i ++;
+
+    m_lens[i].type = Gfx::PARTISELR;
+    m_lens[i].pos = glm::vec3(0.0f, 34.0f, 30.0f-13.0f);
+    m_lens[i].dim = 4.0f;
+    m_lens[i].total = 1.0f;
+    m_lens[i].off = 0.4f;
+    i ++;
 
     // Part under the radar.
     m_lens[i].type = Gfx::PARTISELR;
@@ -75,18 +80,21 @@ CAutoHouston::CAutoHouston(COldObject* object) : CAuto(object)
     m_lens[i].total = 0.7f;
     m_lens[i].off = 0.3f;
     i ++;
+
     m_lens[i].type = Gfx::PARTISELY;
     m_lens[i].pos = glm::vec3(-7.0f, 6.5f, 34.3f);
     m_lens[i].dim = 0.4f;
     m_lens[i].total = 0.7f;
     m_lens[i].off = 0.3f;
     i ++;
+
     m_lens[i].type = Gfx::PARTISELR;
     m_lens[i].pos = glm::vec3(-7.0f, 6.5f, 33.4f);
     m_lens[i].dim = 0.4f;
     m_lens[i].total = 0.0f;
     m_lens[i].off = 0.0f;
     i ++;
+
     m_lens[i].type = Gfx::PARTISELR;
     m_lens[i].pos = glm::vec3(-7.0f, 6.5f, 33.0f);
     m_lens[i].dim = 0.4f;
@@ -122,18 +130,21 @@ CAutoHouston::CAutoHouston(COldObject* object) : CAuto(object)
     m_lens[i].total = 0.7f;
     m_lens[i].off = 0.3f;
     i ++;
+
     m_lens[i].type = Gfx::PARTISELY;
     m_lens[i].pos = glm::vec3(-7.0f, 6.5f, 34.3f-60.0f);
     m_lens[i].dim = 0.4f;
     m_lens[i].total = 0.0f;
     m_lens[i].off = 0.0f;
     i ++;
+    
     m_lens[i].type = Gfx::PARTISELR;
     m_lens[i].pos = glm::vec3(-7.0f, 6.5f, 33.4f-60.0f);
     m_lens[i].dim = 0.4f;
     m_lens[i].total = 0.6f;
     m_lens[i].off = 0.4f;
     i ++;
+    
     m_lens[i].type = Gfx::PARTISELR;
     m_lens[i].pos = glm::vec3(-7.0f, 6.5f, 33.0f-60.0f);
     m_lens[i].dim = 0.4f;
@@ -174,14 +185,6 @@ CAutoHouston::~CAutoHouston()
 }
 
 
-// Destroys the object.
-
-void CAutoHouston::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
-}
-
-
 // Initialize the object.
 
 void CAutoHouston::Init()
@@ -190,13 +193,6 @@ void CAutoHouston::Init()
 
     m_progress = 0.0f;
     m_speed    = 1.0f/2.0f;
-}
-
-
-// Start the object.
-
-void CAutoHouston::Start(int param)
-{
 }
 
 
@@ -210,9 +206,9 @@ bool CAutoHouston::EventProcess(const Event &event)
 
     float angle;
     angle = -m_time*1.0f;
-    m_object->SetPartRotationY(1, angle);  // rotates the radar
+    SetPartRotationY(m_object, 1, angle);  // rotates the radar
     angle = sinf(m_time*4.0f)*0.3f;
-    m_object->SetPartRotationX(2, angle);
+    SetPartRotationX(m_object, 2, angle);
 
     if ( event.type != EVENT_FRAME )  return true;
 
@@ -248,49 +244,3 @@ bool CAutoHouston::EventProcess(const Event &event)
 
     return true;
 }
-
-// Stops the controller.
-
-bool CAutoHouston::Abort()
-{
-    return true;
-}
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoHouston::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 115, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-
-// Returns an error due to state of the automation.
-
-Error CAutoHouston::GetError()
-{
-    return ERR_OK;
-}
-

@@ -24,8 +24,11 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/helpers/common_helpers.h"
+#include "object/helpers/modeled_helpers.h"
 
 #include "sound/sound.h"
 
@@ -37,7 +40,7 @@
 
 // Object's constructor.
 
-CAutoRadar::CAutoRadar(COldObject* object) : CAuto(object)
+CAutoRadar::CAutoRadar(CObject* object) : CAuto(object)
 {
     Init();
     m_phase = ARAP_WAIT;
@@ -48,14 +51,6 @@ CAutoRadar::CAutoRadar(COldObject* object) : CAuto(object)
 
 CAutoRadar::~CAutoRadar()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoRadar::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -96,15 +91,15 @@ bool CAutoRadar::EventProcess(const Event &event)
         {
             m_timeVirus = 0.1f+Math::Rand()*0.3f;
 
-            angle = m_object->GetPartRotationY(1);
+            angle = GetPartRotationY(m_object, 1);
             angle += (Math::Rand()-0.2f)*0.5f;
-            m_object->SetPartRotationY(1, angle);
+            SetPartRotationY(m_object, 1, angle);
 
-            angle = m_object->GetPartRotationY(2);
+            angle = GetPartRotationY(m_object, 2);
             angle += (Math::Rand()-0.8f)*1.0f;
-            m_object->SetPartRotationY(2, angle);
+            SetPartRotationY(m_object, 2, angle);
 
-            m_object->SetPartRotationX(3, (Math::Rand()-0.5f)*0.3f);
+            SetPartRotationX(m_object, 3, (Math::Rand()-0.5f)*0.3f);
 
             m_totalDetect = static_cast< int >(Math::Rand()*10.0f);
             UpdateInterface();
@@ -117,9 +112,9 @@ bool CAutoRadar::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             speed = Math::Min(10.0f, m_progress*50.0f);
-            angle = m_object->GetPartRotationY(1);
+            angle = GetPartRotationY(m_object, 1);
             angle += event.rTime*speed;
-            m_object->SetPartRotationY(1, angle);
+            SetPartRotationY(m_object, 1, angle);
         }
         else
         {
@@ -132,7 +127,7 @@ bool CAutoRadar::EventProcess(const Event &event)
             else
             {
                 pos = m_object->GetPosition();
-                m_start = m_object->GetPartRotationY(1);
+                m_start = GetPartRotationY(m_object, 1);
                 m_angle = m_start-Math::NormAngle(m_start)+Math::PI*2.0f;
                 m_angle += Math::RotateAngle(pos.x-ePos.x, ePos.z-pos.z);
                 m_angle += Math::PI-m_object->GetRotationY();
@@ -149,7 +144,7 @@ bool CAutoRadar::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = m_start + (m_angle-m_start)*m_progress;
-            m_object->SetPartRotationY(1, angle);
+            SetPartRotationY(m_object, 1, angle);
         }
         else
         {
@@ -170,7 +165,7 @@ bool CAutoRadar::EventProcess(const Event &event)
             freq = 16.0f*(prog+1.0f);
             ampl = 0.2f-prog*0.2f;
             angle = m_angle + sinf(m_time*freq)*ampl;
-            m_object->SetPartRotationY(1, angle);
+            SetPartRotationY(m_object, 1, angle);
         }
         else
         {
@@ -181,34 +176,20 @@ bool CAutoRadar::EventProcess(const Event &event)
     }
 
     angle = -m_aTime*2.0f;
-    m_object->SetPartRotationY(2, angle);
+    SetPartRotationY(m_object, 2, angle);
 
     angle = sinf(m_aTime*4.0f)*0.3f;
-    m_object->SetPartRotationX(3, angle);
+    SetPartRotationX(m_object, 3, angle);
 
     return true;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoRadar::GetError()
-{
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    return ERR_OK;
-}
-
 
 // Creates all the interface when the object is selected.
 
 bool CAutoRadar::CreateInterface(bool bSelect)
 {
     Ui::CWindow*    pw;
-    glm::vec2     pos, dim, ddim;
+    glm::vec2     pos, dim;
     float       ox, oy, sx, sy;
 
     CAuto::CreateInterface(bSelect);
@@ -229,12 +210,6 @@ bool CAutoRadar::CreateInterface(bool bSelect)
     dim.y =  26.0f/480.0f;
     pw->CreateGauge(pos, dim, 1, EVENT_OBJECT_GRADAR);
 
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 105, EVENT_OBJECT_TYPE);
-
     UpdateInterface();
     return true;
 }
@@ -247,7 +222,7 @@ void CAutoRadar::UpdateInterface()
     Ui::CGauge*     pg;
     float       level;
 
-    if ( !m_object->GetSelect() )  return;
+    if ( !IsObjectSelected(m_object) )  return;
 
     CAuto::UpdateInterface();
 

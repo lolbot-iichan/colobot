@@ -20,6 +20,7 @@
 #include "graphics/opengl33/glutil.h"
 
 #include "graphics/core/renderers.h"
+#include "graphics/core/type.h"
 
 #include "graphics/opengl33/gl33_device.h"
 

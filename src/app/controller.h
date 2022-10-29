@@ -24,13 +24,13 @@
 
 #pragma once
 
-#include "level/level_category.h"
-
 #include <memory>
 #include <string>
 
 class CRobotMain;
 struct Event;
+
+enum class LevelCategory;
 
 /**
  * \class CController

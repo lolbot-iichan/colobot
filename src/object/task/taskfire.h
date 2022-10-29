@@ -22,6 +22,7 @@
 
 #include "object/task/task.h"
 
+#include "graphics/engine/particle.h"
 
 
 class CTaskFire : public CForegroundTask
@@ -47,5 +48,10 @@ protected:
     float       m_speed = 0.0f;
     float       m_lastParticle = 0.0f;
     float       m_lastSound = 0.0f;
-    int     m_soundChannel = 0;
+    int         m_soundChannel = 0;
+
+    Gfx::ParticleType m_particleType = static_cast<Gfx::ParticleType>(0);
+    float             m_energyPerSec = 0.0f;
+    int               m_partNum      = 0;
+    glm::vec3         m_position     = {0.0f,0.0f,0.0f};
 };

@@ -26,6 +26,9 @@
 
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
 #include "physics/physics.h"
 
 #include "sound/sound.h"
@@ -134,9 +137,17 @@ bool CTaskPen::EventProcess(const Event &event)
 
 Error CTaskPen::Start(bool bDown, TraceColor color)
 {
-    glm::vec3    pos;
-    ObjectType  type;
-    int         i;
+    glm::vec3 pos;
+    int       i;
+
+    m_bError = true;  // operation impossible
+
+    auto task = GetObjectTaskExecutorDetails(m_object).pen;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
+    if (!m_object->Implements(ObjectInterfaceType::TraceDrawing))  return ERR_WRONG_BOT;
 
     if (color == TraceColor::Default)
         color = m_object->GetTraceColor();
@@ -144,14 +155,7 @@ Error CTaskPen::Start(bool bDown, TraceColor color)
     m_object->SetTraceDown(bDown);
     m_object->SetTraceColor(color);
 
-    m_physics->SetMotorSpeedX(0.0f);
-    m_physics->SetMotorSpeedY(0.0f);
-    m_physics->SetMotorSpeedZ(0.0f);
-
-    m_bError = true;  // operation impossible
-
-    type = m_object->GetType();
-    if ( type != OBJECT_MOBILEdr )  return ERR_WRONG_BOT;
+    m_physics->SetMotorSpeed(glm::vec3(0.0f, 0.0f, 0.0f));
 
     m_bError = false;  // ok
 

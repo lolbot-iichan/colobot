@@ -31,6 +31,9 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
 #include "physics/physics.h"
 
 #include "sound/sound.h"
@@ -69,11 +72,15 @@ bool CTaskSearch::EventProcess(const Event &event)
     if ( m_phase == TSP_DOWN ||
          m_phase == TSP_UP   )
     {
-        for ( i=0 ; i<3 ; i++ )
+        auto task = GetObjectTaskExecutorDetails(m_object).sniff;
+        if (task.execution == ExecutionAsRobot)
         {
-            angle = (m_finalAngle[i]-m_initialAngle[i])*m_progress;
-            angle += m_initialAngle[i];
-            m_object->SetPartRotationZ(i+1, angle);
+            for ( i=0 ; i<3 ; i++ )
+            {
+                angle = (m_finalAngle[i]-m_initialAngle[i])*m_progress;
+                angle += m_initialAngle[i];
+                m_object->SetPartRotationZ(i+1, angle);
+            }
         }
     }
 
@@ -123,27 +130,16 @@ void CTaskSearch::InitAngle()
     }
 }
 
-
 // Assigns the goal was achieved.
 
 Error CTaskSearch::Start()
 {
-    ObjectType  type;
-    glm::vec3    speed;
-    int         i;
-
     m_bError = true;
-    if ( !m_physics->GetLand() )  return ERR_SEARCH_FLY;
 
-    speed = m_physics->GetMotorSpeed();
-    if ( speed.x != 0.0f ||
-         speed.z != 0.0f )  return ERR_SEARCH_MOTOR;
+    auto task = GetObjectTaskExecutorDetails(m_object).sniff;
 
-    type = m_object->GetType();
-    if ( type != OBJECT_MOBILEfs &&
-         type != OBJECT_MOBILEts &&
-         type != OBJECT_MOBILEws &&
-         type != OBJECT_MOBILEis )  return ERR_WRONG_BOT;
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
 
     m_hand     = TSH_DOWN;
     m_phase    = TSP_DOWN;
@@ -153,16 +149,20 @@ Error CTaskSearch::Start()
     m_lastParticle = 0.0f;
 
     InitAngle();
+
     m_bError = false;  // ok
 
     m_camera->StartCentering(m_object, Math::PI*0.50f, 99.9f, 0.0f, 1.0f);
 
-    i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
+    int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
     m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
     m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.9f, SOPER_CONTINUE);
     m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_STOP);
 
-    m_physics->SetFreeze(true);  // it does not move
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+    {
+        m_physics->SetFreeze(true);  // it does not move
+    }
 
     return ERR_OK;
 }
@@ -182,9 +182,13 @@ Error CTaskSearch::IsEnded()
     if ( m_phase == TSP_DOWN ||
          m_phase == TSP_UP   )
     {
-        for ( i=0 ; i<3 ; i++ )
+        auto task = GetObjectTaskExecutorDetails(m_object).sniff;
+        if (task.execution == ExecutionAsRobot)
         {
-            m_object->SetPartRotationZ(i+1, m_finalAngle[i]);
+            for ( i=0 ; i<3 ; i++ )
+            {
+                m_object->SetPartRotationZ(i+1, m_finalAngle[i]);
+            }
         }
     }
 
@@ -224,13 +228,21 @@ bool CTaskSearch::Abort()
 {
     m_hand  = TSH_UP;
     InitAngle();
-    for (int i = 0; i < 3; i++)
+
+    auto task = GetObjectTaskExecutorDetails(m_object).sniff;
+    if (task.execution == ExecutionAsRobot)
     {
-        m_object->SetPartRotationZ(i+1, m_finalAngle[i]);
+        for (int i = 0; i < 3; i++)
+        {
+            m_object->SetPartRotationZ(i+1, m_finalAngle[i]);
+        }
+        if (m_object->Implements(ObjectInterfaceType::Movable))
+        {
+            m_physics->SetFreeze(false);  // is moving again
+        }
     }
 
     m_camera->StopCentering(m_object, 2.0f);
-    m_physics->SetFreeze(false);  // is moving again
     return true;
 }
 
@@ -239,68 +251,35 @@ bool CTaskSearch::Abort()
 
 bool CTaskSearch::CreateMark()
 {
-    glm::mat4 mat = m_object->GetWorldMatrix(0);
-    glm::vec3 pos = glm::vec3(7.5f, 0.0f, 0.0f);
-    pos = Math::Transform(mat, pos);  // sensor position
+    auto task = GetObjectTaskExecutorDetails(m_object).sniff;
+    glm::mat4 mat = m_object->GetWorldMatrix(task.partNum);
+    glm::vec3 pos = Math::Transform(mat, task.position);  // sensor position
 
     Gfx::TerrainRes res = m_terrain->GetResource(pos);
-    if ( res == Gfx::TR_NULL )  return false;
 
-    ObjectType type = OBJECT_NULL;
-    Error info = ERR_OK;
-    if ( res == Gfx::TR_STONE )
+    std::vector<CObjectSniffTaskExecutorObject> matched;
+    for ( auto it : task.objects )
     {
-        type = OBJECT_MARKSTONE;
-        info = INFO_MARKSTONE;
+        if (it.soil != Gfx::TR_ANY && it.soil != res)  continue;
+        matched.push_back(it);
     }
-    if ( res == Gfx::TR_URANIUM )
-    {
-        type = OBJECT_MARKURANIUM;
-        info = INFO_MARKURANIUM;
-    }
-    if ( res == Gfx::TR_POWER )
-    {
-        type = OBJECT_MARKPOWER;
-        info = INFO_MARKPOWER;
-    }
-    if ( res == Gfx::TR_KEY_A )
-    {
-        type = OBJECT_MARKKEYa;
-        info = INFO_MARKKEYa;
-    }
-    if ( res == Gfx::TR_KEY_B )
-    {
-        type = OBJECT_MARKKEYb;
-        info = INFO_MARKKEYb;
-    }
-    if ( res == Gfx::TR_KEY_C )
-    {
-        type = OBJECT_MARKKEYc;
-        info = INFO_MARKKEYc;
-    }
-    if ( res == Gfx::TR_KEY_D )
-    {
-        type = OBJECT_MARKKEYd;
-        info = INFO_MARKKEYd;
-    }
-    if ( type == OBJECT_NULL )  return false;
 
-//? DeleteMark(type);
-
-    CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, type);
-
-    m_main->DisplayError(info, pos, 5.0f, 50.0f);  // displays the message
-
-    return true;
-}
-
-// Destroys the marks of a given type.
-
-void CTaskSearch::DeleteMark(ObjectType type)
-{
-    CObject* obj = CObjectManager::GetInstancePointer()->FindNearest(nullptr, type);
-    if (obj != nullptr)
+    if ( matched.size() > 0 )
     {
-        CObjectManager::GetInstancePointer()->DeleteObject(obj);
+        CObjectSniffTaskExecutorObject matchedFinal = matched[ std::rand() % matched.size() ];
+
+        if ( matchedFinal.output != OBJECT_NULL )
+        {
+            CObject* mark = CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, matchedFinal.output);
+            m_main->DisplayText(matchedFinal.message, mark, Ui::TT_INFO, 5.0f, 50.0f);  // displays the message
+        }
+        else
+        {
+            m_main->DisplayText(matchedFinal.message, m_object, Ui::TT_INFO);  // displays the message
+        }
+
+        return true;
     }
+
+    return false;
 }

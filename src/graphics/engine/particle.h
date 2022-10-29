@@ -25,8 +25,7 @@
 #pragma once
 
 #include "graphics/core/color.h"
-
-#include "object/interface/trace_drawing_object.h"
+#include "graphics/engine/trace_color.h"
 
 #include "sound/sound_type.h"
 
@@ -68,7 +67,7 @@ const short SH_MAX = 3;
 // type == 4    ->  text     (white background)
 
 
-enum ParticleType
+enum ParticleType : unsigned char
 {
     PARTIEXPLOT     = 1,        //! < technology explosion
     PARTIEXPLOO     = 2,        //! < organic explosion

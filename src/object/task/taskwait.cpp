@@ -22,6 +22,9 @@
 
 #include "graphics/engine/engine.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
 #include "object/old_object.h"
 
 // Object's constructor.
@@ -54,6 +57,11 @@ bool CTaskWait::EventProcess(const Event &event)
 
 Error CTaskWait::Start(float time)
 {
+    auto task = GetObjectTaskExecutorDetails(m_object).wait;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
     m_waitTime = time;  // duration to wait
     m_passTime = 0.0f;  // time elapsed
     m_bEnded = false;

@@ -33,6 +33,9 @@
 #include "object/object.h"
 #include "object/object_manager.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/global_details.h"
+
 #include "sound/sound.h"
 
 #include "ui/controls/button.h"
@@ -143,60 +146,45 @@ void CDebugMenu::CreateSpawnInterface()
     ddim.y = dim.y*0.5f;
     pos.x += 2*ox;
     pos.y = oy+sy*9.0f;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_CANCEL);
+    pb = pw->CreateButton(pos, ddim, -1, EVENT_DBG_SPAWN_CANCEL);
     pb->SetName("Cancel");
     pos.y -= ddim.y;
+    float startX = pos.x;
 
-    pos.y -= dim.y;
-    pw->CreateButton(pos, dim, 128+8, EVENT_SPAWN_ME);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+9, EVENT_SPAWN_WHEELEDGRABBER);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+15, EVENT_SPAWN_WHEELEDSHOOTER);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+19, EVENT_SPAWN_PHAZERSHOOTER);
-    pos.x -= 3*dim.x;
-    pos.y -= dim.y;
-    pw->CreateButton(pos, dim, 128+32, EVENT_SPAWN_BOTFACTORY);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+34, EVENT_SPAWN_CONVERTER);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+33, EVENT_SPAWN_DERRICK);
-    pos.x += dim.x;
-    pw->CreateButton(pos, dim, 128+36, EVENT_SPAWN_POWERSTATION);
-    pos.x -= 3*dim.x;
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_TITANIUM);
-    pb->SetName("Titanium");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_TITANIUMORE);
-    pb->SetName("TitaniumOre");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_URANIUMORE);
-    pb->SetName("UraniumOre");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_POWERCELL);
-    pb->SetName("PowerCell");
-    pos.y -= ddim.y;
-    pb = pw->CreateButton(pos, ddim, -1, EVENT_SPAWN_NUCLEARCELL);
-    pb->SetName("NuclearCell");
+
+    size_t n = 0;
+
+    size_t len = EVENT_DBG_SPAWN_MAX - EVENT_DBG_SPAWN_01 + 1;
+    auto debugMenu = GetObjectGlobalDetails().debugMenu;
+    len = debugMenu.size() > len ? len : debugMenu.size();
+    for (size_t i = 0; i < len; i++)
+    {
+        if (debugMenu[i].icon == -1) continue;
+
+        if (n % 4 == 0)
+        {
+            pos.x = startX;
+            pos.y -= dim.y;
+        }
+
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
+        pw->CreateButton(pos, dim, debugMenu[i].icon, ev)->SetTooltip(debugMenu[i].text);
+        pos.x += dim.x;
+        n++;
+    }
+
+    pos.x = startX;
+    for (size_t i = 0; i < len; i++)
+    {
+        if (debugMenu[i].icon != -1) continue;
+        if (debugMenu[i].type == OBJECT_NULL) continue;
+
+        pos.y -= ddim.y;
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
+        pb = pw->CreateButton(pos, ddim, -1, ev);
+        pb->SetName(debugMenu[i].text);
+    }
 }
-
-const std::map<EventType, ObjectType> SPAWN_TYPES = {
-    {EVENT_SPAWN_ME,             OBJECT_HUMAN},
-    {EVENT_SPAWN_WHEELEDGRABBER, OBJECT_MOBILEwa},
-    {EVENT_SPAWN_WHEELEDSHOOTER, OBJECT_MOBILEwc},
-    {EVENT_SPAWN_PHAZERSHOOTER,  OBJECT_MOBILErc},
-    {EVENT_SPAWN_BOTFACTORY,     OBJECT_FACTORY},
-    {EVENT_SPAWN_CONVERTER,      OBJECT_CONVERT},
-    {EVENT_SPAWN_DERRICK,        OBJECT_DERRICK},
-    {EVENT_SPAWN_POWERSTATION,   OBJECT_STATION},
-    {EVENT_SPAWN_TITANIUM,       OBJECT_METAL},
-    {EVENT_SPAWN_TITANIUMORE,    OBJECT_STONE},
-    {EVENT_SPAWN_URANIUMORE,     OBJECT_URANIUM},
-    {EVENT_SPAWN_POWERCELL,      OBJECT_POWER},
-    {EVENT_SPAWN_NUCLEARCELL,    OBJECT_ATOMIC},
-};
 
 void CDebugMenu::UpdateInterface()
 {
@@ -249,12 +237,16 @@ void CDebugMenu::UpdateInterface()
         pc->SetState(STATE_CHECK, m_engine->GetDebugLights());
     }
 
-    for (const auto& it : SPAWN_TYPES)
+    size_t len = EVENT_DBG_SPAWN_MAX - EVENT_DBG_SPAWN_01 + 1;
+    auto debugMenu = GetObjectGlobalDetails().debugMenu;
+    len = debugMenu.size() > len ? len : debugMenu.size();
+    for (size_t i = 0; i <= len; i++)
     {
-        pb = static_cast<CButton*>(pw->SearchControl(it.first));
+        EventType ev = static_cast<EventType>(EVENT_DBG_SPAWN_01 + i);
+        pb = static_cast<CButton*>(pw->SearchControl(ev));
         if (pb != nullptr)
         {
-            pb->SetState(STATE_ENABLE, it.second != m_spawningType);
+            pb->SetState(STATE_ENABLE, debugMenu[i].type != m_spawningType);
         }
     }
 }
@@ -267,127 +259,113 @@ void CDebugMenu::DestroyInterface()
 
 bool CDebugMenu::EventProcess(const Event &event)
 {
-    switch (event.type)
+    if (event.type == EVENT_DBG_STATS)
     {
-        case EVENT_DBG_STATS:
-            m_engine->SetShowStats(!m_engine->GetShowStats());
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_SPAWN_OBJ:
-            DestroyInterface();
-            CreateSpawnInterface();
-            break;
-
-        case EVENT_DBG_TELEPORT:
-            if (!m_teleportActive)
-            {
-                if (m_main->GetSelect() != nullptr)
-                    m_teleportActive = true;
-                else
-                    m_sound->Play(SOUND_CLICK);
-            }
+        m_engine->SetShowStats(!m_engine->GetShowStats());
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_SPAWN_OBJ)
+    {
+        DestroyInterface();
+        CreateSpawnInterface();
+    }
+    else if (event.type == EVENT_DBG_TELEPORT)
+    {
+        if (!m_teleportActive)
+        {
+            if (m_main->GetSelect() != nullptr)
+                m_teleportActive = true;
             else
+                m_sound->Play(SOUND_CLICK);
+        }
+        else
+        {
+            m_teleportActive = false;
+        }
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_LIGHTNING)
+    {
+        m_lightningActive = !m_lightningActive;
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_RESOURCES)
+    {
+        m_engine->SetDebugResources(!m_engine->GetDebugResources());
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_GOTO)
+    {
+        m_engine->SetDebugGoto(!m_engine->GetDebugGoto());
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_CRASHSPHERES)
+    {
+        m_main->SetDebugCrashSpheres(!m_main->GetDebugCrashSpheres());
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_LIGHTS)
+    {
+        m_engine->SetDebugLights(!m_engine->GetDebugLights());
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_DBG_LIGHTS_DUMP)
+    {
+        m_engine->DebugDumpLights();
+    }
+    else if (event.type == EVENT_DBG_SPAWN_CANCEL)
+    {
+        DestroyInterface();
+        CreateInterface();
+    }
+    else if (event.type >= EVENT_DBG_SPAWN_01 && event.type <= EVENT_DBG_SPAWN_MAX)
+    {
+        size_t idx = event.type - EVENT_DBG_SPAWN_01;
+        assert(idx < GetObjectGlobalDetails().debugMenu.size());
+        auto item = GetObjectGlobalDetails().debugMenu[idx];
+        m_spawningType = item.type;
+        UpdateInterface();
+    }
+    else if (event.type == EVENT_MOUSE_BUTTON_DOWN)
+    {
+        if (event.GetData<MouseButtonEventData>()->button == MOUSE_BUTTON_LEFT)
+        {
+            if (m_lightningActive)
             {
-                m_teleportActive = false;
-            }
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_LIGHTNING:
-            m_lightningActive = !m_lightningActive;
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_RESOURCES:
-            m_engine->SetDebugResources(!m_engine->GetDebugResources());
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_GOTO:
-            m_engine->SetDebugGoto(!m_engine->GetDebugGoto());
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_CRASHSPHERES:
-            m_main->SetDebugCrashSpheres(!m_main->GetDebugCrashSpheres());
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_LIGHTS:
-            m_engine->SetDebugLights(!m_engine->GetDebugLights());
-            UpdateInterface();
-            break;
-
-        case EVENT_DBG_LIGHTS_DUMP:
-            m_engine->DebugDumpLights();
-            break;
-
-
-        case EVENT_SPAWN_CANCEL:
-            DestroyInterface();
-            CreateInterface();
-            break;
-
-        case EVENT_SPAWN_ME:
-        case EVENT_SPAWN_WHEELEDGRABBER:
-        case EVENT_SPAWN_WHEELEDSHOOTER:
-        case EVENT_SPAWN_PHAZERSHOOTER:
-        case EVENT_SPAWN_BOTFACTORY:
-        case EVENT_SPAWN_CONVERTER:
-        case EVENT_SPAWN_DERRICK:
-        case EVENT_SPAWN_POWERSTATION:
-        case EVENT_SPAWN_TITANIUM:
-        case EVENT_SPAWN_TITANIUMORE:
-        case EVENT_SPAWN_URANIUMORE:
-        case EVENT_SPAWN_POWERCELL:
-        case EVENT_SPAWN_NUCLEARCELL:
-            m_spawningType = SPAWN_TYPES.at(event.type);
-            UpdateInterface();
-            break;
-
-        case EVENT_MOUSE_BUTTON_DOWN:
-            if (event.GetData<MouseButtonEventData>()->button == MOUSE_BUTTON_LEFT)
-            {
-                if (m_lightningActive)
-                {
-                    return !HandleLightning(event.mousePos);
-                }
-
-                if (m_teleportActive)
-                {
-                    return !HandleTeleport(event.mousePos);
-                }
-
-                if (m_spawningType != OBJECT_NULL)
-                {
-                    return !HandleSpawnObject(m_spawningType, event.mousePos);
-                }
-            }
-            break;
-
-        case EVENT_MOUSE_MOVE:
-            if (m_spawningType != OBJECT_NULL || m_teleportActive || m_lightningActive)
-            {
-                return false;
-            }
-            break;
-
-        case EVENT_FRAME:
-            HandleFrameUpdate(event);
-            break;
-
-        case EVENT_KEY_DOWN:
-            if (event.GetData<KeyEventData>()->key == KEY(c) && (event.kmodState & KMOD_CTRL) != 0)
-            {
-                if (IsActive())
-                {
-                    return !HandleCopy(event.mousePos);
-                }
+                return !HandleLightning(event.mousePos);
             }
 
-        default:
-            break;
+            if (m_teleportActive)
+            {
+                return !HandleTeleport(event.mousePos);
+            }
+
+            if (m_spawningType != OBJECT_NULL)
+            {
+                return !HandleSpawnObject(m_spawningType, event.mousePos);
+            }
+        }
+    }
+    else if (event.type == EVENT_MOUSE_MOVE)
+    {
+        if (m_spawningType != OBJECT_NULL || m_teleportActive || m_lightningActive)
+        {
+            return false;
+        }
+    }
+    else if (event.type == EVENT_FRAME)
+    {
+        HandleFrameUpdate(event);
+    }
+    else if (event.type == EVENT_KEY_DOWN)
+    {
+        if (event.GetData<KeyEventData>()->key == KEY(c) && (event.kmodState & KMOD_CTRL) != 0)
+        {
+            if (IsActive())
+            {
+                return !HandleCopy(event.mousePos);
+            }
+        }
     }
     return true;
 }

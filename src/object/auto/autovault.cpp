@@ -29,10 +29,16 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/transportable_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/modeled_helpers.h"
+
+#include "object/interface/slotted_object.h"
 
 #include "sound/sound.h"
 
@@ -45,18 +51,14 @@ const float OPEN_DELAY  = 8.0f; // duration of opening
 
 // Object's constructor.
 
-CAutoVault::CAutoVault(COldObject* object) : CAuto(object)
+CAutoVault::CAutoVault(CObject* object) : CAuto(object)
 {
-    for (int i = 0; i < 4; i++)
-    {
-        m_bKey[i] = false;
-        m_keyParti[i] = -1;
-    }
-
     m_bLock = false;
     m_lastParticle = 0.0f;
     m_channelSound = -1;
     Init();
+
+    assert( GetNumSlots(object) == GetObjectAutomatedDetails(m_object).vault.keys.size() );
 }
 
 // Object's destructor.
@@ -96,8 +98,6 @@ void CAutoVault::Init()
     m_lastParticle = 0.0f;
 
     m_countKeys   = 0;
-    m_actualAngle = 0.0f;
-    m_finalAngle  = 0.0f;
 
     m_phase    = ASAP_WAIT;  // waiting ...
     m_progress = 0.0f;
@@ -112,7 +112,7 @@ void CAutoVault::Init()
 bool CAutoVault::EventProcess(const Event &event)
 {
     CObject*    pObj;
-    glm::vec3    pos, speed;
+    glm::vec3   pos, speed;
     glm::vec2     dim;
     int         i, count;
 
@@ -155,13 +155,8 @@ bool CAutoVault::EventProcess(const Event &event)
             {
                 m_countKeys = count;
 
-                if ( count == 0 )  m_finalAngle =   0.0f*Math::PI/180.0f;
-                if ( count == 1 )  m_finalAngle =   5.0f*Math::PI/180.0f;
-                if ( count == 2 )  m_finalAngle =  10.0f*Math::PI/180.0f;
-                if ( count == 3 )  m_finalAngle =  15.0f*Math::PI/180.0f;
-                if ( count == 4 )  m_finalAngle = 120.0f*Math::PI/180.0f;
-
-                if ( count == 4 )  // all the keys?
+                int totalKeys = GetObjectAutomatedDetails(m_object).vault.keys.size();
+                if ( count == totalKeys )  // all the keys?
                 {
                     LockKeys();
 
@@ -219,15 +214,14 @@ bool CAutoVault::EventProcess(const Event &event)
                 dim.y = dim.x;
                 m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIGLINT, 1.0f, 0.0f, 0.0f);
 
-                for ( i=0 ; i<4 ; i++ )
+                for ( auto & key : m_keyInfo )
                 {
-                    pos = m_keyPos[i];
                     speed.x = (Math::Rand()-0.5f)*2.0f;
                     speed.z = (Math::Rand()-0.5f)*2.0f;
                     speed.y = 1.0f+Math::Rand()*1.0f;
                     dim.x = Math::Rand()*1.5f+1.5f;
                     dim.y = dim.x;
-                    m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISMOKE3, 4.0f, 0.0f, 0.0f);
+//TODO                    m_particle->CreateParticle(key.position, speed, dim, Gfx::PARTISMOKE3, 4.0f, 0.0f, 0.0f);
                 }
             }
         }
@@ -264,92 +258,56 @@ bool CAutoVault::EventProcess(const Event &event)
     }
 
     // Opens or closes the doors.
-    if ( m_actualAngle != m_finalAngle )
+    for ( auto it : GetObjectAutomatedDetails(m_object).vault.doors )
     {
-        if ( m_actualAngle < m_finalAngle )
+        int partNum  = it.partNum;
+        if ( it.needKeys != m_countKeys ) continue;
+
+        auto newVal = [](float value, float target, float delta)
         {
-            m_actualAngle += (105.0f*Math::PI/180.0f)*event.rTime/OPEN_DELAY;
-            if ( m_actualAngle > m_finalAngle )  m_actualAngle = m_finalAngle;
-        }
-        else
-        {
-            m_actualAngle -= (105.0f*Math::PI/180.0f)*event.rTime/OPEN_DELAY;
-            if ( m_actualAngle < m_finalAngle )  m_actualAngle = m_finalAngle;
-        }
-        m_object->SetPartRotationZ(1,  m_actualAngle);
-        m_object->SetPartRotationZ(2, -m_actualAngle);
+            if (value < target)
+                return Math::Min(value + delta, target);
+            else
+                return Math::Max(value - delta, target);
+        };
+
+        float dPos  = 30.0f*event.rTime/OPEN_DELAY;
+        glm::vec3 newPos = { newVal( GetPartPosition(m_object, partNum).x, it.position.x, dPos),
+                             newVal( GetPartPosition(m_object, partNum).y, it.position.y, dPos),
+                             newVal( GetPartPosition(m_object, partNum).z, it.position.z, dPos)};
+        SetPartPosition(m_object,  partNum, newPos );
+
+        float dAngle  = (105.0f*Math::PI/180.0f)*event.rTime/OPEN_DELAY;
+        glm::vec3 newRot = { newVal( GetPartRotation(m_object, partNum).x, it.rotation.x, dAngle),
+                             newVal( GetPartRotation(m_object, partNum).y, it.rotation.y, dAngle),
+                             newVal( GetPartRotation(m_object, partNum).z, it.rotation.z, dAngle)};
+        SetPartRotation(m_object,  partNum, newRot );
     }
 
     // Blinks the keys.
     speed = glm::vec3(0.0f, 0.0f, 0.0f);
     dim.x = 2.0f;
     dim.y = dim.x;
-    for ( i=0 ; i<4 ; i++ )
+
+    for ( auto & key : m_keyInfo )
     {
-        if ( m_phase != ASAP_WAIT || !m_bKey[i] || Math::Mod(m_time, 1.0f) < 0.4f )
+        if ( m_phase != ASAP_WAIT || !key.isPlaced || Math::Mod(m_time, 1.0f) < 0.4f )
         {
-            if ( m_keyParti[i] != -1 )
-            {
-                m_particle->DeleteParticle(m_keyParti[i]);
-                m_keyParti[i] = -1;
-            }
+            m_particle->DeleteParticle(key.particleId);
+            key.particleId = -1;
         }
         else
         {
-            if ( m_keyParti[i] == -1 )
-            {
-                pos = m_keyPos[i];
-                pos.y += 2.2f;
-                m_keyParti[i] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELY, 1.0f, 0.0f, 0.0f);
-            }
+            if ( key.particleId != -1 ) continue;
+
+            pos = key.position;
+            pos.y += 2.2f;
+            key.particleId = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELY, 1.0f, 0.0f, 0.0f);
         }
     }
 
     return true;
 }
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoVault::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 114, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoVault::GetError()
-{
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 
@@ -382,106 +340,44 @@ bool CAutoVault::Read(CLevelParserLine* line)
     return true;
 }
 
-
 // Counts the number of keys
 
 int CAutoVault::CountKeys()
 {
-    glm::vec3 cPos = m_object->GetPosition();
-    float cAngle = m_object->GetRotationY();
+    int result = 0;
 
-    for (int index = 0; index < 4; index++)
+    m_keyInfo.resize( GetObjectAutomatedDetails(m_object).vault.keys.size() );
+
+    int index = 0;
+    for (auto it : GetObjectAutomatedDetails(m_object).vault.keys)
     {
-        m_bKey[index] = false;
-        m_keyPos[index] = cPos;
+        CObject* obj = GetObjectInSlot(m_object, it.slotNum);
+        bool placed = obj && obj->GetType() == it.input;
+
+        glm::mat4 mat = m_object->GetWorldMatrix(0);
+        m_keyInfo[index].position = Math::Transform(mat, dynamic_cast<CSlottedObject*>(m_object)->GetSlotPosition(it.slotNum));
+        m_keyInfo[index].isPlaced = placed;
+        index ++;
+
+        if ( placed ) result ++;
     }
 
-    for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
-    {
-        if (IsObjectBeingTransported(obj))  continue;
-
-        ObjectType  oType = obj->GetType();
-        if ( oType != OBJECT_KEYa &&
-             oType != OBJECT_KEYb &&
-             oType != OBJECT_KEYc &&
-             oType != OBJECT_KEYd )  continue;
-
-        glm::vec3 oPos = obj->GetPosition();
-        float dist = Math::DistanceProjected(oPos, cPos);
-        if ( dist > 20.0f )  continue;
-
-        float limit = 0.0f;
-        float oAngle = 0.0f;
-        int index = 0;
-        if ( oType == OBJECT_KEYa )
-        {
-            limit  = Math::PI*1.0f;
-            oAngle = Math::PI*0.0f;
-            index  = 0;
-        }
-        if ( oType == OBJECT_KEYb )
-        {
-            limit  = Math::PI*0.0f;
-            oAngle = Math::PI*1.0f;
-            index  = 1;
-        }
-        if ( oType == OBJECT_KEYc )
-        {
-            limit  = Math::PI*1.5f;
-            oAngle = Math::PI*0.5f;
-            index  = 2;
-        }
-        if ( oType == OBJECT_KEYd )
-        {
-            limit  = Math::PI*0.5f;
-            oAngle = Math::PI*0.0f;
-            index  = 3;
-        }
-
-        float angle = Math::RotateAngle(oPos.x-cPos.x, oPos.z-cPos.z)+cAngle;
-        if ( !Math::TestAngle(angle, limit-8.0f*Math::PI/180.0f, limit+8.0f*Math::PI/180.0f) )  continue;
-
-        // Key changes the shape of the base.
-        glm::vec2 rot = Math::RotatePoint({ cPos.x, cPos.z }, limit - cAngle, { cPos.x + 16.0f, cPos.z });
-        oPos.x = rot.x;
-        oPos.z = rot.y;
-        oPos.y = cPos.y+1.0f;
-        obj->SetPosition(oPos);
-        obj->SetRotationY(oAngle+cAngle);
-        m_keyPos[index] = oPos;
-
-        m_bKey[index] = true;
-    }
-
-    int i = 0;
-    for (int index = 0; index < 4; index++)
-    {
-        if ( m_bKey[index] )  i++;
-    }
-    return i;
+    return result;
 }
 
 // Blocks all keys.
 
 void CAutoVault::LockKeys()
 {
-    glm::vec3 cPos = m_object->GetPosition();
-
-    for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
+    for (auto it : GetObjectAutomatedDetails(m_object).vault.keys)
     {
-        ObjectType oType = obj->GetType();
-        if (IsObjectBeingTransported(obj))  continue;
+        CObject* obj = GetObjectInSlot(m_object, it.slotNum);
+        bool placed = obj && obj->GetType() == it.input;
 
-        if ( oType != OBJECT_KEYa &&
-             oType != OBJECT_KEYb &&
-             oType != OBJECT_KEYc &&
-             oType != OBJECT_KEYd )  continue;
-
-        glm::vec3 oPos = obj->GetPosition();
-        float dist = Math::DistanceProjected(oPos, cPos);
-        if ( dist > 20.0f )  continue;
-
-        obj->SetLock(true);
+        if ( placed )
+        {
+            obj->SetLock(true);
+        }
     }
 }
 
@@ -489,24 +385,17 @@ void CAutoVault::LockKeys()
 
 void CAutoVault::DownKeys(float progress)
 {
-    glm::vec3 cPos = m_object->GetPosition();
-
-    for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
+    for (auto it : GetObjectAutomatedDetails(m_object).vault.keys)
     {
-        ObjectType oType = obj->GetType();
-        if (IsObjectBeingTransported(obj))  continue;
+        CObject* obj = GetObjectInSlot(m_object, it.slotNum);
+        bool placed = obj && obj->GetType() == it.input;
 
-        if ( oType != OBJECT_KEYa &&
-             oType != OBJECT_KEYb &&
-             oType != OBJECT_KEYc &&
-             oType != OBJECT_KEYd )  continue;
-
-        glm::vec3 oPos = obj->GetPosition();
-        float dist = Math::DistanceProjected(oPos, cPos);
-        if ( dist > 20.0f )  continue;
-
-        oPos.y = cPos.y+1.0f-progress*2.2f;
-        obj->SetPosition(oPos);
+        if ( placed )
+        {
+            glm::vec3 oPos = obj->GetPosition();
+            oPos.y = -progress*2.2f;
+            obj->SetPosition(oPos);
+        }
     }
 }
 
@@ -514,32 +403,16 @@ void CAutoVault::DownKeys(float progress)
 
 void CAutoVault::DeleteKeys()
 {
-    glm::vec3 cPos = m_object->GetPosition();
-
-    bool haveDeleted = false;
-    do
+    for (auto it : GetObjectAutomatedDetails(m_object).vault.keys)
     {
-        haveDeleted = false;
-        for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
+        CObject* obj = GetObjectInSlot(m_object, it.slotNum);
+        bool placed = obj && obj->GetType() == it.input;
+
+        if ( placed )
         {
-            ObjectType oType = obj->GetType();
-            if (IsObjectBeingTransported(obj))  continue;
-
-            if ( oType != OBJECT_KEYa &&
-                 oType != OBJECT_KEYb &&
-                 oType != OBJECT_KEYc &&
-                 oType != OBJECT_KEYd )  continue;
-
-            glm::vec3 oPos = obj->GetPosition();
-            float dist = Math::DistanceProjected(oPos, cPos);
-            if ( dist > 20.0f )  continue;
-
-            CObjectManager::GetInstancePointer()->DeleteObject(obj);
-
-            haveDeleted = true;
+            CObjectManager::GetInstancePointer()->DeleteObjectInSlot(m_object, it.slotNum);
         }
     }
-    while ( haveDeleted );
 }
 
 // Seeking a vehicle in the safe.

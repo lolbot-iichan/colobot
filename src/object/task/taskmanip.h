@@ -99,5 +99,4 @@ protected:
     float           m_move = 0.0f;
     glm::vec3       m_targetPos = { 0, 0, 0 };
     float           m_timeLimit = 0.0f;
-    ObjectType      m_cargoType = OBJECT_NULL;
 };

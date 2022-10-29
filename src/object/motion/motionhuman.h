@@ -62,20 +62,15 @@ public:
     CMotionHuman(COldObject* object);
     ~CMotionHuman();
 
-    void    DeleteObject(bool bAll=false) override;
-    void    Create(glm::vec3 pos, float angle, ObjectType type, float power, Gfx::COldModelManager* modelManager) override;
+    void    Create() override;
     bool    EventProcess(const Event &event) override;
     Error   SetAction(int action, float time=0.2f) override;
 
-    void    StartDisplayPerso();
-    void    StopDisplayPerso();
-
 protected:
-    void    CreatePhysics(ObjectType type);
+    void    CreatePhysics();
     bool    EventFrame(const Event &event);
 
 protected:
-    int         m_partiReactor;
     float       m_armMember;
     float       m_armTimeAbs;
     float       m_armTimeAction;
@@ -90,6 +85,5 @@ protected:
     float       m_lastSoundHhh;
     float       m_time;
     float       m_tired;
-    bool        m_bDisplayPerso;
     int         m_glassesRank;
 };

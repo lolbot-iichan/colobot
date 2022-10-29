@@ -43,6 +43,7 @@ class CEdit;
 class CEditValue;
 class CEnumSlider;
 class CGroup;
+class CLogo;
 class CImage;
 class CKey;
 class CLabel;
@@ -71,6 +72,7 @@ public:
     CCheck*     CreateCheck(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CKey*       CreateKey(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CGroup*     CreateGroup(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
+    CLogo*      CreateLogo(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CImage*     CreateImage(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CEdit*      CreateEdit(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CEditValue* CreateEditValue(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);

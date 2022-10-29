@@ -26,20 +26,20 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
 
 #include "sound/sound.h"
 
-#include "ui/controls/gauge.h"
-#include "ui/controls/interface.h"
-#include "ui/controls/window.h"
-
-
-
 // Object's constructor.
 
-CAutoPowerStation::CAutoPowerStation(COldObject* object) : CAuto(object)
+CAutoPowerStation::CAutoPowerStation(CObject* object) : CAuto(object)
 {
     assert(object->Implements(ObjectInterfaceType::PowerContainer));
     Init();
@@ -97,14 +97,14 @@ bool CAutoPowerStation::EventProcess(const Event &event)
         if ( !m_bLastVirus )
         {
             m_bLastVirus = true;
-            m_energyVirus = dynamic_cast<CPowerContainerObject*>(m_object)->GetEnergyLevel();
+            m_energyVirus = GetObjectEnergyLevel(m_object);
         }
 
         if ( m_timeVirus <= 0.0f )
         {
             m_timeVirus = 0.1f+Math::Rand()*0.3f;
 
-            dynamic_cast<CPowerContainerObject*>(m_object)->SetEnergyLevel(Math::Rand());
+            SetObjectEnergyLevel(m_object, Math::Rand());
         }
         return true;
     }
@@ -113,50 +113,47 @@ bool CAutoPowerStation::EventProcess(const Event &event)
         if ( m_bLastVirus )
         {
             m_bLastVirus = false;
-            dynamic_cast<CPowerContainerObject*>(m_object)->SetEnergyLevel(m_energyVirus);
+            SetObjectEnergyLevel(m_object, m_energyVirus);
         }
     }
 
     UpdateInterface(event.rTime);
 
-    float big = dynamic_cast<CPowerContainerObject*>(m_object)->GetEnergy();
-
     Gfx::TerrainRes res = m_terrain->GetResource(m_object->GetPosition());
     if ( res == Gfx::TR_POWER )
     {
-        big += event.rTime*0.01f;  // recharges the large battery
+        float energy = event.rTime*0.01f;
+        ChargeObjectEnergy(m_object, energy);  // recharges the large battery
     }
 
-    float used = big;
+    bool used = false;
     float freq = 1.0f;
-    if (big > 0.0f)
+    if (GetObjectEnergy(m_object) > 0.0f)
     {
-        CObject* vehicle = SearchVehicle();
-        if (vehicle != nullptr && vehicle->Implements(ObjectInterfaceType::Slotted))
+        if (CObject* vehicle = SearchVehicle())
         {
-            CSlottedObject* slotted = dynamic_cast<CSlottedObject*>(vehicle);
-            for (int slot = slotted->GetNumSlots() - 1; slot >= 0; slot--)
+            for (int slot = GetNumSlots(vehicle) - 1; slot >= 0; slot--)
             {
-                CObject *power = slotted->GetSlotContainedObject(slot);
+                CObject *power = GetObjectInSlot(vehicle, slot);
                 if (power != nullptr && power->Implements(ObjectInterfaceType::PowerContainer))
                 {
-                    CPowerContainerObject* powerContainer = dynamic_cast<CPowerContainerObject*>(power);
-                    if (powerContainer->IsRechargeable())
-                    {
-                        float energy = powerContainer->GetEnergy();
-                        float add = event.rTime*0.2f;
-                        if ( add > big*4.0f )  add = big*4.0f;
-                        if ( add > 1.0f-energy )  add = 1.0f-energy;
-                        energy += add;  // Charging the battery
-                        powerContainer->SetEnergy(energy);
-                        if ( energy < freq )  freq = energy;
-                        big -= add/4.0f;  // discharge the large battery
-                    }
+                    float before = GetObjectEnergy(power);
+
+                    float add = event.rTime*0.2f;
+                    float max = GetObjectEnergy(m_object)*4.0;
+                    if ( add > max )  add = max;
+                    ChargeObjectEnergy(power, add);  // Charging the battery
+
+                    float energy = GetObjectEnergy(power);
+                    if ( energy < freq )  freq = energy;
+
+                    float delta = (energy - before)/4.0;
+                    DecreaseObjectEnergy(m_object, delta);  // discharge the large battery
+                    used = used || (delta != 0);
                 }
             }
         }
     }
-    used -= big;  // energy used
 
     if ( freq < 1.0f )  // charging in progress?
     {
@@ -177,8 +174,7 @@ bool CAutoPowerStation::EventProcess(const Event &event)
         }
     }
 
-    if ( used != 0.0f &&
-         m_lastParticle+m_engine->ParticleAdapt(0.05f) <= m_time )
+    if ( used && m_lastParticle+m_engine->ParticleAdapt(0.05f) <= m_time )
     {
         m_lastParticle = m_time;
 
@@ -210,10 +206,6 @@ bool CAutoPowerStation::EventProcess(const Event &event)
         m_particle->CreateParticle(ppos, speed, dim, Gfx::PARTIVAPOR, 3.0f);
     }
 
-    if ( big < 0.0f )  big = 0.0f;
-    if ( big > 1.0f )  big = 1.0f;
-    dynamic_cast<CPowerContainerObject*>(m_object)->SetEnergy(big);  // Shift the large battery
-
     return true;
 }
 
@@ -226,41 +218,8 @@ CObject* CAutoPowerStation::SearchVehicle()
 
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type != OBJECT_HUMAN    &&
-             type != OBJECT_MOBILEfa &&
-             type != OBJECT_MOBILEta &&
-             type != OBJECT_MOBILEwa &&
-             type != OBJECT_MOBILEia &&
-             type != OBJECT_MOBILEfb &&
-             type != OBJECT_MOBILEtb &&
-             type != OBJECT_MOBILEwb &&
-             type != OBJECT_MOBILEib &&
-             type != OBJECT_MOBILEfc &&
-             type != OBJECT_MOBILEtc &&
-             type != OBJECT_MOBILEwc &&
-             type != OBJECT_MOBILEic &&
-             type != OBJECT_MOBILEfi &&
-             type != OBJECT_MOBILEti &&
-             type != OBJECT_MOBILEwi &&
-             type != OBJECT_MOBILEii &&
-             type != OBJECT_MOBILEfs &&
-             type != OBJECT_MOBILEts &&
-             type != OBJECT_MOBILEws &&
-             type != OBJECT_MOBILEis &&
-             type != OBJECT_MOBILErt &&
-             type != OBJECT_MOBILErc &&
-             type != OBJECT_MOBILErr &&
-             type != OBJECT_MOBILErs &&
-             type != OBJECT_MOBILEsa &&
-             type != OBJECT_MOBILEft &&
-             type != OBJECT_MOBILEtt &&
-             type != OBJECT_MOBILEwt &&
-             type != OBJECT_MOBILEit &&
-             type != OBJECT_MOBILErp &&
-             type != OBJECT_MOBILEst &&
-             type != OBJECT_MOBILEtg &&
-             type != OBJECT_MOBILEdr )  continue;
+        auto targeted = GetObjectAutomatedDetails(obj).targeted;
+        if (!targeted.chargedByPowerStation) continue;
 
         glm::vec3 oPos = obj->GetPosition();
         float dist = glm::distance(oPos, sPos);
@@ -271,78 +230,13 @@ CObject* CAutoPowerStation::SearchVehicle()
 }
 
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAutoPowerStation::GetError()
 {
     Gfx::TerrainRes  res;
-
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
     res = m_terrain->GetResource(m_object->GetPosition());
     if ( res != Gfx::TR_POWER )  return ERR_STATION_NULL;
 
     return ERR_OK;
-}
-
-// Create the all interface when the object is selected.
-bool CAutoPowerStation::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*14.5f;
-    pos.y = oy+sy*0;
-    ddim.x = 14.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 104, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-// Updates the state of all buttons on the interface,
-// following the time that elapses ...
-
-void CAutoPowerStation::UpdateInterface(float rTime)
-{
-    Ui::CWindow*    pw;
-    Ui::CGauge*     pg;
-
-    CAuto::UpdateInterface(rTime);
-
-    if ( m_time < m_lastUpdateTime+0.1f )  return;
-    m_lastUpdateTime = m_time;
-
-    if ( !m_object->GetSelect() )  return;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return;
-
-    pg = static_cast< Ui::CGauge* >(pw->SearchControl(EVENT_OBJECT_GENERGY));
-    if ( pg != nullptr )
-    {
-        pg->SetLevel(m_object->GetEnergy());
-    }
 }

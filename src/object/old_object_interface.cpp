@@ -52,6 +52,12 @@ void COldObjectInterface::SetDrawFront(bool bDraw)
 }
 
 
+void COldObjectInterface::SetFloorHeight(float height)
+{
+    throw std::logic_error("SetFloorHeight: not implemented!");
+}
+
+
 void COldObjectInterface::FloorAdjust()
 {
     throw std::logic_error("FloorAdjust: not implemented!");

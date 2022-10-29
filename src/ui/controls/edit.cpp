@@ -37,6 +37,7 @@
 #include "graphics/engine/engine.h"
 
 #include "level/parser/parser.h"
+#include "level/parser/path_inject.h"
 
 #include "math/func.h"
 

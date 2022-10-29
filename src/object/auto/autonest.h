@@ -36,22 +36,24 @@ enum AutoNestPhase
 class CAutoNest : public CAuto
 {
 public:
-    CAutoNest(COldObject* object);
+    CAutoNest(CObject* object);
     ~CAutoNest();
 
     void        DeleteObject(bool all=false) override;
 
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
 
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
 protected:
     bool        SearchFree(glm::vec3 pos);
-    void        CreateCargo(glm::vec3 pos, float angle, ObjectType type);
+    void        CreateCargo(glm::vec3 pos, float angle);
     CObject*    SearchCargo();
+
+    void         FindSomethingToDig();
+    glm::vec3 GetCargoPos();
 
 protected:
     AutoNestPhase   m_phase = ANP_WAIT;
@@ -59,4 +61,5 @@ protected:
     float           m_speed = 0.0f;
     float           m_lastParticle = 0.0f;
     glm::vec3       m_cargoPos = { 0, 0, 0 };
+    std::string     m_onCompleted;
 };

@@ -31,9 +31,11 @@
 
 #include "math/geometry.h"
 
-#include "object/old_object.h"
+#include "object/object.h"
 
-#include "object/interface/slotted_object.h"
+#include "object/helpers/common_helpers.h"
+#include "object/helpers/modeled_helpers.h"
+#include "object/helpers/power_helpers.h"
 
 #include "sound/sound.h"
 
@@ -48,7 +50,7 @@ const float SEARCH_TIME = 30.0f;        // duration of a research
 
 // Object's constructor.
 
-CAutoResearch::CAutoResearch(COldObject* object) : CAuto(object)
+CAutoResearch::CAutoResearch(CObject* object) : CAuto(object)
 {
     for (int i = 0; i < 6; i++)
     {
@@ -57,8 +59,6 @@ CAutoResearch::CAutoResearch(COldObject* object) : CAuto(object)
     m_channelSound = -1;
 
     Init();
-
-    assert(m_object->GetNumSlots() == 1);
 }
 
 // Object's destructor.
@@ -115,16 +115,20 @@ Error CAutoResearch::StartAction(int param)
         return ERR_RESEARCH_ALREADY;
     }
 
-    if (m_object->GetSlotContainedObject(0) == nullptr || !m_object->GetSlotContainedObject(0)->Implements(ObjectInterfaceType::PowerContainer))
+    if ( !m_main->IsResearchEnabled(m_research) )
+    {
+        return ERR_BUILD_DISABLED;
+    }
+
+    if ( !HasObjectPowerContainer(m_object) )
     {
         return ERR_RESEARCH_POWER;
     }
-    CPowerContainerObject* power = dynamic_cast<CPowerContainerObject*>(m_object->GetSlotContainedObject(0));
-    if ( power->GetCapacity() > 1.0f )
+    if ( GetObjectEnergyCapacity(m_object) > 1.0f )
     {
         return ERR_RESEARCH_TYPE;
     }
-    if ( power->GetEnergy() < 1.0f )
+    if ( GetObjectEnergyLevel(m_object) < 1.0f )
     {
         return ERR_RESEARCH_ENERGY;
     }
@@ -154,10 +158,9 @@ Error CAutoResearch::StartAction(int param)
 
 bool CAutoResearch::EventProcess(const Event &event)
 {
-    CPowerContainerObject*    power;
-    glm::vec3    pos, speed;
+    glm::vec3   pos, speed;
     Error       message;
-    glm::vec2     dim;
+    glm::vec2   dim;
     float       angle;
 
     CAuto::EventProcess(event);
@@ -166,10 +169,10 @@ bool CAutoResearch::EventProcess(const Event &event)
 
     if ( event.type == EVENT_UPDINTERFACE )
     {
-        if ( m_object->GetSelect() )  CreateInterface(true);
+        if ( IsObjectSelected(m_object) )  CreateInterface(true);
     }
 
-    if ( m_object->GetSelect() )  // center selected?
+    if ( IsObjectSelected(m_object) )  // center selected?
     {
         Error err = ERR_UNKNOWN;
         if ( event.type == EVENT_OBJECT_RTANK   ) err = StartAction(RESEARCH_TANK);
@@ -203,14 +206,13 @@ bool CAutoResearch::EventProcess(const Event &event)
         return true;
     }
 
-    UpdateInterface(event.rTime);
     EventProgress(event.rTime);
 
     angle = m_time*0.1f;
-    m_object->SetPartRotationY(1, angle);  // rotates the antenna
+    SetPartRotationY(m_object, 1, angle);  // rotates the antenna
 
     angle = (30.0f+sinf(m_time*0.3f)*20.0f)*Math::PI/180.0f;
-    m_object->SetPartRotationZ(2, angle);  // directs the antenna
+    SetPartRotationZ(m_object, 2, angle);  // directs the antenna
 
     if ( m_phase == ALP_WAIT )
     {
@@ -223,9 +225,7 @@ bool CAutoResearch::EventProcess(const Event &event)
         FireStopUpdate(m_progress, true);  // flashes
         if ( m_progress < 1.0f )
         {
-            CObject* batteryObj = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObject(0);
-
-            if ( batteryObj == nullptr || !batteryObj->Implements(ObjectInterfaceType::PowerContainer) )  // more battery?
+            if ( !HasObjectPowerContainer(m_object) )  // more battery?
             {
                 SetBusy(false);
                 UpdateInterface();
@@ -235,8 +235,9 @@ bool CAutoResearch::EventProcess(const Event &event)
                 m_speed    = 1.0f/1.0f;
                 return true;
             }
-            power = dynamic_cast<CPowerContainerObject*>(batteryObj);
-            power->SetEnergyLevel(1.0f-m_progress);
+
+            float energy = event.rTime*m_speed;
+            DecreaseObjectEnergy(m_object, energy);
 
             if ( m_lastParticle+m_engine->ParticleAdapt(0.05f) <= m_time )
             {
@@ -291,7 +292,7 @@ bool CAutoResearch::EventProcess(const Event &event)
 }
 
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAutoResearch::GetError()
 {
@@ -300,21 +301,15 @@ Error CAutoResearch::GetError()
         return ERR_OK;
     }
 
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    if (m_object->GetSlotContainedObject(0) == nullptr || !m_object->GetSlotContainedObject(0)->Implements(ObjectInterfaceType::PowerContainer))
+    if ( !HasObjectPowerContainer(m_object) )
     {
         return ERR_RESEARCH_POWER;
     }
-    CPowerContainerObject* power = dynamic_cast<CPowerContainerObject*>(m_object->GetSlotContainedObject(0));
-    if ( power->GetCapacity() > 1.0f )
+    if ( GetObjectEnergyCapacity(m_object) > 1.0f )
     {
         return ERR_RESEARCH_TYPE;
     }
-    if ( power->GetEnergy() < 1.0f )
+    if ( GetObjectEnergyLevel(m_object) < 1.0f )
     {
         return ERR_RESEARCH_ENERGY;
     }
@@ -328,7 +323,7 @@ Error CAutoResearch::GetError()
 bool CAutoResearch::CreateInterface(bool bSelect)
 {
     Ui::CWindow*    pw;
-    glm::vec2     pos, dim, ddim;
+    glm::vec2     pos, dim;
     float       ox, oy, sx, sy;
 
     CAuto::CreateInterface(bSelect);
@@ -344,7 +339,7 @@ bool CAutoResearch::CreateInterface(bool bSelect)
     oy = 3.0f/480.0f;
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
-    if( !m_object->GetTrainer() )
+    if( !IsObjectTrainer(m_object) )
     {
         pos.x = ox+sx*3.0f;
         pos.y = oy+sy*0.5f;
@@ -383,18 +378,6 @@ bool CAutoResearch::CreateInterface(bool bSelect)
         pw->CreateButton(pos, dim, 192+4, EVENT_OBJECT_RBUILDER);
     }
 
-    pos.x = ox+sx*14.5f;
-    pos.y = oy+sy*0;
-    ddim.x = 14.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 102, EVENT_OBJECT_TYPE);
-
     UpdateInterface();
 
     return true;
@@ -406,7 +389,7 @@ void CAutoResearch::UpdateInterface()
 {
     Ui::CWindow*    pw;
 
-    if ( !m_object->GetSelect() )  return;
+    if ( !IsObjectSelected(m_object) )  return;
 
     CAuto::UpdateInterface();
 
@@ -442,29 +425,6 @@ void CAutoResearch::UpdateInterface()
     VisibleInterface(pw, EVENT_OBJECT_RSHIELD, !m_bBusy);
     VisibleInterface(pw, EVENT_OBJECT_RATOMIC, !m_bBusy);
     VisibleInterface(pw, EVENT_OBJECT_RBUILDER, !m_bBusy);
-}
-
-// Updates the state of all buttons on the interface,
-// following the time that elapses ...
-
-void CAutoResearch::UpdateInterface(float rTime)
-{
-    CAuto::UpdateInterface(rTime);
-
-    if ( m_time < m_lastUpdateTime+0.1f )  return;
-    m_lastUpdateTime = m_time;
-
-    if ( !m_object->GetSelect() )  return;
-
-    Ui::CWindow* pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return;
-
-    Ui::CGauge* pg = static_cast< Ui::CGauge* >(pw->SearchControl(EVENT_OBJECT_GENERGY));
-    if ( pg != nullptr )
-    {
-        float energy = GetObjectEnergy(m_object);
-        pg->SetLevel(energy);
-    }
 }
 
 // Research shows already performed button.

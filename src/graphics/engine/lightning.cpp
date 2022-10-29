@@ -39,8 +39,12 @@
 
 #include "object/auto/autopowercaptor.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/damageable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+
 #include "object/interface/destroyable_object.h"
-#include "object/interface/transportable_object.h"
 
 #include "sound/sound.h"
 
@@ -116,19 +120,15 @@ bool CLightning::EventFrame(const Event &event)
                 m_pos = obj->GetPosition();
                 m_terrain->AdjustToFloor(m_pos, true);
 
-                // TODO: CLightningConductorObject
-                ObjectType type = obj->GetType();
-                if (type == OBJECT_BASE)
+                float lightningRodHeight = GetObjectDamageableDetails(obj).lightning.lightningRodHeight;
+                if (lightningRodHeight > 0)
                 {
-                    m_pos.y += 120.0f;  // top of the rocket
-                }
-                else if (type == OBJECT_PARA)
-                {
-                    CAutoPowerCaptor* automat = static_cast<CAutoPowerCaptor*>(obj->GetAuto());
+                    // TODO: CLightningConductorObject
+                    CAutoPowerCaptor* automat = dynamic_cast<CAutoPowerCaptor*>(obj->GetAuto());
                     if (automat != nullptr)
                         automat->StartLightning();
 
-                    m_pos.y += 67.0f;  // top of lightning rod
+                    m_pos.y += lightningRodHeight;  // top of the lightning rod / rocket top
                 }
                 else
                 {
@@ -316,9 +316,7 @@ CObject* CLightning::SearchObject(glm::vec3 pos)
 
         if (IsObjectBeingTransported(obj)) continue;
 
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_BASE ||
-             type == OBJECT_PARA )  // building a lightning effect?
+        if ( GetObjectDamageableDetails(obj).lightning.lightningRodHeight > 0 )  // building a lightning effect?
         {
             paraObj.push_back(obj);
             paraObjPos.push_back(obj->GetPosition());

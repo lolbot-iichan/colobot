@@ -22,16 +22,18 @@
 #include "graphics/engine/engine.h"
 #include "graphics/engine/particle.h"
 #include "graphics/engine/pyro_manager.h"
-#include "graphics/engine/water.h"
+
+#include "level/robotmain.h"
 
 #include "math/geometry.h"
 
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "object/motion/motionhuman.h"
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
 
-#include "physics/physics.h"
+#include "object/motion/motionhuman.h"
 
 #include "sound/sound.h"
 
@@ -49,7 +51,6 @@ CTaskFlag::~CTaskFlag()
 {
 }
 
-
 // Management of an event.
 
 bool CTaskFlag::EventProcess(const Event &event)
@@ -60,11 +61,7 @@ bool CTaskFlag::EventProcess(const Event &event)
 
     m_time += event.rTime;
 
-    ObjectType type = m_object->GetType();
-    if ( type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis )
+    if ( GetObjectTaskExecutorDetails(m_object).flag.execution == ExecutionAsRobot )
     {
         float angle =  110.0f*Math::PI/180.0f;
         float diff  =  -10.0f*Math::PI/180.0f;
@@ -81,72 +78,40 @@ bool CTaskFlag::EventProcess(const Event &event)
     return true;
 }
 
-
-
 // Assigns the goal was achieved.
 
-Error CTaskFlag::Start(TaskFlagOrder order, int rank)
+Error CTaskFlag::Start(int rank)
 {
-    glm::vec3    pos, speed;
-    Error       err;
-
-    m_order = order;
     m_time = 0.0f;
 
+    auto task = GetObjectTaskExecutorDetails(m_object).flag;
+
     m_bError = true;  // operation impossible
-    if ( !m_physics->GetLand() )
     {
-        pos = m_object->GetPosition();
-        if ( pos.y < m_water->GetLevel() )  return ERR_FLAG_WATER;
-        return ERR_FLAG_FLY;
-    }
-
-    speed = m_physics->GetMotorSpeed();
-    if ( speed.x != 0.0f ||
-         speed.z != 0.0f )  return ERR_FLAG_MOTOR;
-
-    if (IsObjectCarryingCargo(m_object))  return ERR_FLAG_BUSY;
-
-    if ( order == TFL_CREATE )
-    {
+        Error err = CanStartTask(&task);
+        if ( err != ERR_OK )  return err;
+    
         err = CreateFlag(rank);
         if ( err != ERR_OK )  return err;
     }
-
-    if ( order == TFL_DELETE )
-    {
-        err = DeleteFlag();
-        if ( err != ERR_OK )  return err;
-    }
-
     m_bError = false;
 
-    switch ( m_object->GetType() )  // sets/removes flag
+    if ( task.execution == ExecutionAsHuman )
     {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            m_motion->SetAction(MHS_FLAG);
-            break;
-
-        case OBJECT_MOBILEws:
-        case OBJECT_MOBILEts:
-        case OBJECT_MOBILEfs:
-        case OBJECT_MOBILEis:
-        {
-            int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.0f, 0.3f, 1.0f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
-            m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_STOP);
-            break;
-        }
-
-        default:
-            break;
+        m_motion->SetAction(MHS_FLAG);
     }
+    if ( task.execution == ExecutionAsRobot )
+    {
+        int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.3f, true);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.0f, 0.3f, 1.0f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.1f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
+        m_sound->AddEnvelope(i, 0.0f, 0.3f, 0.1f, SOPER_STOP);
+    }
+
     m_camera->StartCentering(m_object, Math::PI*0.3f, 99.9f, 0.0f, 0.5f);
 
     return ERR_OK;
@@ -169,42 +134,27 @@ Error CTaskFlag::IsEnded()
 
 bool CTaskFlag::Abort()
 {
-    switch ( m_object->GetType() )
+    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
+    if ( flag.execution == ExecutionAsHuman )
     {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            m_motion->SetAction(-1);
-            break;
-
-        case OBJECT_MOBILEws:
-        case OBJECT_MOBILEts:
-        case OBJECT_MOBILEfs:
-        case OBJECT_MOBILEis:
-            m_object->SetPartRotationZ(1, 110.0f*Math::PI/180.0f);
-            break;
-
-        default:
-            break;
+        m_motion->SetAction(-1);
     }
+    if ( flag.execution == ExecutionAsRobot )
+    {
+        m_object->SetPartRotationZ(1, 110.0f*Math::PI/180.0f);
+    }
+
     m_camera->StopCentering(m_object, 2.0f);
     return true;
 }
 
-
-
 // Returns the closest object to a given position.
 
-CObject* CTaskFlag::SearchNearest(glm::vec3 pos, ObjectType type)
+CObject* CTaskFlag::SearchNearest(glm::vec3 pos)
 {
     std::vector<ObjectType> types;
-    if(type == OBJECT_NULL)
-    {
-        types = {OBJECT_FLAGb, OBJECT_FLAGr, OBJECT_FLAGg, OBJECT_FLAGy, OBJECT_FLAGv};
-    }
-    else
-    {
-        types = {type};
-    }
+    for ( auto it : GetObjectTaskExecutorDetails(m_object).flag.objects )
+        types.push_back(it.output);
     return CObjectManager::GetInstancePointer()->FindNearest(nullptr, pos, types);
 }
 
@@ -215,21 +165,7 @@ int CTaskFlag::CountObject(ObjectType type)
     int count = 0;
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType  oType = obj->GetType();
-        if ( type == OBJECT_NULL )
-        {
-            if ( oType != OBJECT_FLAGb &&
-                 oType != OBJECT_FLAGr &&
-                 oType != OBJECT_FLAGg &&
-                 oType != OBJECT_FLAGy &&
-                 oType != OBJECT_FLAGv )  continue;
-        }
-        else
-        {
-            if ( oType != type )  continue;
-        }
-
-        count ++;
+        if ( obj->GetType() == type ) count ++;
     }
     return count;
 }
@@ -238,30 +174,11 @@ int CTaskFlag::CountObject(ObjectType type)
 
 Error CTaskFlag::CreateFlag(int rank)
 {
-    ObjectType table[5] =
-    {
-        OBJECT_FLAGb,
-        OBJECT_FLAGr,
-        OBJECT_FLAGg,
-        OBJECT_FLAGy,
-        OBJECT_FLAGv,
-    };
+    auto flag = GetObjectTaskExecutorDetails(m_object).flag;
+    glm::mat4 mat = m_object->GetWorldMatrix(flag.partNum);
+    glm::vec3 pos = Math::Transform(mat, flag.position);
 
-    glm::mat4 mat = m_object->GetWorldMatrix(0);
-    glm::vec3 pos;
-    switch ( m_object->GetType() )
-    {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            pos = Math::Transform(mat, glm::vec3(4.0f, 0.0f, 0.0f));
-            break;
-
-        default:
-            pos = Math::Transform(mat, glm::vec3(6.0f, 0.0f, 0.0f));
-            break;
-    }
-
-    CObject* pObj = SearchNearest(pos, OBJECT_NULL);
+    CObject* pObj = SearchNearest(pos);
     if ( pObj != nullptr )
     {
         float dist = glm::distance(pos, pObj->GetPosition());
@@ -271,56 +188,22 @@ Error CTaskFlag::CreateFlag(int rank)
         }
     }
 
-    ObjectType type = table[rank];
-    if ( CountObject(type) >= 5 )
+    if ( static_cast<size_t>(rank) >= flag.objects.size() )
+    {
+        return ERR_WRONG_OBJ;
+    }
+
+    ObjectType type = flag.objects[rank].output;
+    if ( CountObject(type) >= flag.objects[rank].maxCount )
     {
         return ERR_FLAG_CREATE;
     }
 
-    float angle = 0.0f;
-    CObject* pNew = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type);
-    //pNew->SetScale(0.0f);
+    CObject* pNew = CObjectManager::GetInstancePointer()->CreateObject(pos, 0.0f, type);
 
     m_sound->Play(SOUND_WAYPOINT, pos);
     m_engine->GetPyroManager()->Create(Gfx::PT_FLCREATE, pNew);
-
-    return ERR_OK;
-}
-
-// Deletes a color indicator.
-
-Error CTaskFlag::DeleteFlag()
-{
-    CObject*     pObj;
-    glm::vec3 iPos, oPos;
-    float        iAngle, angle, aLimit, dist;
-
-    iPos = m_object->GetPosition();
-    iAngle = m_object->GetRotationY();
-    iAngle = Math::NormAngle(iAngle);  // 0..2*Math::PI
-
-    pObj = SearchNearest(iPos, OBJECT_NULL);
-    if ( pObj == nullptr )
-    {
-        return ERR_FLAG_DELETE;
-    }
-    dist = glm::distance(iPos, pObj->GetPosition());
-    if ( dist > 10.0f )
-    {
-        return ERR_FLAG_DELETE;
-    }
-
-    oPos = pObj->GetPosition();
-    angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
-    aLimit = 45.0f*Math::PI/180.0f;
-    if ( !Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
-    {
-        return ERR_FLAG_DELETE;
-    }
-
-    m_sound->Play(SOUND_WAYPOINT, iPos);
-
-    m_engine->GetPyroManager()->Create(Gfx::PT_FLDELETE, pObj);
+    m_main->DisplayText(flag.objects[rank].message, m_object, Ui::TT_INFO);  // displays the message
 
     return ERR_OK;
 }

@@ -27,7 +27,10 @@
 
 #include "object/motion/motionspider.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -57,7 +60,8 @@ bool CTaskSpiderExplo::EventProcess(const Event &event)
     if ( event.type != EVENT_FRAME )  return true;
 
     // Momentarily stationary object (ant on the back)?
-    if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_bError = true;
         return true;
@@ -73,6 +77,11 @@ bool CTaskSpiderExplo::EventProcess(const Event &event)
 
 Error CTaskSpiderExplo::Start()
 {
+    auto task = GetObjectTaskExecutorDetails(m_object).explode;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
     m_motion->SetAction(MSS_EXPLO, 1.0f);  // swells abdominal
     m_time = 0.0f;
 
@@ -97,6 +106,7 @@ Error CTaskSpiderExplo::IsEnded()
 
     if ( m_time < 1.0f )  return ERR_CONTINUE;
 
+    // TODO: Should we use DestroyObject instead ?! 
     m_engine->GetPyroManager()->Create(Gfx::PT_SPIDER, m_object);  // the spider explodes (suicide)
 
     Abort();

@@ -38,11 +38,14 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/destroyable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+
+#include "object/interface/shielder_object.h"
 
 #include "object/motion/motionhuman.h"
-
-#include "object/subclass/shielder.h"
 
 #include "sound/sound.h"
 
@@ -154,8 +157,8 @@ bool CPyro::Create(PyroType type, CObject* obj, float force)
          oType == OBJECT_BOMB    )
     {
         m_power = true;
-        m_posPower = m_pos;
-        m_posPower.y += 1.0f;
+        glm::mat4 mat = obj->GetWorldMatrix(0);
+        m_posPower = Math::Transform(mat, glm::vec3(0.0f, 1.0f, 0.0f));
         m_pos = m_posPower;
     }
     if ( oType == OBJECT_STATION )
@@ -175,12 +178,18 @@ bool CPyro::Create(PyroType type, CObject* obj, float force)
     if ( oType == OBJECT_NUCLEAR )
     {
         m_power = true;
-        m_posPower = m_pos;
+        glm::mat4 mat = obj->GetWorldMatrix(0);
+        m_posPower = Math::Transform(mat, glm::vec3(0.0f, 0.0f, 0.0f));
+        assert(m_pos == m_posPower);
+        m_pos = m_posPower;
     }
     if ( oType == OBJECT_PARA )
     {
         m_power = true;
-        m_posPower = m_pos;
+        glm::mat4 mat = obj->GetWorldMatrix(0);
+        m_posPower = Math::Transform(mat, glm::vec3(0.0f, 0.0f, 0.0f));
+        assert(m_pos == m_posPower);
+        m_pos = m_posPower;
     }
 
     // Plays the sound of a pyrotechnic effect.
@@ -1267,8 +1276,6 @@ void CPyro::CutObjectLink(CObject* obj)
 
 void CPyro::DisplayError(PyroType type, CObject* obj)
 {
-    ObjectType oType = obj->GetType();
-
     if ( type == PT_FRAGT  ||
          type == PT_FRAGO  ||
          type == PT_FRAGW  ||
@@ -1278,77 +1285,7 @@ void CPyro::DisplayError(PyroType type, CObject* obj)
          type == PT_BURNT  ||
          type == PT_BURNO  )
     {
-        Error err = ERR_OK;
-        if ( oType == OBJECT_MOTHER )  err = INFO_DELETEMOTHER;
-        if ( oType == OBJECT_ANT    )  err = INFO_DELETEANT;
-        if ( oType == OBJECT_BEE    )  err = INFO_DELETEBEE;
-        if ( oType == OBJECT_WORM   )  err = INFO_DELETEWORM;
-        if ( oType == OBJECT_SPIDER )  err = INFO_DELETESPIDER;
-
-        if ( oType == OBJECT_MOBILEwa ||
-             oType == OBJECT_MOBILEta ||
-             oType == OBJECT_MOBILEfa ||
-             oType == OBJECT_MOBILEia ||
-             oType == OBJECT_MOBILEwb ||
-             oType == OBJECT_MOBILEtb ||
-             oType == OBJECT_MOBILEfb ||
-             oType == OBJECT_MOBILEib ||
-             oType == OBJECT_MOBILEwc ||
-             oType == OBJECT_MOBILEtc ||
-             oType == OBJECT_MOBILEfc ||
-             oType == OBJECT_MOBILEic ||
-             oType == OBJECT_MOBILEwi ||
-             oType == OBJECT_MOBILEti ||
-             oType == OBJECT_MOBILEfi ||
-             oType == OBJECT_MOBILEii ||
-             oType == OBJECT_MOBILEws ||
-             oType == OBJECT_MOBILEts ||
-             oType == OBJECT_MOBILEfs ||
-             oType == OBJECT_MOBILEis ||
-             oType == OBJECT_MOBILErt ||
-             oType == OBJECT_MOBILErc ||
-             oType == OBJECT_MOBILErr ||
-             oType == OBJECT_MOBILErs ||
-             oType == OBJECT_MOBILEsa ||
-             oType == OBJECT_MOBILEwt ||
-             oType == OBJECT_MOBILEtt ||
-             oType == OBJECT_MOBILEft ||
-             oType == OBJECT_MOBILEit ||
-             oType == OBJECT_MOBILErp ||
-             oType == OBJECT_MOBILEst ||
-             oType == OBJECT_MOBILEdr )
-        {
-            err = ERR_DELETEMOBILE;
-        }
-
-        if ( oType == OBJECT_DERRICK  ||
-             oType == OBJECT_FACTORY  ||
-             oType == OBJECT_STATION  ||
-             oType == OBJECT_CONVERT  ||
-             oType == OBJECT_REPAIR   ||
-             oType == OBJECT_DESTROYER||
-             oType == OBJECT_TOWER    ||
-             oType == OBJECT_RESEARCH ||
-             oType == OBJECT_RADAR    ||
-             oType == OBJECT_INFO     ||
-             oType == OBJECT_ENERGY   ||
-             oType == OBJECT_LABO     ||
-             oType == OBJECT_NUCLEAR  ||
-             oType == OBJECT_PARA     ||
-             oType == OBJECT_SAFE     ||
-             oType == OBJECT_HUSTON   ||
-             oType == OBJECT_START    ||
-             oType == OBJECT_END      )
-        {
-            err = ERR_DELETEBUILDING;
-            m_main->DisplayError(err, obj->GetPosition(), 5.0f);
-            return;
-        }
-
-        if ( err != ERR_OK )
-        {
-            m_main->DisplayError(err, obj);
-        }
+        m_main->DisplayText(GetObjectDestroyableDetails(obj).message, obj, Ui::TT_INFO, 5.0f);
     }
 }
 
@@ -1388,37 +1325,25 @@ void CPyro::DeleteObject(bool primary, bool secondary)
          type != OBJECT_NUCLEAR &&
          type != OBJECT_ENERGY )
     {
-        if (m_object->Implements(ObjectInterfaceType::Slotted))
+        for (int slot = GetNumSlots(m_object) - 1; slot >= 0; slot--)
         {
-            CSlottedObject* asSlotted = dynamic_cast<CSlottedObject*>(m_object);
-            for (int slot = asSlotted->GetNumSlots() - 1; slot >= 0; slot--)
-            {
-                if (CObject* sub = asSlotted->GetSlotContainedObject(slot))
-                {
-                    CObjectManager::GetInstancePointer()->DeleteObject(sub);
-                    asSlotted->SetSlotContainedObject(slot, nullptr);
-                }
-            }
+            CObjectManager::GetInstancePointer()->DeleteObjectInSlot(m_object, slot);
         }
     }
 
     if (primary)
     {
-        if (m_object->Implements(ObjectInterfaceType::Transportable))
+        // TODO: this should be handled in the object's destructor
+        if (CObject* transporter = GetObjectTransporter(m_object))
         {
-            // TODO: this should be handled in the object's destructor
-            CObject* transporter = dynamic_cast<CTransportableObject&>(*m_object).GetTransporter();
-            if (transporter != nullptr)
+            assert(transporter->Implements(ObjectInterfaceType::Slotted));
+            for (int slotNum = GetNumSlots(transporter) - 1; slotNum >= 0; slotNum--)
             {
-                assert(transporter->Implements(ObjectInterfaceType::Slotted));
-                CSlottedObject* asSlotted = dynamic_cast<CSlottedObject*>(transporter);
-                for (int slotNum = asSlotted->GetNumSlots() - 1; slotNum >= 0; slotNum--)
+                if (GetObjectInSlot(transporter, slotNum) == m_object)
                 {
-                    if (asSlotted->GetSlotContainedObject(slotNum) == m_object)
-                    {
-                        asSlotted->SetSlotContainedObject(slotNum, nullptr);
-                        break;
-                    }
+                    CObjectManager::GetInstancePointer()->DeleteObjectInSlot(transporter, slotNum);
+                    m_object = nullptr;
+                    return;
                 }
             }
         }
@@ -1679,468 +1604,20 @@ void CPyro::BurnStart()
 
     glm::vec3 pos, angle;
 
-    if ( m_burnType == OBJECT_DERRICK  ||
-         m_burnType == OBJECT_FACTORY  ||
-         m_burnType == OBJECT_REPAIR   ||
-         m_burnType == OBJECT_DESTROYER||
-         m_burnType == OBJECT_CONVERT  ||
-         m_burnType == OBJECT_TOWER    ||
-         m_burnType == OBJECT_RESEARCH ||
-         m_burnType == OBJECT_ENERGY   ||
-         m_burnType == OBJECT_LABO     )
+    auto burningParts = GetObjectDestroyableDetails(m_object).burning.parts;
+    for ( auto it : burningParts )
     {
-        pos.x =   0.0f;
-        pos.y = -(4.0f+Math::Rand()*4.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.4f;
-    }
-    else if ( m_burnType == OBJECT_STATION ||
-              m_burnType == OBJECT_RADAR   ||
-              m_burnType == OBJECT_INFO    )
-    {
-        pos.x =   0.0f;
-        pos.y = -(1.0f+Math::Rand()*1.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.2f;
-    }
-    else if ( m_burnType == OBJECT_NUCLEAR )
-    {
-        pos.x =   0.0f;
-        pos.y = -(10.0f+Math::Rand()*10.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.4f;
-    }
-    else if ( m_burnType == OBJECT_PARA )
-    {
-        pos.x =   0.0f;
-        pos.y = -(10.0f+Math::Rand()*10.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.4f;
-    }
-    else if ( m_burnType == OBJECT_SAFE )
-    {
-        pos.x =   0.0f;
-        pos.y = -(10.0f+Math::Rand()*10.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.4f;
-    }
-    else if ( m_burnType == OBJECT_HUSTON )
-    {
-        pos.x =   0.0f;
-        pos.y = -(10.0f+Math::Rand()*10.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.4f;
-    }
-    else if ( m_burnType == OBJECT_MOBILEwa ||
-              m_burnType == OBJECT_MOBILEwb ||
-              m_burnType == OBJECT_MOBILEwc ||
-              m_burnType == OBJECT_MOBILEwi ||
-              m_burnType == OBJECT_MOBILEws ||
-              m_burnType == OBJECT_MOBILEwt )
-    {
-        pos.x =   0.0f;
-        pos.y = -(0.5f+Math::Rand()*1.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.8f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.4f;
-    }
-    else if ( m_burnType == OBJECT_TEEN31 )  // basket?
-    {
-        pos.x =   0.0f;
-        pos.y =   0.0f;
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.8f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.2f;
-    }
-    else
-    {
-        pos.x =   0.0f;
-        pos.y = -(2.0f+Math::Rand()*2.0f);
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.8f;
-        angle.y = 0.0f;
-        angle.z = (Math::Rand()-0.5f)*0.8f;
-    }
-    BurnAddPart(0, pos, angle);  // movement of the main part
+        pos.x = it.position.x + it.posRandom.x * Math::Rand();
+        pos.y = it.position.y + it.posRandom.y * Math::Rand();
+        pos.z = it.position.z + it.posRandom.z * Math::Rand();
+        angle.x = it.angle.x + it.angleRandom.x * Math::Rand();
+        angle.y = it.angle.y + it.angleRandom.y * Math::Rand();
+        angle.z = it.angle.z + it.angleRandom.z * Math::Rand();
 
-    m_burnKeepPart[0] = -1;  // nothing to keep
+        BurnAddPart(it.partNum, pos, angle);
 
-    if ( m_burnType == OBJECT_DERRICK )
-    {
-        pos.x =   0.0f;
-        pos.y = -40.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the drill
-    }
-
-    if ( m_burnType == OBJECT_REPAIR )
-    {
-        pos.x =   0.0f;
-        pos.y = -12.0f;
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = -90.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the sensor
-    }
-
-    if ( m_burnType == OBJECT_DESTROYER )
-    {
-        pos.x =   0.0f;
-        pos.y = -12.0f;
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = -90.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the sensor
-    }
-
-    if ( m_burnType == OBJECT_CONVERT )
-    {
-        pos.x =    0.0f;
-        pos.y = -200.0f;
-        pos.z =    0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.5f;
-        angle.y = (Math::Rand()-0.5f)*0.5f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the cover
-        BurnAddPart(2, pos, angle);
-        BurnAddPart(3, pos, angle);
-    }
-
-    if ( m_burnType == OBJECT_TOWER )
-    {
-        pos.x =  0.0f;
-        pos.y = -7.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = (Math::Rand()-0.5f)*0.4f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the cannon
-    }
-
-    if ( m_burnType == OBJECT_RESEARCH )
-    {
-        pos.x =  0.0f;
-        pos.y = -7.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the anemometer
-    }
-
-    if ( m_burnType == OBJECT_RADAR )
-    {
-        pos.x =   0.0f;
-        pos.y = -14.0f;
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = (Math::Rand()-0.5f)*0.4f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the radar
-        BurnAddPart(2, pos, angle);
-    }
-
-    if ( m_burnType == OBJECT_INFO )
-    {
-        pos.x =   0.0f;
-        pos.y = -14.0f;
-        pos.z =   0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.4f;
-        angle.y = (Math::Rand()-0.5f)*0.4f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the information terminal
-        BurnAddPart(2, pos, angle);
-    }
-
-    if ( m_burnType == OBJECT_LABO )
-    {
-        pos.x =   0.0f;
-        pos.y = -12.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the arm
-    }
-
-    if ( m_burnType == OBJECT_NUCLEAR )
-    {
-        pos.x = 0.0f;
-        pos.y = 0.0f;
-        pos.z = 0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = -135.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the cover
-    }
-
-    if ( m_burnType == OBJECT_MOBILEfa ||
-         m_burnType == OBJECT_MOBILEta ||
-         m_burnType == OBJECT_MOBILEwa ||
-         m_burnType == OBJECT_MOBILEia )
-    {
-        pos.x =  2.0f;
-        pos.y = -5.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = 40.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the arm
-    }
-
-    if ( m_burnType == OBJECT_MOBILEfs ||
-         m_burnType == OBJECT_MOBILEts ||
-         m_burnType == OBJECT_MOBILEws ||
-         m_burnType == OBJECT_MOBILEis )
-    {
-        pos.x =  0.0f;
-        pos.y = -7.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = 50.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the sensor
-    }
-
-    if ( m_burnType == OBJECT_MOBILEfc ||
-         m_burnType == OBJECT_MOBILEtc ||
-         m_burnType == OBJECT_MOBILEwc ||
-         m_burnType == OBJECT_MOBILEic )
-    {
-        pos.x = -1.5f;
-        pos.y = -5.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = -25.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the cannon
-    }
-
-    if ( m_burnType == OBJECT_MOBILEfi ||
-         m_burnType == OBJECT_MOBILEti ||
-         m_burnType == OBJECT_MOBILEwi ||
-         m_burnType == OBJECT_MOBILEii )
-    {
-        pos.x = -1.5f;
-        pos.y = -5.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = -25.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the insect-cannon
-    }
-
-    if ( m_burnType == OBJECT_MOBILEfb ||
-         m_burnType == OBJECT_MOBILEtb ||
-         m_burnType == OBJECT_MOBILEwb ||
-         m_burnType == OBJECT_MOBILEib )
-    {
-        pos.x = -1.5f;
-        pos.y = -5.0f;
-        pos.z =  0.0f;
-        angle.x = (Math::Rand()-0.5f)*0.2f;
-        angle.y = (Math::Rand()-0.5f)*0.2f;
-        angle.z = -25.0f*Math::PI/180.0f;
-        BurnAddPart(1, pos, angle);  // down the neutron gun
-    }
-
-    if ( m_burnType == OBJECT_MOBILErt ||
-         m_burnType == OBJECT_MOBILErc )
-    {
-        pos.x =   0.0f;
-        pos.y = -10.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the holder
-
-        pos.x =   0.0f;
-        pos.y = -10.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(2, pos, angle);  // down the pestle/cannon
-    }
-
-    if ( m_burnType == OBJECT_MOBILErr )
-    {
-        pos.x =   0.0f;
-        pos.y = -10.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the holder
-
-        pos.x =   0.0f;
-        pos.y =   0.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = -Math::PI/2.0f;
-        BurnAddPart(4, pos, angle);
-
-        pos.x =   0.0f;
-        pos.y =   0.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = Math::PI/2.5f;
-        BurnAddPart(2, pos, angle);
-    }
-
-    if ( m_burnType == OBJECT_MOBILErs )
-    {
-        pos.x =   0.0f;
-        pos.y = -10.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the holder
-
-        pos.x =   0.0f;
-        pos.y =  -5.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(2, pos, angle);
-
-        pos.x =   0.0f;
-        pos.y =  -5.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(3, pos, angle);
-    }
-
-    if ( m_burnType == OBJECT_MOBILEsa )
-    {
-        pos.x =   0.0f;
-        pos.y = -10.0f;
-        pos.z =   0.0f;
-        angle.x = 0.0f;
-        angle.y = 0.0f;
-        angle.z = 0.0f;
-        BurnAddPart(1, pos, angle);  // down the holder
-    }
-
-    if ( m_burnType == OBJECT_MOBILEwa ||
-         m_burnType == OBJECT_MOBILEwb ||
-         m_burnType == OBJECT_MOBILEwc ||
-         m_burnType == OBJECT_MOBILEwi ||
-         m_burnType == OBJECT_MOBILEws ||
-         m_burnType == OBJECT_MOBILEwt )  // wheels?
-    {
-        int i = 0;
-        for (; i < 4; i++)
-        {
-            pos.x = 0.0f;
-            pos.y = Math::Rand()*0.5f;
-            pos.z = 0.0f;
-            angle.x = (Math::Rand()-0.5f)*Math::PI/2.0f;
-            angle.y = (Math::Rand()-0.5f)*Math::PI/2.0f;
-            angle.z = 0.0f;
-            BurnAddPart(6+i, pos, angle);  // wheel
-
-            m_burnKeepPart[i] = 6+i;  // we keep the wheels
-        }
-        m_burnKeepPart[i] = -1;
-    }
-
-    if ( m_burnType == OBJECT_MOBILEta ||
-         m_burnType == OBJECT_MOBILEtb ||
-         m_burnType == OBJECT_MOBILEtc ||
-         m_burnType == OBJECT_MOBILEti ||
-         m_burnType == OBJECT_MOBILEts ||
-         m_burnType == OBJECT_MOBILEtt ||
-         m_burnType == OBJECT_MOBILErt ||
-         m_burnType == OBJECT_MOBILErc ||
-         m_burnType == OBJECT_MOBILErr ||
-         m_burnType == OBJECT_MOBILErs ||
-         m_burnType == OBJECT_MOBILErp ||
-         m_burnType == OBJECT_MOBILEsa ||
-         m_burnType == OBJECT_MOBILEst ||
-         m_burnType == OBJECT_MOBILEdr )  // caterpillars?
-    {
-        pos.x =   0.0f;
-        pos.y =  -4.0f;
-        pos.z =   2.0f;
-        angle.x = (Math::Rand()-0.5f)*20.0f*Math::PI/180.0f;
-        angle.y = (Math::Rand()-0.5f)*10.0f*Math::PI/180.0f;
-        angle.z = (Math::Rand()-0.5f)*30.0f*Math::PI/180.0f;
-        BurnAddPart(6, pos, angle);  // down the right caterpillar
-
-        pos.x =   0.0f;
-        pos.y =  -4.0f;
-        pos.z =  -2.0f;
-        angle.x = (Math::Rand()-0.5f)*20.0f*Math::PI/180.0f;
-        angle.y = (Math::Rand()-0.5f)*10.0f*Math::PI/180.0f;
-        angle.z = (Math::Rand()-0.5f)*30.0f*Math::PI/180.0f;
-        BurnAddPart(7, pos, angle);  // down the left caterpillar
-    }
-
-    if ( m_burnType == OBJECT_MOBILEfa ||
-         m_burnType == OBJECT_MOBILEfb ||
-         m_burnType == OBJECT_MOBILEfc ||
-         m_burnType == OBJECT_MOBILEfi ||
-         m_burnType == OBJECT_MOBILEfs ||
-         m_burnType == OBJECT_MOBILEft )  // flying?
-    {
-        int i = 0;
-        for (; i<3; i++)
-        {
-            pos.x =  0.0f;
-            pos.y = -3.0f;
-            pos.z =  0.0f;
-            angle.x = 0.0f;
-            angle.y = 0.0f;
-            angle.z = (Math::Rand()-0.5f)*Math::PI/2.0f;
-            BurnAddPart(6+i, pos, angle);  // foot
-        }
-        m_burnKeepPart[i] = -1;
-    }
-
-    if ( m_burnType == OBJECT_MOBILEia ||
-         m_burnType == OBJECT_MOBILEib ||
-         m_burnType == OBJECT_MOBILEic ||
-         m_burnType == OBJECT_MOBILEii ||
-         m_burnType == OBJECT_MOBILEis ||
-         m_burnType == OBJECT_MOBILEit )  // legs?
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            pos.x =  0.0f;
-            pos.y = -3.0f;
-            pos.z =  0.0f;
-            angle.x = 0.0f;
-            angle.y = (Math::Rand()-0.5f)*Math::PI/4.0f;
-            angle.z = (Math::Rand()-0.5f)*Math::PI/4.0f;
-            BurnAddPart(6+i, pos, angle);  // leg
-        }
+        if ( it.keep )
+            m_burnKeepParts.push_back(it.partNum);
     }
 }
 
@@ -2196,10 +1673,9 @@ void CPyro::BurnProgress()
 
 bool CPyro::BurnIsKeepPart(int part)
 {
-    int i = 0;
-    while (m_burnKeepPart[i] != -1)
+    for ( auto it : m_burnKeepParts )
     {
-        if (part == m_burnKeepPart[i++]) return true;  // must keep
+        if (part == it) return true;  // must keep
     }
     return false;  // must destroy
 }
@@ -2226,31 +1702,9 @@ void CPyro::BurnTerminate()
 
     DeleteObject(false, true);  // destroys the object transported + the battery
 
-    if ( m_burnType == OBJECT_DERRICK  ||
-         m_burnType == OBJECT_STATION  ||
-         m_burnType == OBJECT_FACTORY  ||
-         m_burnType == OBJECT_REPAIR   ||
-         m_burnType == OBJECT_DESTROYER||
-         m_burnType == OBJECT_CONVERT  ||
-         m_burnType == OBJECT_TOWER    ||
-         m_burnType == OBJECT_RESEARCH ||
-         m_burnType == OBJECT_RADAR    ||
-         m_burnType == OBJECT_INFO     ||
-         m_burnType == OBJECT_ENERGY   ||
-         m_burnType == OBJECT_LABO     ||
-         m_burnType == OBJECT_NUCLEAR  ||
-         m_burnType == OBJECT_PARA     ||
-         m_burnType == OBJECT_SAFE     ||
-         m_burnType == OBJECT_HUSTON   ||
-         m_burnType == OBJECT_START    ||
-         m_burnType == OBJECT_END      )
-    {
-        m_object->SetType(OBJECT_RUINfactory); // Ruin
-    }
-    else
-    {
-        m_object->SetType(OBJECT_RUINmobilew1); // Wreck (recoverable by Recycler)
-    }
+    ObjectType type = GetObjectDestroyableDetails(m_object).burning.ruins;
+    m_object->SetType(type); // Ruin or Wreck (recoverable by Recycler)
+
     dynamic_cast<CDestroyableObject*>(m_object)->SetDying(DeathType::Alive);
     m_object->SetLock(false);
 }
@@ -2280,9 +1734,9 @@ CObject* CPyro::FallSearchBeeExplo()
 
         glm::vec3 oPos = obj->GetPosition();
 
-        if (obj->GetType() == OBJECT_MOBILErs)
+        if (obj->Implements(ObjectInterfaceType::Shielder))
         {
-            float shieldRadius = dynamic_cast<CShielder&>(*obj).GetActiveShieldRadius();
+            float shieldRadius = dynamic_cast<CShielderObject&>(*obj).GetActiveShieldRadius();
             if ( shieldRadius > 0.0f )
             {
                 float distance = glm::distance(oPos, bulletCrashSphere.sphere.pos);
@@ -2355,7 +1809,7 @@ void CPyro::FallProgress(float rTime)
             }
             else
             {
-                if (obj->GetType() == OBJECT_MOBILErs && dynamic_cast<CShielder&>(*obj).GetActiveShieldRadius() > 0.0f)  // protected by shield?
+                if (obj->Implements(ObjectInterfaceType::Shielder) && dynamic_cast<CShielderObject&>(*obj).GetActiveShieldRadius() > 0.0f)  // protected by shield?
                 {
                     m_particle->CreateParticle(pos, glm::vec3(0.0f, 0.0f, 0.0f),
                                                { 6.0f, 6.0f }, PARTIGUNDEL, 2.0f, 0.0f, 0.0f);

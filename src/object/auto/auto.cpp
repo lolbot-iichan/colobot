@@ -31,18 +31,32 @@
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
-#include "object/old_object.h"
+#include "object/object.h"
+#include "object/object_part_filter.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/controllable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/common_helpers.h"
+#include "object/helpers/power_helpers.h"
+
+#include "object/interface/shielded_object.h"
 
 #include "sound/sound.h"
 
+#include "ui/controls/button.h"
+#include "ui/controls/color.h"
 #include "ui/controls/gauge.h"
+#include "ui/controls/group.h"
 #include "ui/controls/interface.h"
+#include "ui/controls/logo.h"
 #include "ui/controls/window.h"
 
 
 // Object's constructor.
 
-CAuto::CAuto(COldObject* object)
+CAuto::CAuto(CObject* object)
 {
     m_object      = object;
     m_engine      = Gfx::CEngine::GetInstancePointer();
@@ -57,13 +71,6 @@ CAuto::CAuto(COldObject* object)
     m_lightning   = m_engine->GetLightning();
     m_camera      = m_main->GetCamera();
     m_interface   = m_main->GetInterface();
-
-    m_type = m_object->GetType();
-    m_time = 0.0f;
-    m_lastUpdateTime = 0.0f;
-    m_bMotor = false;
-    m_progressTime = 0.0f;
-    m_progressTotal = 1.0f;
 
     Init();
 }
@@ -148,7 +155,7 @@ bool CAuto::EventProcess(const Event &event)
         UpdateInterface(event.rTime);
     }
 
-    if ( !m_object->GetSelect() )  // robot not selected?
+    if ( !IsObjectSelected(m_object) )  // robot not selected?
     {
         return true;
     }
@@ -216,38 +223,89 @@ bool CAuto::CreateInterface(bool bSelect)
     ddim.y =  26.0f/480.0f;
     pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GPROGRESS);
 
-    if ( m_type != OBJECT_BASE   &&
-         m_type != OBJECT_SAFE   &&
-         m_type != OBJECT_HUSTON )
+    auto controlsDetails = GetObjectControllableDetails(m_object).controls;
+    for ( auto it : controlsDetails.widgets )
     {
-        pos.x = ox+sx*2.1f;
-        pos.y = oy+sy*0;
-        ddim.x = dim.x*0.6f;
-        ddim.y = dim.y*0.6f;
-        pw->CreateButton(pos, ddim, 12, EVENT_OBJECT_DELETE);
+        if ( !MatchObjectPartFilter(m_object, it.filter) ) continue;
+
+        if ( it.onBuildingEnabled && 
+            !m_main->IsBuildingEnabled(static_cast<BuildType>(it.onBuildingEnabled)) ) continue;
+        if ( it.onResearchDone && 
+            !m_main->IsResearchesDone(it.onResearchDone, m_object->GetTeam()) ) continue;
+
+        pos.x  = ox + sx * it.position.x;
+        pos.y  = oy + sy * it.position.y;
+        ddim.x = dim.x * it.size.x;
+        ddim.y = dim.y * it.size.y;
+        
+        if ( it.widgetType == Ui::WIDGET_ICON_BUTTON )
+            pw->CreateButton(pos, ddim, it.params.icon, it.event)->SetImmediat(it.isImmediat);
+        else if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
+            pw->CreateColor(pos, ddim, -1, it.event)->SetColor(it.params.color);
+        else if ( it.widgetType == Ui::WIDGET_ICON_LOGO )
+            pw->CreateLogo(pos, ddim, it.params.icon, it.event);
+
+//TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+//        if ( it.isDefault )
+//            DefaultEnter(pw, it.event);
     }
 
-    pos.x = ox+sx*12.3f;
-    pos.y = oy+sy*-0.1f;
-    ddim.x = dim.x*1.0f;
-    ddim.y = dim.y*2.1f;
-    pw->CreateGroup(pos, ddim, 20, EVENT_NULL);  // solid blue background
+    if ( IsObjectToy(m_object) )
+    {
+        pos.x = ox+sx*12.1f;
+        pos.y = oy+sy*-0.1f;
+        ddim.x = dim.x*1.2f;
+        ddim.y = dim.y*2.1f;
+        pw->CreateGroup(pos, ddim, 20, EVENT_NULL);  // solid blue bottom
 
-    pos.x = ox+sx*12.3f;
-    pos.y = oy+sy*1;
-    pw->CreateGroup(pos, dim, 19, EVENT_NULL);  // sign SatCom
+        pos.x = ox+sx*12.2f;
+        pos.y = oy+sy*1;
+        pw->CreateGroup(pos, dim, 19, EVENT_NULL);  // sign SatCom
 
-    pos.x = ox+sx*12.4f;
-    pos.y = oy+sy*0.5f;
-    ddim.x = dim.x*0.8f;
-    ddim.y = dim.y*0.5f;
-    pw->CreateButton(pos, ddim, 18, EVENT_OBJECT_BHELP);
-    pos.y = oy+sy*0.0f;
-    pw->CreateButton(pos, ddim, 19, EVENT_OBJECT_HELP);
+        pos.x = ox+sx*12.2f;
+        pos.y = oy+sy*0.0f;
+        pw->CreateButton(pos, dim, 128+57, EVENT_OBJECT_BHELP);
+    }
+    else
+    {
+        pos.x = ox+sx*12.3f;
+        pos.y = oy+sy*-0.1f;
+        ddim.x = dim.x*1.0f;
+        ddim.y = dim.y*2.1f;
+        pw->CreateGroup(pos, ddim, 20, EVENT_NULL);  // solid blue bottom
+
+        pos.x = ox+sx*12.3f;
+        pos.y = oy+sy*1;
+        pw->CreateGroup(pos, dim, 19, EVENT_NULL);  // sign SatCom
+
+        pos.x = ox+sx*12.4f;
+        pos.y = oy+sy*0.5f;
+        ddim.x = dim.x*0.8f;
+        ddim.y = dim.y*0.5f;
+        pw->CreateButton(pos, ddim, 18, EVENT_OBJECT_BHELP);
+        pos.y = oy+sy*0.0f;
+        pw->CreateButton(pos, ddim, 19, EVENT_OBJECT_HELP);
+    }
 
     pos.x = ox+sx*13.4f;
     pos.y = oy+sy*0;
-    pw->CreateButton(pos, dim, 10, EVENT_OBJECT_DESELECT);
+    if ( IsObjectTrainer(m_object) )  // Training?
+    {
+        pw->CreateButton(pos, dim, 9, EVENT_OBJECT_RESET);
+    }
+    else
+    {
+        pw->CreateButton(pos, dim, 10, EVENT_OBJECT_DESELECT);
+    }
+
+    if ( m_object->Implements(ObjectInterfaceType::PowerContainer) || HasPowerCellSlot(m_object) )
+    {
+        pos.x = ox+sx*14.5f;
+        pos.y = oy+sy*0;
+        ddim.x = 14.0f/640.0f;
+        ddim.y = 66.0f/480.0f;
+        pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
+    }
 
     if ( m_object->Implements(ObjectInterfaceType::Shielded) )
     {
@@ -319,7 +377,7 @@ void CAuto::UpdateInterface()
 {
     Ui::CWindow*    pw;
 
-    if ( !m_object->GetSelect() )  return;
+    if ( !IsObjectSelected(m_object) )  return;
 
     pw = static_cast<Ui::CWindow*>(m_interface->SearchControl(EVENT_WINDOW0));
     if ( pw == nullptr )  return;
@@ -334,31 +392,76 @@ void CAuto::UpdateInterface(float rTime)
 {
     Ui::CWindow*    pw;
     Ui::CGauge*     pg;
+    int             icon;
 
+    m_lastAlarmTime += rTime;
     if ( m_time < m_lastUpdateTime+0.1f )  return;
     m_lastUpdateTime = m_time;
 
-    if ( !m_object->GetSelect() )  return;
+    if ( !IsObjectSelected(m_object) )  return;
 
     pw = static_cast<Ui::CWindow*>(m_interface->SearchControl(EVENT_WINDOW0));
     if ( pw == nullptr )  return;
+
+    pg = static_cast<Ui::CGauge*>(pw->SearchControl(EVENT_OBJECT_GENERGY));
+    if (pg != nullptr)
+    {
+        float energy = GetObjectEnergyLevel(m_object);
+        float limit = GetObjectEnergy(m_object);
+
+        icon = 0;  // red/green
+
+        if ( limit < 0.2f && energy != 0.0f )  // low but not zero?
+        {
+            if ( m_lastAlarmTime >= 0.8f )  // blinks?
+            {
+                energy = 1.0f;
+                icon = 1;  // brun
+            }
+            if ( m_lastAlarmTime >= 1.0f )
+            {
+                m_sound->Play(SOUND_ALARM, 0.5f);  // bip-bip-bip
+                m_lastAlarmTime = 0.0f;
+            }
+        }
+        pg->SetLevel(energy);
+        pg->SetIcon(icon);
+    }
 
     pg = static_cast<Ui::CGauge*>(pw->SearchControl(EVENT_OBJECT_GSHIELD));
     if ( pg != nullptr )
     {
         assert(m_object->Implements(ObjectInterfaceType::Shielded));
-        pg->SetLevel(dynamic_cast<CShieldedObject*>(m_object)->GetShield());
+        icon = 3;  // orange/gray
+        float shield = dynamic_cast<CShieldedObject*>(m_object)->GetShield();
+
+        if ( shield < 0.4f && shield != 0.0f) // low but not zero?
+        {
+            if ( m_lastAlarmTime >= 0.8f )  // blinks?
+            {
+                shield = 1.0f;
+                icon = 2;  // red
+            }
+            if ( m_lastAlarmTime >= 1.0f )
+            {
+                m_sound->Play(SOUND_ALARMs, 0.5f);  // beep-beep
+                m_lastAlarmTime = 0.0f;
+            }
+        }
+
+        pg->SetLevel(shield);
+        pg->SetIcon(icon);
     }
 
     pg = static_cast<Ui::CGauge*>(pw->SearchControl(EVENT_OBJECT_GPROGRESS));
     if ( pg != nullptr )
     {
-        pg->SetLevel(m_progressTime);
+        pg->SetLevel(GetProgress());
     }
 }
 
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAuto::GetError()
 {
@@ -382,6 +485,11 @@ void CAuto::InitProgressTotal(float total)
 {
     m_progressTime = 0.0f;
     m_progressTotal = total;
+}
+
+float CAuto::GetProgress()
+{
+    return m_progressTime;
 }
 
 void CAuto::EventProgress(float rTime)

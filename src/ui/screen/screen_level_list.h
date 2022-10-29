@@ -21,10 +21,10 @@
 
 #include "ui/screen/screen.h"
 
-#include "level/level_category.h"
-
 #include <map>
 #include <vector>
+
+enum class LevelCategory;
 
 namespace Ui
 {

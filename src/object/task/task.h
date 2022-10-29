@@ -57,6 +57,24 @@ const float ARM_STOCK_ANGLE1 = 110.0f*Math::PI/180.0f;
 const float ARM_STOCK_ANGLE2 = -100.0f*Math::PI/180.0f;
 const float ARM_STOCK_ANGLE3 = -70.0f*Math::PI/180.0f;
 
+enum TaskExecutionType : unsigned char
+{
+    ExecutionNoMotion  = 0,
+    ExecutionAsHuman   = 1,
+    ExecutionAsInsect  = 2,
+    ExecutionAsRobot   = 3,
+    ExecutionAsSubber  = 4,
+};
+
+struct CTaskConditions
+{
+    bool enabled    = false;
+    bool onWater    = false;
+    bool onFlying   = false;
+    bool onMoving   = false;
+    bool onCarrying = false;
+    bool onCarried  = false;
+};
 
 class CTask
 {
@@ -76,6 +94,8 @@ public:
     virtual bool    IsBackground() = 0;
 
 protected:
+    Error CanStartTask(const CTaskConditions* cond, float minPower=0.0f);
+
     Gfx::CEngine*       m_engine = nullptr;
     Gfx::CLightManager* m_lightMan = nullptr;
     Gfx::CParticle*     m_particle = nullptr;
@@ -86,7 +106,6 @@ protected:
     CSoundInterface*    m_sound = nullptr;
 
     COldObject*         m_object = nullptr;
-    CProgrammableObject* m_programmable = nullptr;
     CMotion*            m_motion = nullptr;
     CPhysics*           m_physics = nullptr;
 };

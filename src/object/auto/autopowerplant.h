@@ -40,7 +40,7 @@ enum AutoPowerPlantPhase
 class CAutoPowerPlant : public CAuto
 {
 public:
-    CAutoPowerPlant(COldObject* object);
+    CAutoPowerPlant(CObject* object);
     ~CAutoPowerPlant();
 
     void        DeleteObject(bool all=false) override;
@@ -49,17 +49,13 @@ public:
     bool        EventProcess(const Event &event) override;
     Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
 protected:
-    void        UpdateInterface(float rTime);
-
     CObject*    SearchMetal();
     bool        SearchVehicle();
-    void        CreatePower();
+    void        CreatePower(ObjectType type);
     CObject*    SearchPower();
 
 protected:
@@ -70,4 +66,5 @@ protected:
     float               m_lastUpdateTime = 0.0f;
     float               m_lastParticle = 0.0f;
     int                 m_partiSphere = 0;
+    std::string         m_onCompleted;
 };

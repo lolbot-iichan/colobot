@@ -31,6 +31,8 @@
 
 #include "level/parser/parser.h"
 
+#include "level/parser/parserexceptions.h"
+
 #include <algorithm>
 #include <map>
 #include <boost/filesystem.hpp>

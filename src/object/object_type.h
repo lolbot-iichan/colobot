@@ -30,7 +30,7 @@
  * \enum ObjectType
  * \brief Type of game object
  */
-enum ObjectType
+enum ObjectType : unsigned int
 {
     OBJECT_NULL             = 0,
     OBJECT_PORTICO          = 2,    //!< Portico
@@ -48,7 +48,7 @@ enum ObjectType
     OBJECT_LABO             = 14,   //!< AutoLab
     OBJECT_NUCLEAR          = 15,   //!< NuclearPlant
     OBJECT_START            = 16,   //!< StartArea
-    OBJECT_END              = 17,   //!< EndArea
+    OBJECT_END              = 17,   //!< GoalArea
     OBJECT_INFO             = 18,   //!< ExchangePost
     OBJECT_PARA             = 19,   //!< PowerCaptor
     OBJECT_TARGET1          = 20,   //!< Target1 (gate)
@@ -174,51 +174,51 @@ enum ObjectType
     OBJECT_RUINconvert      = 610,  //!< RuinConvert
     OBJECT_RUINbase         = 611,  //!< RuinBaseCamp
     OBJECT_RUINhead         = 612,  //!< RuinHeadCamp
-    OBJECT_TEEN0            = 620,  //!< Teen0
-    OBJECT_TEEN1            = 621,  //!< Teen1
-    OBJECT_TEEN2            = 622,  //!< Teen2
-    OBJECT_TEEN3            = 623,  //!< Teen3
-    OBJECT_TEEN4            = 624,  //!< Teen4
-    OBJECT_TEEN5            = 625,  //!< Teen5
-    OBJECT_TEEN6            = 626,  //!< Teen6
-    OBJECT_TEEN7            = 627,  //!< Teen7
-    OBJECT_TEEN8            = 628,  //!< Teen8
-    OBJECT_TEEN9            = 629,  //!< Teen9
-    OBJECT_TEEN10           = 630,  //!< Teen10
-    OBJECT_TEEN11           = 631,  //!< Teen11
-    OBJECT_TEEN12           = 632,  //!< Teen12
-    OBJECT_TEEN13           = 633,  //!< Teen13
-    OBJECT_TEEN14           = 634,  //!< Teen14
-    OBJECT_TEEN15           = 635,  //!< Teen15
-    OBJECT_TEEN16           = 636,  //!< Teen16
-    OBJECT_TEEN17           = 637,  //!< Teen17
-    OBJECT_TEEN18           = 638,  //!< Teen18
-    OBJECT_TEEN19           = 639,  //!< Teen19
-    OBJECT_TEEN20           = 640,  //!< Teen20
-    OBJECT_TEEN21           = 641,  //!< Teen21
-    OBJECT_TEEN22           = 642,  //!< Teen22
-    OBJECT_TEEN23           = 643,  //!< Teen23
-    OBJECT_TEEN24           = 644,  //!< Teen24
-    OBJECT_TEEN25           = 645,  //!< Teen25
-    OBJECT_TEEN26           = 646,  //!< Teen26
-    OBJECT_TEEN27           = 647,  //!< Teen27
-    OBJECT_TEEN28           = 648,  //!< Teen28
-    OBJECT_TEEN29           = 649,  //!< Teen29
-    OBJECT_TEEN30           = 650,  //!< Teen30
-    OBJECT_TEEN31           = 651,  //!< Teen31
-    OBJECT_TEEN32           = 652,  //!< Teen32
-    OBJECT_TEEN33           = 653,  //!< Teen33
-    OBJECT_TEEN34           = 654,  //!< Stone (Teen34)
-    OBJECT_TEEN35           = 655,  //!< Teen35
-    OBJECT_TEEN36           = 656,  //!< Teen36
-    OBJECT_TEEN37           = 657,  //!< Teen37
-    OBJECT_TEEN38           = 658,  //!< Teen38
-    OBJECT_TEEN39           = 659,  //!< Teen39
-    OBJECT_TEEN40           = 660,  //!< Teen40
-    OBJECT_TEEN41           = 661,  //!< Teen41
-    OBJECT_TEEN42           = 662,  //!< Teen42
-    OBJECT_TEEN43           = 663,  //!< Teen43
-    OBJECT_TEEN44           = 664,  //!< Teen44
+    OBJECT_TEEN0            = 620,  //!< Teen0  // orange pencil lg=10
+    OBJECT_TEEN1            = 621,  //!< Teen1  // blue pencil lg=14
+    OBJECT_TEEN2            = 622,  //!< Teen2  // red pencil lg=16
+    OBJECT_TEEN3            = 623,  //!< Teen3  // jar with pencils
+    OBJECT_TEEN4            = 624,  //!< Teen4  // scissors
+    OBJECT_TEEN5            = 625,  //!< Teen5  // CD
+    OBJECT_TEEN6            = 626,  //!< Teen6  // book 1
+    OBJECT_TEEN7            = 627,  //!< Teen7  // book 2
+    OBJECT_TEEN8            = 628,  //!< Teen8  // a stack of books 1
+    OBJECT_TEEN9            = 629,  //!< Teen9  // a stack of books 2
+    OBJECT_TEEN10           = 630,  //!< Teen10 // bookcase
+    OBJECT_TEEN11           = 631,  //!< Teen11 // lamp
+    OBJECT_TEEN12           = 632,  //!< Teen12 // coke
+    OBJECT_TEEN13           = 633,  //!< Teen13 // cardboard farm
+    OBJECT_TEEN14           = 634,  //!< Teen14 // open box
+    OBJECT_TEEN15           = 635,  //!< Teen15 // stack of cartons
+    OBJECT_TEEN16           = 636,  //!< Teen16 // watering can
+    OBJECT_TEEN17           = 637,  //!< Teen17 // wheel |
+    OBJECT_TEEN18           = 638,  //!< Teen18 // wheel /
+    OBJECT_TEEN19           = 639,  //!< Teen19 // wheel =
+    OBJECT_TEEN20           = 640,  //!< Teen20 // wall with shelf
+    OBJECT_TEEN21           = 641,  //!< Teen21 // wall with window
+    OBJECT_TEEN22           = 642,  //!< Teen22 // wall with door and shelf
+    OBJECT_TEEN23           = 643,  //!< Teen23 // skateboard on wheels
+    OBJECT_TEEN24           = 644,  //!< Teen24 // skate /
+    OBJECT_TEEN25           = 645,  //!< Teen25 // skate /
+    OBJECT_TEEN26           = 646,  //!< Teen26 // ceiling lamp
+    OBJECT_TEEN27           = 647,  //!< Teen27 // large plant?
+    OBJECT_TEEN28           = 648,  //!< Teen28 // bottle?
+    OBJECT_TEEN29           = 649,  //!< Teen29 // bridge?
+    OBJECT_TEEN30           = 650,  //!< Teen30 // jump?
+    OBJECT_TEEN31           = 651,  //!< Teen31 // basket?
+    OBJECT_TEEN32           = 652,  //!< Teen32 // chair?
+    OBJECT_TEEN33           = 653,  //!< Teen33 // panel?
+    OBJECT_TEEN34           = 654,  //!< Stone (Teen34) // stone?
+    OBJECT_TEEN35           = 655,  //!< Teen35 // pipe?
+    OBJECT_TEEN36           = 656,  //!< Teen36 // trunk?
+    OBJECT_TEEN37           = 657,  //!< Teen37 // boat?
+    OBJECT_TEEN38           = 658,  //!< Teen38 // fan?
+    OBJECT_TEEN39           = 659,  //!< Teen39 // potted plant?
+    OBJECT_TEEN40           = 660,  //!< Teen40 // balloon?
+    OBJECT_TEEN41           = 661,  //!< Teen41 // fence?
+    OBJECT_TEEN42           = 662,  //!< Teen42 // clover?
+    OBJECT_TEEN43           = 663,  //!< Teen43 // clover?
+    OBJECT_TEEN44           = 664,  //!< Teen44 // car?
     OBJECT_QUARTZ0          = 700,  //!< Quartz0
     OBJECT_QUARTZ1          = 701,  //!< Quartz1
     OBJECT_QUARTZ2          = 702,  //!< Quartz2
@@ -240,13 +240,3 @@ enum ObjectType
 
     OBJECT_MAX              = 1000  //!< number of values
 };
-
-struct ObjectTypeHash
-{
-    inline std::size_t operator()(ObjectType t) const
-    {
-        return std::hash<int>()(t);
-    }
-};
-
-bool IsValidObjectTypeId(int id);

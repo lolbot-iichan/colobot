@@ -36,17 +36,14 @@ enum AutoPowerCaptorPhase
 class CAutoPowerCaptor : public CAuto
 {
 public:
-    CAutoPowerCaptor(COldObject* object);
+    CAutoPowerCaptor(CObject* object);
     ~CAutoPowerCaptor();
 
     void        DeleteObject(bool bAll=false) override;
 
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
     void        StartLightning();
-
-    bool        CreateInterface(bool bSelect) override;
 
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;

@@ -21,10 +21,7 @@
 
 #include "object/task/task.h"
 
-#include "object/object_type.h"
-
 #include <glm/glm.hpp>
-
 
 class CObject;
 
@@ -36,9 +33,8 @@ enum TaskTakeOrder
 
 enum TaskTakeArm
 {
-    TTA_NEUTRAL = 1,    // empty arm at rest
-    TTA_FFRONT  = 2,    // arm on the ground
-    TTA_FRIEND  = 3,    // arm behind a friend robot
+    TTA_FFRONT  = 1,    // arm on the ground
+    TTA_FRIEND  = 2,    // arm behind a friend robot
 };
 
 
@@ -57,14 +53,14 @@ public:
 
 protected:
     CObject*    SearchTakeObject(float &angle, float dLimit, float aLimit);
-    CObject*    SearchFriendObject(float &angle, float dLimit, float aLimit, int &slotNumOut);
+    CObject*    SearchFriendObject(float &angle, float dLimit, float aLimit, float &height, int &slotNumOut);
     bool        TransporterTakeObject();
     bool        TransporterDeposeObject();
     bool        IsFreeDeposeObject(glm::vec3 pos);
 
 protected:
     TaskTakeOrder   m_order = TTO_TAKE;
-    TaskTakeArm     m_arm = TTA_NEUTRAL;
+    TaskTakeArm     m_arm = TTA_FFRONT;
     int             m_step = 0;
     float           m_speed = 0.0f;
     float           m_progress = 0.0f;
@@ -72,5 +68,4 @@ protected:
     bool            m_bError = false;
     bool            m_bTurn = false;
     float           m_angle = 0.0f;
-    ObjectType      m_cargoType = OBJECT_NULL;
 };

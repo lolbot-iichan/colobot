@@ -48,11 +48,35 @@
 #include "object/auto/autobase.h"
 #include "object/auto/autojostle.h"
 
-#include "object/motion/motion.h"
-#include "object/motion/motionvehicle.h"
+#include "object/details/details_provider.h"
+#include "object/details/controllable_details.h"
+#include "object/details/damageable_details.h"
+#include "object/details/destroyable_details.h"
+#include "object/details/exchange_post_details.h"
+#include "object/details/flying_details.h"
+#include "object/details/fragile_details.h"
+#include "object/details/global_details.h"
+#include "object/details/jet_flying_details.h"
+#include "object/details/jostleable_details.h"
+#include "object/details/movable_details.h"
+#include "object/details/modeled_details.h"
+#include "object/details/physical_details.h"
+#include "object/details/power_container_details.h"
+#include "object/details/programmable_details.h"
+#include "object/details/shielded_details.h"
+#include "object/details/shielded_auto_regen_details.h"
+#include "object/details/shielder_details.h"
+#include "object/details/slotted_details.h"
+#include "object/details/ranged_details.h"
+#include "object/details/thumpable_details.h"
+#include "object/details/task_executor_details.h"
+#include "object/details/trace_drawing_details.h"
+#include "object/details/transportable_details.h"
 
-#include "object/subclass/base_alien.h"
-#include "object/subclass/exchange_post.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
+
+#include "object/motion/motion.h"
 
 #include "physics/physics.h"
 
@@ -76,6 +100,7 @@ const float VIRUS_DELAY     = 60.0f;        // duration of virus infection
 COldObject::COldObject(int id)
     : CObject(id, OBJECT_NULL),
       CInteractiveObject(m_implementedInterfaces),
+      CModeledObject(m_implementedInterfaces),
       CTransportableObject(m_implementedInterfaces),
       CTaskExecutorObjectImpl(m_implementedInterfaces, this),
       CProgramStorageObjectImpl(m_implementedInterfaces, this),
@@ -88,16 +113,10 @@ COldObject::COldObject(int id)
       CRangedObject(m_implementedInterfaces),
       CTraceDrawingObject(m_implementedInterfaces),
       CShieldedAutoRegenObject(m_implementedInterfaces),
-      m_partiSel()
+      CThumpableObject(m_implementedInterfaces),
+      CShielderObject(m_implementedInterfaces),
+      CExchangePostObjectImpl(m_implementedInterfaces)
 {
-    // A bit of a hack since we don't have subclasses yet, set externally in SetProgrammable()
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)] = false;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)] = false;
-    // Another hack, see SetMovable()
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)] = false;
-    // Another hack
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)] = false;
-
     m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)] = true;
 
     m_sound       = CApplication::GetInstancePointer()->GetSound();
@@ -117,8 +136,6 @@ COldObject::COldObject(int id)
     m_cirVibration  = glm::vec3(0.0f, 0.0f, 0.0f);
     m_tilt   = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    m_power = nullptr;
-    m_cargo  = nullptr;
     m_transporter = nullptr;
     m_transporterLink = 0;
     m_shield   = 1.0f;
@@ -144,28 +161,20 @@ COldObject::COldObject(int id)
     m_gunGoalH = 0.0f;
     m_shieldRadius = 0.0f;
     m_magnifyDamage = 1.0f;
-    m_hasPowerSlot = false;
-    m_hasCargoSlot = false;
-
-    m_character = Character();
-    m_character.wheelFront = 1.0f;
-    m_character.wheelBack  = 1.0f;
-    m_character.wheelLeft  = 1.0f;
-    m_character.wheelRight = 1.0f;
 
     m_cameraType = Gfx::CAM_TYPE_BACK;
     m_bCameraLock = false;
+
+    for (int i=0 ; i<OBJECTMAXSLOT ; i++ )
+    {
+        m_slot[i] = nullptr;
+    }
 
     for (int i=0 ; i<OBJECTMAXPART ; i++ )
     {
         m_objectPart[i].bUsed = false;
     }
     m_totalPart = 0;
-
-    for (int i=0 ; i<4 ; i++ )
-    {
-        m_partiSel[i] = -1;
-    }
 
     m_time = 0.0f;
     m_burnTime = 0.0f;
@@ -177,6 +186,8 @@ COldObject::COldObject(int id)
     m_traceDown = false;
     m_traceColor = TraceColor::Black;
     m_traceWidth = 0.5f;
+    
+    m_fixed = false;
 
     DeleteAllCrashSpheres();
 }
@@ -213,25 +224,7 @@ void COldObject::DeleteObject(bool bAll)
             SetSelect(false);
         }
 
-        if ( m_type == OBJECT_BASE     ||
-             m_type == OBJECT_FACTORY  ||
-             m_type == OBJECT_REPAIR   ||
-             m_type == OBJECT_DESTROYER||
-             m_type == OBJECT_DERRICK  ||
-             m_type == OBJECT_STATION  ||
-             m_type == OBJECT_CONVERT  ||
-             m_type == OBJECT_TOWER    ||
-             m_type == OBJECT_RESEARCH ||
-             m_type == OBJECT_RADAR    ||
-             m_type == OBJECT_INFO     ||
-             m_type == OBJECT_ENERGY   ||
-             m_type == OBJECT_LABO     ||
-             m_type == OBJECT_NUCLEAR  ||
-             m_type == OBJECT_PARA     ||
-             m_type == OBJECT_SAFE     ||
-             m_type == OBJECT_HUSTON   ||
-             m_type == OBJECT_START    ||
-             m_type == OBJECT_END      )  // building?
+        if ( GetObjectDestroyableDetails(this).removeBuildingLevel ) // building?
         {
             m_terrain->DeleteBuildingLevel(GetPosition());  // flattens the field
         }
@@ -282,23 +275,15 @@ void COldObject::DeleteObject(bool bAll)
 
     if (!bAll)
     {
-        if (m_power != nullptr)
+        for (int i = 0; i < GetNumSlots(); i++ )
         {
-            if (m_power->Implements(ObjectInterfaceType::Old))
+            CObject* item = GetSlotContainedObject(i);
+            if (item->Implements(ObjectInterfaceType::Old))
             {
-                dynamic_cast<COldObject&>(*m_power).SetTransporter(nullptr);
-                dynamic_cast<COldObject&>(*m_power).DeleteObject(bAll);
+                dynamic_cast<COldObject*>(item)->SetTransporter(nullptr);
+                dynamic_cast<COldObject*>(item)->DeleteObject(bAll);
             }
-            m_power = nullptr;
-        }
-        if (m_cargo != nullptr)
-        {
-            if (m_cargo->Implements(ObjectInterfaceType::Old))
-            {
-                dynamic_cast<COldObject&>(*m_cargo).SetTransporter(nullptr);
-                dynamic_cast<COldObject&>(*m_cargo).DeleteObject(bAll);
-            }
-            m_cargo = nullptr;
+            SetSlotContainedObject(i, nullptr);
         }
     }
 
@@ -354,43 +339,34 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
     if ( IsDying() )  return false;
     if ( Implements(ObjectInterfaceType::Jostleable) ) return false;
 
-    if ( m_type == OBJECT_ANT    ||
-         m_type == OBJECT_WORM   ||
-         m_type == OBJECT_SPIDER ||
-         m_type == OBJECT_BEE     )
+    auto damageable = GetObjectDamageableDetails(this);
+    if ( type == DamageType::Fire          && !damageable.fire.enabled          ) return false;
+    if ( type == DamageType::Organic       && !damageable.organic.enabled       ) return false;
+    if ( type == DamageType::Phazer        && !damageable.phazer.enabled        ) return false;
+    if ( type == DamageType::Tower         && !damageable.tower.enabled         ) return false;
+    if ( type == DamageType::FallingObject && !damageable.fallingObject.enabled ) return false;
+    if ( type == DamageType::Explosive     && !damageable.explosive.enabled     ) return false;
+    if ( type == DamageType::Collision     && !damageable.collision.enabled     ) return false;
+    if ( type == DamageType::Lightning     && !damageable.lightning.enabled     ) return false;
+    if ( type == DamageType::Fall          && !damageable.fall.enabled          ) return false;
+
+    if ( Implements(ObjectInterfaceType::Fragile) )
     {
-        // Fragile, but can have fire effect
-        // TODO: IsBurnable()
-        force = -1.0f;
+        auto fragile = GetObjectFragileDetails(this);
+        if ( fragile.burnable )
+        {
+            // Fragile, but can have fire effect
+            // TODO: IsBurnable()
+            force = -1.0f;
+        }
+        else
+        {
+            if ( m_magnifyDamage * m_main->GetGlobalMagnifyDamage() == 0 ) return false; // Don't destroy if magnifyDamage=0
+    
+            DestroyObject(DestructionType::Explosion, killer);
+            return true;
+        }
     }
-    else if ( Implements(ObjectInterfaceType::Fragile) )
-    {
-        if ((m_type == OBJECT_BOMB         ||
-             m_type == OBJECT_RUINmobilew1 ||
-             m_type == OBJECT_RUINmobilew2 ||
-             m_type == OBJECT_RUINmobilet1 ||
-             m_type == OBJECT_RUINmobilet2 ||
-             m_type == OBJECT_RUINmobiler1 ||
-             m_type == OBJECT_RUINmobiler2 ||
-             m_type == OBJECT_RUINfactory  ||
-             m_type == OBJECT_RUINdoor     ||
-             m_type == OBJECT_RUINsupport  ||
-             m_type == OBJECT_RUINradar    ||
-             m_type == OBJECT_RUINconvert   ) && type != DamageType::Explosive ) return false; // Mines and ruins can't be destroyed by shooting
-        if ( m_type == OBJECT_URANIUM && (type == DamageType::Fire || type == DamageType::Organic) ) return false; // UraniumOre is not destroyable by shooting or aliens (see #777)
-        if ( m_type == OBJECT_STONE && (type == DamageType::Fire || type == DamageType::Organic) ) return false; // TitaniumOre is not destroyable either
-        // PowerCell, NuclearCell and Titanium are destroyable by shooting, but not by collisions!
-        if ( m_type == OBJECT_METAL && type == DamageType::Collision ) return false;
-        if ( m_type == OBJECT_POWER && type == DamageType::Collision ) return false;
-        if ( m_type == OBJECT_NUCLEAR && type == DamageType::Collision ) return false;
-
-        if ( m_magnifyDamage * m_main->GetGlobalMagnifyDamage() == 0 ) return false; // Don't destroy if magnifyDamage=0
-
-        DestroyObject(DestructionType::Explosion, killer);
-        return true;
-    }
-
-    if ( type != DamageType::Phazer && m_type == OBJECT_MOTHER ) return false; // AlienQueen can be destroyed only by PhazerShooter
 
     if ( type == DamageType::Organic )
     {
@@ -412,12 +388,10 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
             if (loss > 1.0f) loss = 1.0f;
 
             // Decreases the the shield
-            float shield = GetShield();
-            shield -= loss;
-            SetShield(shield);
+            SetShield(GetShield() - loss);
 
             // Sending info about taking damage
-            if (!m_damaging)
+            if (!IsDamaging())
             {
                 SetDamaging(true);
                 m_main->UpdateShortcuts();
@@ -449,18 +423,7 @@ bool COldObject::DamageObject(DamageType type, float force, CObject* killer)
         return true;
     }
 
-    if ( m_type == OBJECT_HUMAN )
-    {
-        m_engine->GetPyroManager()->Create(Gfx::PT_SHOTH, this, loss);
-    }
-    else if ( m_type == OBJECT_MOTHER )
-    {
-        m_engine->GetPyroManager()->Create(Gfx::PT_SHOTM, this, loss);
-    }
-    else
-    {
-        m_engine->GetPyroManager()->Create(Gfx::PT_SHOTT, this, loss);
-    }
+    m_engine->GetPyroManager()->Create(damageable.effect, this, loss);
     return false;
 }
 
@@ -479,103 +442,40 @@ void COldObject::DestroyObject(DestructionType type, CObject* killer)
         SetDamaging(false);
     }
 
+    auto destroyable = GetObjectDestroyableDetails(this);
+
     Gfx::PyroType pyroType = Gfx::PT_NULL;
     if ( type == DestructionType::Explosion )   // explosion?
     {
-        if ( m_type == OBJECT_ANT    ||
-             m_type == OBJECT_SPIDER ||
-             m_type == OBJECT_BEE    ||
-             m_type == OBJECT_WORM   )
-        {
-            pyroType = Gfx::PT_EXPLOO;
-        }
-        else if ( m_type == OBJECT_MOTHER ||
-                  m_type == OBJECT_NEST   ||
-                  m_type == OBJECT_BULLET )
-        {
-            pyroType = Gfx::PT_FRAGO;
-        }
-        else if ( m_type == OBJECT_HUMAN )
-        {
-            pyroType = Gfx::PT_DEADG;
-        }
-        else if ( m_type == OBJECT_BASE     ||
-                  m_type == OBJECT_DERRICK  ||
-                  m_type == OBJECT_FACTORY  ||
-                  m_type == OBJECT_STATION  ||
-                  m_type == OBJECT_CONVERT  ||
-                  m_type == OBJECT_REPAIR   ||
-                  m_type == OBJECT_DESTROYER||
-                  m_type == OBJECT_TOWER    ||
-                  m_type == OBJECT_NEST     ||
-                  m_type == OBJECT_RESEARCH ||
-                  m_type == OBJECT_RADAR    ||
-                  m_type == OBJECT_INFO     ||
-                  m_type == OBJECT_ENERGY   ||
-                  m_type == OBJECT_LABO     ||
-                  m_type == OBJECT_NUCLEAR  ||
-                  m_type == OBJECT_PARA     ||
-                  m_type == OBJECT_SAFE     ||
-                  m_type == OBJECT_HUSTON   ||
-                  m_type == OBJECT_START    ||
-                  m_type == OBJECT_END      ||
-                  m_type == OBJECT_RUINfactory ||
-                  m_type == OBJECT_RUINdoor    ||
-                  m_type == OBJECT_RUINsupport ||
-                  m_type == OBJECT_RUINradar   ||
-                  m_type == OBJECT_RUINconvert  )  // building?
-        {
-            pyroType = Gfx::PT_FRAGT;
-        }
-        else if ( m_type == OBJECT_MOBILEtg )
-        {
-            pyroType = Gfx::PT_FRAGT;
-        }
-        else
-        {
-            pyroType = Gfx::PT_EXPLOT;
-        }
+        pyroType = destroyable.explosion.effect;
     }
     else if ( type == DestructionType::ExplosionWater )
     {
-        pyroType = Gfx::PT_FRAGW;
+        pyroType = destroyable.water.effect;
     }
     else if ( type == DestructionType::Burn )  // burning?
     {
-        if ( m_type == OBJECT_MOTHER ||
-             m_type == OBJECT_ANT    ||
-             m_type == OBJECT_SPIDER ||
-             m_type == OBJECT_BEE    ||
-             m_type == OBJECT_WORM   ||
-             m_type == OBJECT_BULLET )
-        {
-            pyroType = Gfx::PT_BURNO;
+        pyroType = destroyable.burning.effect;
+
+        if (destroyable.burning.isKilledByBurning)
             SetDying(DeathType::Burning);
-        }
-        else if ( m_type == OBJECT_HUMAN )
-        {
-            pyroType = Gfx::PT_DEADG;
-        }
-        else
-        {
-            pyroType = Gfx::PT_BURNT;
-            SetDying(DeathType::Burning);
-        }
+
         SetVirusMode(false);
     }
     else if ( type == DestructionType::Drowned )
     {
-        pyroType = Gfx::PT_DEADW;
+        pyroType = destroyable.drowned.effect;
     }
     else if ( type == DestructionType::Win )
     {
-        pyroType = Gfx::PT_WPCHECK;
+        pyroType = destroyable.win.effect;
     }
     else if ( type == DestructionType::Squash )
     {
-        pyroType = Gfx::PT_SQUASH;
+        pyroType = destroyable.squash.effect;
         DeleteAllCrashSpheres();
     }
+
     assert(pyroType != Gfx::PT_NULL);
     if (pyroType == Gfx::PT_FRAGT ||
         pyroType == Gfx::PT_FRAGO ||
@@ -713,337 +613,60 @@ void COldObject::SetType(ObjectType type)
     m_type = type;
     m_name = GetObjectName(m_type);
 
-    SetSelectable(IsSelectableByDefault(m_type));
+    SetSelectable(IsSelectableByDefault());
 
-    // TODO: Temporary hack
-    if ( m_type == OBJECT_MOBILEfa || // WingedGrabber
-         m_type == OBJECT_MOBILEfb || // WingedBuilder
-         m_type == OBJECT_MOBILEfs || // WingedSniffer
-         m_type == OBJECT_MOBILEfc || // WingedShooter
-         m_type == OBJECT_MOBILEfi || // WingedOrgaShooter
-         m_type == OBJECT_MOBILEft || // WingedTrainer
-         m_type == OBJECT_HUMAN    || // Me
-         m_type == OBJECT_TECH     || // Tech
-         m_type == OBJECT_CONTROLLER)
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = true;
-    }
-    else if ( m_type == OBJECT_BEE )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = false;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)] = false;
-    }
+    auto transportable       = GetObjectTransportableDetails(this);
+    auto programmable        = GetObjectProgrammableDetails(this);
+    auto task_executor       = GetObjectTaskExecutorDetails(this);
+    auto jostleable          = GetObjectJostleableDetails(this);
+    auto modeled             = GetObjectModeledDetails(this);
+    auto movable             = GetObjectMovableDetails(this);
+    auto flying              = GetObjectFlyingDetails(this);
+    auto jet_flying          = GetObjectJetFlyingDetails(this);
+    auto controllable        = GetObjectControllableDetails(this);
+    auto power_container     = GetObjectPowerContainerDetails(this);
+    auto ranged              = GetObjectRangedDetails(this);
+    auto trace_drawing       = GetObjectTraceDrawingDetails(this);
+    auto damageable          = GetObjectDamageableDetails(this);
+    auto destroyable         = GetObjectDestroyableDetails(this);
+    auto fragile             = GetObjectFragileDetails(this);
+    auto shielded            = GetObjectShieldedDetails(this);
+    auto shielded_auto_regen = GetObjectShieldedAutoRegenDetails(this);
+    auto slotted             = GetObjectSlottedDetails(this);
+    auto thumpable           = GetObjectThumpableDetails(this);
+    auto shielder            = GetObjectShielderDetails(this);
+    auto exchange_post       = GetObjectExchangePostDetails(this);
 
-    // TODO: Another temporary hack
-    if (m_type == OBJECT_MOBILEfa ||
-        m_type == OBJECT_MOBILEta ||
-        m_type == OBJECT_MOBILEwa ||
-        m_type == OBJECT_MOBILEia ||
-        m_type == OBJECT_MOBILEfb ||
-        m_type == OBJECT_MOBILEtb ||
-        m_type == OBJECT_MOBILEwb ||
-        m_type == OBJECT_MOBILEib ||
-        m_type == OBJECT_MOBILEfc ||
-        m_type == OBJECT_MOBILEtc ||
-        m_type == OBJECT_MOBILEwc ||
-        m_type == OBJECT_MOBILEic ||
-        m_type == OBJECT_MOBILEfi ||
-        m_type == OBJECT_MOBILEti ||
-        m_type == OBJECT_MOBILEwi ||
-        m_type == OBJECT_MOBILEii ||
-        m_type == OBJECT_MOBILEfs ||
-        m_type == OBJECT_MOBILEts ||
-        m_type == OBJECT_MOBILEws ||
-        m_type == OBJECT_MOBILEis ||
-        m_type == OBJECT_MOBILErt ||
-        m_type == OBJECT_MOBILErc ||
-        m_type == OBJECT_MOBILErr ||
-        m_type == OBJECT_MOBILErs ||
-        m_type == OBJECT_MOBILEsa ||
-        m_type == OBJECT_MOBILEtg ||
-        m_type == OBJECT_MOBILEft ||
-        m_type == OBJECT_MOBILEtt ||
-        m_type == OBJECT_MOBILEwt ||
-        m_type == OBJECT_MOBILEit ||
-        m_type == OBJECT_MOBILErp ||
-        m_type == OBJECT_MOBILEst ||
-        m_type == OBJECT_TOWER    ||
-        m_type == OBJECT_RESEARCH ||
-        m_type == OBJECT_ENERGY   || // TODO not actually a power cell slot
-        m_type == OBJECT_LABO     || // TODO not actually a power cell slot
-        m_type == OBJECT_NUCLEAR  ) // TODO not actually a power cell slot
-    {
-        m_hasPowerSlot = true;
-    }
-    else
-    {
-        m_hasPowerSlot = false;
-    }
+    bool interactiveEnabled    = true;
+    bool oldEnabled            = true;
+    bool programStorageEnabled = programmable.enabled;
 
-    if ( m_type == OBJECT_HUMAN ||
-         m_type == OBJECT_TECH ||
-         m_type == OBJECT_MOBILEfa || // Grabbers
-         m_type == OBJECT_MOBILEta ||
-         m_type == OBJECT_MOBILEwa ||
-         m_type == OBJECT_MOBILEia ||
-         m_type == OBJECT_MOBILEsa) // subber
-    {
-        m_hasCargoSlot = true;
-    }
-    else
-    {
-        m_hasCargoSlot = false;
-    }
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Interactive)]       = interactiveEnabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)]     = transportable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)]    = programStorageEnabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)]      = programmable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::TaskExecutor)]      = task_executor.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)]        = jostleable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Modeled)]           = modeled.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)]           = movable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Flying)]            = flying.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::JetFlying)]         = jet_flying.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)]      = controllable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)]    = power_container.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Ranged)]            = ranged.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::TraceDrawing)]      = trace_drawing.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)]        = damageable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)]       = destroyable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)]           = fragile.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)]          = shielded.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ShieldedAutoRegen)] = shielded_auto_regen.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Old)]               = oldEnabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)]           = slotted.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Thumpable)]         = thumpable.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielder)]          = shielder.enabled;
+    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ExchangePost)]      = exchange_post.enabled;
 
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Slotted)] = (m_hasPowerSlot || m_hasCargoSlot);
-
-    // TODO: Hacking some more
-    if ( m_type == OBJECT_MOBILEtg ||
-         m_type == OBJECT_STONE    ||
-         m_type == OBJECT_METAL    ||
-         m_type == OBJECT_URANIUM  ||
-         m_type == OBJECT_POWER    ||
-         m_type == OBJECT_ATOMIC   ||
-         m_type == OBJECT_TNT      ||
-         m_type == OBJECT_BULLET   ||
-         m_type == OBJECT_EGG      ||
-         m_type == OBJECT_BOMB     ||
-         m_type == OBJECT_ANT      ||
-         m_type == OBJECT_WORM     ||
-         m_type == OBJECT_SPIDER   ||
-         m_type == OBJECT_BEE      ||
-         m_type == OBJECT_TEEN28    )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else if (m_type == OBJECT_HUMAN ||
-         m_type == OBJECT_MOBILEfa ||
-         m_type == OBJECT_MOBILEta ||
-         m_type == OBJECT_MOBILEwa ||
-         m_type == OBJECT_MOBILEia ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib ||
-         m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfi ||
-         m_type == OBJECT_MOBILEti ||
-         m_type == OBJECT_MOBILEwi ||
-         m_type == OBJECT_MOBILEii ||
-         m_type == OBJECT_MOBILEfs ||
-         m_type == OBJECT_MOBILEts ||
-         m_type == OBJECT_MOBILEws ||
-         m_type == OBJECT_MOBILEis ||
-         m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs ||
-         m_type == OBJECT_MOBILEsa ||
-         m_type == OBJECT_MOBILEft ||
-         m_type == OBJECT_MOBILEtt ||
-         m_type == OBJECT_MOBILEwt ||
-         m_type == OBJECT_MOBILEit ||
-         m_type == OBJECT_MOBILErp ||
-         m_type == OBJECT_MOBILEst ||
-         m_type == OBJECT_FACTORY  ||
-         m_type == OBJECT_REPAIR   ||
-         m_type == OBJECT_DESTROYER||
-         m_type == OBJECT_DERRICK  ||
-         m_type == OBJECT_STATION  ||
-         m_type == OBJECT_CONVERT  ||
-         m_type == OBJECT_TOWER    ||
-         m_type == OBJECT_RESEARCH ||
-         m_type == OBJECT_RADAR    ||
-         m_type == OBJECT_INFO     ||
-         m_type == OBJECT_ENERGY   ||
-         m_type == OBJECT_LABO     ||
-         m_type == OBJECT_NUCLEAR  ||
-         m_type == OBJECT_PARA     ||
-         m_type == OBJECT_MOTHER    )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = true;
-    }
-    else if (m_type == OBJECT_HUSTON ||
-             m_type == OBJECT_BASE    )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else if (m_type == OBJECT_RUINmobilew1 ||
-             m_type == OBJECT_RUINmobilew2 ||
-             m_type == OBJECT_RUINmobilet1 ||
-             m_type == OBJECT_RUINmobilet2 ||
-             m_type == OBJECT_RUINmobiler1 ||
-             m_type == OBJECT_RUINmobiler2 ||
-             m_type == OBJECT_RUINfactory  ||
-             m_type == OBJECT_RUINdoor     ||
-             m_type == OBJECT_RUINsupport  ||
-             m_type == OBJECT_RUINradar    ||
-             m_type == OBJECT_RUINconvert   )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else if (m_type == OBJECT_PLANT0  ||
-             m_type == OBJECT_PLANT1  ||
-             m_type == OBJECT_PLANT2  ||
-             m_type == OBJECT_PLANT3  ||
-             m_type == OBJECT_PLANT4  ||
-             m_type == OBJECT_PLANT15 ||
-             m_type == OBJECT_PLANT16 ||
-             m_type == OBJECT_PLANT17 ||
-             m_type == OBJECT_PLANT18 )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = true;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Damageable)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Destroyable)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Fragile)] = false;
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Shielded)] = false;
-    }
-
-    // TODO: #TooMuchHacking
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ShieldedAutoRegen)] = (m_type == OBJECT_HUMAN);
-
-    // TODO: Hacking in progress...
-    if ( m_type == OBJECT_STONE   ||
-         m_type == OBJECT_URANIUM ||
-         m_type == OBJECT_BULLET  ||
-         m_type == OBJECT_METAL   ||
-         m_type == OBJECT_POWER   ||
-         m_type == OBJECT_ATOMIC  ||
-         m_type == OBJECT_BBOX    ||
-         m_type == OBJECT_KEYa    ||
-         m_type == OBJECT_KEYb    ||
-         m_type == OBJECT_KEYc    ||
-         m_type == OBJECT_KEYd    ||
-         m_type == OBJECT_TNT     )
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)] = true;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Transportable)] = false;
-    }
-
-    // TODO: You have been hacked!
-    if (m_type == OBJECT_HUMAN    ||
-        m_type == OBJECT_TOTO     ||
-        m_type == OBJECT_MOBILEfa ||
-        m_type == OBJECT_MOBILEta ||
-        m_type == OBJECT_MOBILEwa ||
-        m_type == OBJECT_MOBILEia ||
-        m_type == OBJECT_MOBILEfb ||
-        m_type == OBJECT_MOBILEtb ||
-        m_type == OBJECT_MOBILEwb ||
-        m_type == OBJECT_MOBILEib ||
-        m_type == OBJECT_MOBILEfc ||
-        m_type == OBJECT_MOBILEtc ||
-        m_type == OBJECT_MOBILEwc ||
-        m_type == OBJECT_MOBILEic ||
-        m_type == OBJECT_MOBILEfi ||
-        m_type == OBJECT_MOBILEti ||
-        m_type == OBJECT_MOBILEwi ||
-        m_type == OBJECT_MOBILEii ||
-        m_type == OBJECT_MOBILEfs ||
-        m_type == OBJECT_MOBILEts ||
-        m_type == OBJECT_MOBILEws ||
-        m_type == OBJECT_MOBILEis ||
-        m_type == OBJECT_MOBILErt ||
-        m_type == OBJECT_MOBILErc ||
-        m_type == OBJECT_MOBILErr ||
-        m_type == OBJECT_MOBILErs ||
-        m_type == OBJECT_MOBILEsa ||
-        m_type == OBJECT_MOBILEft ||
-        m_type == OBJECT_MOBILEtt ||
-        m_type == OBJECT_MOBILEwt ||
-        m_type == OBJECT_MOBILEit ||
-        m_type == OBJECT_MOBILErp ||
-        m_type == OBJECT_MOBILEst ||
-        m_type == OBJECT_MOBILEtg ||
-        m_type == OBJECT_MOBILEdr ||
-        m_type == OBJECT_APOLLO2  ||
-        m_type == OBJECT_BASE     ||
-        m_type == OBJECT_DERRICK  ||
-        m_type == OBJECT_FACTORY  ||
-        m_type == OBJECT_REPAIR   ||
-        m_type == OBJECT_DESTROYER||
-        m_type == OBJECT_STATION  ||
-        m_type == OBJECT_CONVERT  ||
-        m_type == OBJECT_TOWER    ||
-        m_type == OBJECT_RESEARCH ||
-        m_type == OBJECT_RADAR    ||
-        m_type == OBJECT_INFO     ||
-        m_type == OBJECT_ENERGY   ||
-        m_type == OBJECT_LABO     ||
-        m_type == OBJECT_NUCLEAR  ||
-        m_type == OBJECT_PARA     ||
-        m_type == OBJECT_SAFE     ||
-        m_type == OBJECT_HUSTON   ||
-        m_type == OBJECT_ANT      ||
-        m_type == OBJECT_WORM     ||
-        m_type == OBJECT_SPIDER   ||
-        m_type == OBJECT_BEE      ||
-        m_type == OBJECT_MOTHER   ||
-        m_type == OBJECT_CONTROLLER)
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)] = true;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Controllable)] = false;
-    }
-
-    // TODO: Another one? :/
-    if ( m_type == OBJECT_POWER   || // PowerCell
-         m_type == OBJECT_ATOMIC  || // NuclearCell
-         m_type == OBJECT_STATION || // PowerStation
-         m_type == OBJECT_ENERGY   ) // PowerPlant
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)] = true;
-    }
-    else
-    {
-        m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::PowerContainer)] = false;
-    }
-
-
-    if ( m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEwi ||
-         m_type == OBJECT_MOBILEti ||
-         m_type == OBJECT_MOBILEfi ||
-         m_type == OBJECT_MOBILEii ||
-         m_type == OBJECT_MOBILErc )  // cannon vehicle?
-    {
-        m_cameraType = Gfx::CAM_TYPE_ONBOARD;
-    }
+    m_cameraType = controllable.camera.defaultCamera;
 }
 
 const char* COldObject::GetName()
@@ -1068,8 +691,6 @@ int COldObject::GetOption()
 
 void COldObject::Write(CLevelParserLine* line)
 {
-    glm::vec3    pos;
-
     line->AddParam("camera", std::make_unique<CLevelParserParam>(GetCameraType()));
 
     if ( GetCameraLock() )
@@ -1149,6 +770,19 @@ void COldObject::Write(CLevelParserLine* line)
         line->AddParam("bVirusActive", std::make_unique<CLevelParserParam>(GetActiveVirus()));
     }
 
+    if ( Implements(ObjectInterfaceType::Shielder) )
+    {
+        line->AddParam("bShieldActive", std::make_unique<CLevelParserParam>(IsBackgroundTask()));
+    }
+
+    if (Implements(ObjectInterfaceType::ExchangePost))
+    {
+        WriteInfo(line);
+    }
+
+    if (GetFixed())
+        line->AddParam("fixed", std::make_unique<CLevelParserParam>(GetFixed()));
+        
     if ( m_physics != nullptr )
     {
         m_physics->Write(line);
@@ -1175,7 +809,7 @@ void COldObject::Read(CLevelParserLine* line)
     if (line->GetParam("pyro")->IsDefined())
         m_engine->GetPyroManager()->Create(line->GetParam("pyro")->AsPyroType(), this);
 
-    SetBulletWall(line->GetParam("bulletWall")->AsBool(IsBulletWallByDefault(m_type)));
+    SetBulletWall(line->GetParam("bulletWall")->AsBool(IsBulletWallByDefault()));
 
     SetProxyActivate(line->GetParam("proxyActivate")->AsBool(false));
     SetProxyDistance(line->GetParam("proxyDistance")->AsFloat(15.0f)*g_unit);
@@ -1183,7 +817,7 @@ void COldObject::Read(CLevelParserLine* line)
     SetAnimateOnReset(line->GetParam("reset")->AsBool(false));
     if (Implements(ObjectInterfaceType::Controllable))
     {
-        SetSelectable(line->GetParam("selectable")->AsBool(IsSelectableByDefault(m_type)));
+        SetSelectable(line->GetParam("selectable")->AsBool(IsSelectableByDefault()));
     }
     if (Implements(ObjectInterfaceType::JetFlying))
     {
@@ -1209,6 +843,14 @@ void COldObject::Read(CLevelParserLine* line)
             {
                 SetCmdLine(i, cmdline[i]->AsFloat());
             }
+        }
+    }
+
+    if ( Implements(ObjectInterfaceType::Shielder) )
+    {
+        if( line->GetParam("bShieldActive")->AsBool(false) )
+        {
+            StartTaskShield(TSM_START);
         }
     }
 
@@ -1280,6 +922,13 @@ void COldObject::Read(CLevelParserLine* line)
         SetActiveVirus(line->GetParam("bVirusActive")->AsBool(false));
     }
 
+    if (Implements(ObjectInterfaceType::ExchangePost))
+    {
+        ReadInfo(line);
+    }
+
+    SetFixed(line->GetParam("fixed")->AsBool(false));
+
     if ( m_physics != nullptr )
     {
         m_physics->Read(line);
@@ -1311,7 +960,7 @@ int COldObject::SearchDescendant(int parent, int n)
     return -1;
 }
 
-void COldObject::TransformCrashSphere(Math::Sphere& crashSphere)
+void COldObject::TransformCrashSphere(Math::Sphere& crashSphere, int partNum)
 {
     if(!Implements(ObjectInterfaceType::Jostleable)) crashSphere.radius *= GetScaleX();
 
@@ -1322,19 +971,20 @@ void COldObject::TransformCrashSphere(Math::Sphere& crashSphere)
     // The sphere must necessarily have a center (0, y, 0).
     if (m_crashSpheres.size() == 1 &&
         crashSphere.pos.x == 0.0f &&
-        crashSphere.pos.z == 0.0f )
+        crashSphere.pos.z == 0.0f &&
+        partNum == 0)
     {
-        crashSphere.pos += m_objectPart[0].position;
+        crashSphere.pos += m_objectPart[partNum].position;
         return;
     }
 
-    if (m_objectPart[0].bTranslate ||
-        m_objectPart[0].bRotate)
+    if (m_objectPart[partNum].bTranslate ||
+        m_objectPart[partNum].bRotate)
     {
         UpdateTransformObject();
     }
 
-    crashSphere.pos = Math::Transform(m_objectPart[0].matWorld, crashSphere.pos);
+    crashSphere.pos = Math::Transform(m_objectPart[partNum].matWorld, crashSphere.pos);
 }
 
 void COldObject::TransformCameraCollisionSphere(Math::Sphere& collisionSphere)
@@ -1349,7 +999,6 @@ void COldObject::TransformCameraCollisionSphere(Math::Sphere& collisionSphere)
 void COldObject::SetJostlingSphere(const Math::Sphere& jostlingSphere)
 {
     m_jostlingSphere = jostlingSphere;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Jostleable)] = true;
 }
 
 // Specifies the sphere of jostling, in the world.
@@ -1650,6 +1299,11 @@ bool COldObject::GetPlusTrainer()
     return m_main->GetPlusTrainer();
 }
 
+bool COldObject::GetPlusExplorer()
+{
+    return m_main->GetPlusExplorer();
+}
+
 void COldObject::SetToy(bool bEnable)
 {
     m_bToy = bEnable;
@@ -1683,130 +1337,66 @@ void COldObject::SetMasterParticle(int part, int parti)
 
 int COldObject::GetNumSlots()
 {
-    assert(m_hasPowerSlot || m_hasCargoSlot); // otherwise implemented[CSlottedObject] is false
-    return (m_hasPowerSlot ? 1 : 0) + (m_hasCargoSlot ? 1 : 0);
+    auto slots = GetObjectSlottedDetails(this).slots;
+    return slots.size();
 }
+
 int COldObject::MapPseudoSlot(Pseudoslot pseudoslot)
 {
-    switch (pseudoslot)
+    auto slots = GetObjectSlottedDetails(this).slots;
+
+    for (unsigned int i = 0; i < slots.size(); i++)
     {
-    case Pseudoslot::POWER:
-        return m_hasPowerSlot ? 0 : -1;
-    case Pseudoslot::CARRYING:
-        return m_hasCargoSlot ? (m_hasPowerSlot ? 1 : 0) : -1;
-    default:
-        return -1;
+        if (slots[i].category == SLOT_POWER && pseudoslot == Pseudoslot::POWER)
+            return i;
+        if (slots[i].category == SLOT_CARGO && pseudoslot == Pseudoslot::CARRYING)
+            return i;
     }
+
+    return -1;
 }
+
 glm::vec3 COldObject::GetSlotPosition(int slotNum)
 {
-    if (slotNum == 0 && m_hasPowerSlot)
-        return m_powerPosition;
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        int grabPartNum;
-        glm::vec3 grabRelPos;
-        // See CTaskManip::TransporterTakeObject call to SetTransporterPart and SetPosition
-        switch (m_type)
-        {
-        case OBJECT_HUMAN:
-        case OBJECT_TECH:
-            grabPartNum = 4;
-            grabRelPos = glm::vec3(1.7f, -0.5f, 1.1f);
-            break;
-        case OBJECT_MOBILEsa: // subber
-            grabPartNum = 2;
-            grabRelPos = glm::vec3(1.1f, -1.0f, 1.0f);
-            break;
-        case OBJECT_MOBILEfa: // Grabbers
-        case OBJECT_MOBILEta:
-        case OBJECT_MOBILEwa:
-        case OBJECT_MOBILEia:
-            grabPartNum = 3;
-            grabRelPos = glm::vec3(4.7f, 0.0f, 0.0f);
-            break;
-        default: // unreachable, only the above objects have cargo slots
-            assert(!m_hasCargoSlot);
-            return m_powerPosition;
-        }
+    auto slots = GetObjectSlottedDetails(this).slots;
+    assert(unsigned(slotNum) < slots.size());
 
-        return Math::Transform(glm::inverse(GetWorldMatrix(0)), Math::Transform(GetWorldMatrix(grabPartNum), grabRelPos));
-    }
+    if (slots[slotNum].partNum == 0)
+        return slots[slotNum].position;
+
+    return Math::Transform(glm::inverse(GetWorldMatrix(0)), Math::Transform(GetWorldMatrix(slots[slotNum].partNum), slots[slotNum].position));
 }
+
 float COldObject::GetSlotAngle(int slotNum)
 {
-    if (slotNum == 0 && m_hasPowerSlot)
-    {
-        switch (m_type)
-        {
-        case OBJECT_TOWER:
-        case OBJECT_RESEARCH:
-        case OBJECT_ENERGY:
-        case OBJECT_LABO:
-        case OBJECT_NUCLEAR:
-            return 0;
-        default: // robots
-            return Math::PI;
-        }
-    }
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        return 0;
-    }
-}
-float COldObject::GetSlotAcceptanceAngle(int slotNum)
-{
-    if (slotNum == 0 && m_hasPowerSlot)
-    {
-        switch (m_type)
-        {
-        case OBJECT_TOWER:
-        case OBJECT_RESEARCH:
-            return 45.0f*Math::PI/180.0f;
-        case OBJECT_ENERGY:
-            return 90.0f*Math::PI/180.0f;
-        case OBJECT_LABO:
-            return 120.0f*Math::PI/180.0f;
-        case OBJECT_NUCLEAR:
-            return 45.0f*Math::PI/180.0f;
-        default:
-            return 45.0f*Math::PI/180.0f;
-        }
-    }
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        return 0; // no acceptance angle for cargo slot
-    }
-}
-CObject *COldObject::GetSlotContainedObject(int slotNum)
-{
-    if (slotNum == 0 && m_hasPowerSlot)
-        return m_power;
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        return m_cargo;
-    }
-}
-void COldObject::SetSlotContainedObject(int slotNum, CObject *object)
-{
-    if (slotNum == 0 && m_hasPowerSlot)
-        m_power = object;
-    else
-    {
-        assert(m_hasCargoSlot && slotNum == (m_hasPowerSlot ? 1 : 0));
-        m_cargo = object;
-    }
-}
-// not part of CSlottedObject; just used for initialization
-void COldObject::SetPowerPosition(const glm::vec3& powerPosition)
-{
-    m_powerPosition = powerPosition;
+    auto slots = GetObjectSlottedDetails(this).slots;
+    assert(unsigned(slotNum) < slots.size());
+
+    return slots[slotNum].angle;
 }
 
+float COldObject::GetSlotAcceptanceAngle(int slotNum)
+{
+    auto slots = GetObjectSlottedDetails(this).slots;
+    assert(unsigned(slotNum) < slots.size());
+
+    return slots[slotNum].acceptanceAngle;
+}
+
+CObject *COldObject::GetSlotContainedObject(int slotNum)
+{
+    assert(unsigned(slotNum) < GetNumSlots());
+    assert(unsigned(slotNum) < OBJECTMAXSLOT);
+
+    return m_slot[slotNum];
+}
+
+void COldObject::SetSlotContainedObject(int slotNum, CObject *object)
+{
+    assert(unsigned(slotNum) < GetNumSlots());
+    assert(unsigned(slotNum) < OBJECTMAXSLOT);
+    m_slot[slotNum] = object;
+}
 
 
 // Management of the object "transporter" that transports it.
@@ -2125,24 +1715,8 @@ void COldObject::UpdateEnergyMapping()
 
     m_lastEnergy = GetEnergyLevel();
 
-    float a = 0.0f, b = 0.0f;
-
-    if ( m_type == OBJECT_POWER  ||
-         m_type == OBJECT_ATOMIC )
-    {
-        a = 2.0f;
-        b = 0.0f;  // dimensions of the battery (according to y)
-    }
-    else if ( m_type == OBJECT_STATION )
-    {
-        a = 10.0f;
-        b =  4.0f;  // dimensions of the battery (according to y)
-    }
-    else if ( m_type == OBJECT_ENERGY )
-    {
-        a = 9.0f;
-        b = 3.0f;  // dimensions of the battery (according to y)
-    }
+    float a = GetObjectPowerContainerDetails(this).dim_a;
+    float b = GetObjectPowerContainerDetails(this).dim_b;
 
     float i = 0.50f+0.25f*GetEnergyLevel();  // origin
     float s = i+0.25f;  // width
@@ -2206,10 +1780,11 @@ bool COldObject::EventProcess(const Event &event)
                       m_type == OBJECT_SPIDER ||
                       m_type == OBJECT_WORM   ) )
                 {
-                    // TODO: Move to CBaseAlien?
-                    CBaseAlien* alien = dynamic_cast<CBaseAlien*>(this);
-                    assert(alien != nullptr);
-                    if (!alien->GetFixed())
+                    if (Implements(ObjectInterfaceType::Thumpable) && GetFixed() )
+                    {
+                        // just burn
+                    }
+                    else
                     {
                         axeY = 2.0f;  // zigzag disorganized fast
                         if ( m_type == OBJECT_WORM )  axeY = 5.0f;
@@ -2237,6 +1812,10 @@ bool COldObject::EventProcess(const Event &event)
             if (Implements(ObjectInterfaceType::Programmable))
             {
                 canMove = canMove && !IsProgram();
+            }
+            if (Implements(ObjectInterfaceType::Thumpable))
+            {
+                canMove = canMove && !GetFixed();
             }
 
             if ( canMove )
@@ -2345,7 +1924,7 @@ bool COldObject::EventFrame(const Event &event)
 
     m_time += event.rTime;
 
-    if ( m_engine->GetPause() && m_type != OBJECT_SHOW )  return true;
+    if ( m_engine->GetPause() && m_type != GetObjectGlobalDetails().defaults.arrow )  return true;
 
     if ( GetDying() == DeathType::Burning )  m_burnTime += event.rTime;
 
@@ -2361,10 +1940,12 @@ bool COldObject::EventFrame(const Event &event)
 
     if (Implements(ObjectInterfaceType::ShieldedAutoRegen))
     {
-        SetShield(GetShield() + event.rTime*(1.0f/GetShieldFullRegenTime()));
+        float autoregenTime = GetShieldFullRegenTime();
+        if ( autoregenTime )
+            SetShield(GetShield() + event.rTime*(1.0f/autoregenTime));
     }
 
-    if (m_damaging && m_time - m_damageTime > 2.0f)
+    if (IsDamaging() && m_time - m_damageTime > 2.0f)
     {
         SetDamaging(false);
         m_main->UpdateShortcuts();
@@ -2466,87 +2047,9 @@ void COldObject::AdjustCamera(glm::vec3 &eye, float &dirH, float &dirV,
 
     UpdateTransformObject();
 
-    part = 0;
-    if ( m_type == OBJECT_HUMAN ||
-         m_type == OBJECT_TECH  )
-    {
-        eye.x = -0.2f;
-        eye.y =  3.3f;
-        eye.z =  0.0f;
-//?     eye.x =  1.0f;
-//?     eye.y =  3.3f;
-//?     eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILErt ||
-              m_type == OBJECT_MOBILErr ||
-              m_type == OBJECT_MOBILErs ||
-              m_type == OBJECT_MOBILErp )
-    {
-        eye.x = -1.1f;  // on the cap
-        eye.y =  7.9f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEwc ||
-              m_type == OBJECT_MOBILEtc ||
-              m_type == OBJECT_MOBILEfc ||
-              m_type == OBJECT_MOBILEic )  // fireball?
-    {
-//?     eye.x = -0.9f;  // on the cannon
-//?     eye.y =  3.0f;
-//?     eye.z =  0.0f;
-//?     part = 1;
-        eye.x = -0.9f;  // on the cannon
-        eye.y =  8.3f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEii )  // orgaball ?
-    {
-//?     eye.x = -3.5f;  // on the cannon
-//?     eye.y =  5.1f;
-//?     eye.z =  0.0f;
-//?     part = 1;
-        eye.x = -2.5f;  // on the cannon
-        eye.y = 10.4f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILErc )
-    {
-//?     eye.x =  2.0f;  // in the cannon
-//?     eye.y =  0.0f;
-//?     eye.z =  0.0f;
-//?     part = 2;
-        eye.x =  4.0f;  // on the cannon
-        eye.y = 11.0f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEsa ||
-              m_type == OBJECT_MOBILEst )
-    {
-        eye.x =  3.0f;
-        eye.y =  4.5f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_MOBILEdr )
-    {
-        eye.x =  1.0f;
-        eye.y =  6.5f;
-        eye.z =  0.0f;
-    }
-    else if ( m_type == OBJECT_APOLLO2 )
-    {
-        eye.x = -3.0f;
-        eye.y =  6.0f;
-        eye.z = -2.0f;
-    }
-    else
-    {
-        eye.x = 0.7f;  // between the brackets
-        eye.y = 4.8f;
-        eye.z = 0.0f;
-    }
+    auto controllable = GetObjectControllableDetails(this);
+    part = controllable.camera.onboard.partNum;
+    eye  = controllable.camera.onboard.position;
 
     if ( type == Gfx::CAM_TYPE_BACK )
     {
@@ -2608,12 +2111,12 @@ float COldObject::GetAbsTime()
 
 float COldObject::GetCapacity()
 {
-    return m_type == OBJECT_ATOMIC ? m_main->GetGlobalNuclearCapacity() : m_main->GetGlobalCellCapacity() ;
+    return GetObjectPowerContainerDetails(this).capacity;
 }
 
 bool COldObject::IsRechargeable()
 {
-    return m_type == OBJECT_POWER;
+    return GetObjectPowerContainerDetails(this).rechargeable;
 }
 
 
@@ -2657,6 +2160,11 @@ float COldObject::GetReactorRange()
     return m_reactorRange;
 }
 
+CJetFlyingCoolingFactors COldObject::GetCoolingFactors()
+{
+    return GetObjectJetFlyingDetails(this).cooling;
+}
+
 
 // Management of transparency of the object.
 
@@ -2683,11 +2191,9 @@ void COldObject::SetGhostMode(bool enabled)
 
 bool COldObject::JostleObject(float force)
 {
-    if ( m_type == OBJECT_FLAGb ||
-         m_type == OBJECT_FLAGr ||
-         m_type == OBJECT_FLAGg ||
-         m_type == OBJECT_FLAGy ||
-         m_type == OBJECT_FLAGv )  // flag?
+    auto jostleable = GetObjectJostleableDetails(this);
+
+    if ( jostleable.special )
     {
         if ( m_auto == nullptr )  return false;
 
@@ -2698,7 +2204,7 @@ bool COldObject::JostleObject(float force)
         if ( m_auto != nullptr )  return false;
 
         auto autoJostle = std::make_unique<CAutoJostle>(this);
-        autoJostle->Start(0, force);
+        autoJostle->Start(0, force * jostleable.factor);
         m_auto = std::move(autoJostle);
     }
 
@@ -2804,11 +2310,24 @@ void COldObject::SetSelect(bool select, bool bDisplayError)
         return;  // if not selected, we're done
 
     Error err = ERR_OK;
-    if ( m_physics != nullptr )
+
+    if ( GetVirusMode() )
     {
-        err = m_physics->GetError();
+        if (Implements(ObjectInterfaceType::ProgramStorage) && GetActiveVirus())
+            err = ERR_VEH_VIRUS;
+        else
+            err = ERR_BAT_VIRUS;
     }
-    if ( m_auto != nullptr )
+
+    if (HasPowerCellSlot(this))
+    {
+        if ( !HasObjectPowerContainer(this) )
+            err = ERR_VEH_POWER;
+        else if ( GetObjectEnergy(this) == 0.0f )
+            err = ERR_VEH_ENERGY;
+    }
+
+    if ( err == ERR_OK && m_auto != nullptr )
     {
         err = m_auto->GetError();
     }
@@ -2925,76 +2444,28 @@ bool COldObject::GetDetectable()
 
 void COldObject::SetGunGoalV(float gunGoal)
 {
-    if ( m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib)  // fireball?
-    {
-        if ( gunGoal >  10.0f*Math::PI/180.0f )  gunGoal =  10.0f*Math::PI/180.0f;
-        if ( gunGoal < -20.0f*Math::PI/180.0f )  gunGoal = -20.0f*Math::PI/180.0f;
-        SetPartRotationZ(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEii )  // orgaball?
-    {
-        if ( gunGoal >  20.0f*Math::PI/180.0f )  gunGoal =  20.0f*Math::PI/180.0f;
-        if ( gunGoal < -20.0f*Math::PI/180.0f )  gunGoal = -20.0f*Math::PI/180.0f;
-        SetPartRotationZ(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILErc )  // phazer?
-    {
-        if ( gunGoal >  45.0f*Math::PI/180.0f )  gunGoal =  45.0f*Math::PI/180.0f;
-        if ( gunGoal < -20.0f*Math::PI/180.0f )  gunGoal = -20.0f*Math::PI/180.0f;
-        SetPartRotationZ(2, gunGoal);
-    }
-    else
-    {
-        gunGoal = 0.0f;
-    }
+    auto aim = GetObjectTaskExecutorDetails(this).aim;
+    if ( !aim.enabled ) return;
+
+    if ( gunGoal < aim.minZ ) gunGoal = aim.minZ;
+    if ( gunGoal > aim.maxZ ) gunGoal = aim.maxZ;
+        
+    if ( aim.partNum != -1 )
+        SetPartRotationZ(aim.partNum, gunGoal);
 
     m_gunGoalV = gunGoal;
 }
 
 void COldObject::SetGunGoalH(float gunGoal)
 {
-    if ( m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib)  // fireball?
-    {
-        if ( gunGoal >  40.0f*Math::PI/180.0f )  gunGoal =  40.0f*Math::PI/180.0f;
-        if ( gunGoal < -40.0f*Math::PI/180.0f )  gunGoal = -40.0f*Math::PI/180.0f;
-        SetPartRotationY(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEii )  // orgaball?
-    {
-        if ( gunGoal >  40.0f*Math::PI/180.0f )  gunGoal =  40.0f*Math::PI/180.0f;
-        if ( gunGoal < -40.0f*Math::PI/180.0f )  gunGoal = -40.0f*Math::PI/180.0f;
-        SetPartRotationY(1, gunGoal);
-    }
-    else if ( m_type == OBJECT_MOBILErc )  // phazer?
-    {
-        if ( gunGoal >  40.0f*Math::PI/180.0f )  gunGoal =  40.0f*Math::PI/180.0f;
-        if ( gunGoal < -40.0f*Math::PI/180.0f )  gunGoal = -40.0f*Math::PI/180.0f;
-        SetPartRotationY(2, gunGoal);
-    }
-    else
-    {
-        gunGoal = 0.0f;
-    }
+    auto aim = GetObjectTaskExecutorDetails(this).aim;
+    if ( !aim.enabled ) return;
+
+    if ( gunGoal < aim.minY ) gunGoal = aim.minY;
+    if ( gunGoal > aim.maxY ) gunGoal = aim.maxY;
+        
+    if ( aim.partNum != -1 )
+        SetPartRotationY(aim.partNum, gunGoal);
 
     m_gunGoalH = gunGoal;
 }
@@ -3011,11 +2482,7 @@ float COldObject::GetGunGoalH()
 
 float COldObject::GetShowLimitRadius()
 {
-    if ( m_type == OBJECT_BASE     ) return 200.0f; // SpaceShip
-    if ( m_type == OBJECT_MOBILErt ) return 400.0f; // Thumper
-    if ( m_type == OBJECT_TOWER    ) return Gfx::LTNG_PROTECTION_RADIUS; // DefenseTower
-    if ( m_type == OBJECT_PARA     ) return Gfx::LTNG_PROTECTION_RADIUS; // PowerCaptor
-    return 0.0f;
+    return GetObjectRangedDetails(this).radius;
 }
 
 
@@ -3023,67 +2490,29 @@ float COldObject::GetShowLimitRadius()
 
 void COldObject::CreateSelectParticle()
 {
-    glm::vec3    pos, speed;
-    glm::vec2     dim;
-    int         i;
-
     // Removes particles preceding.
-    for ( i=0 ; i<4 ; i++ )
+    for ( int it: m_partiSel )
     {
-        if ( m_partiSel[i] != -1 )
-        {
-            m_particle->DeleteParticle(m_partiSel[i]);
-            m_partiSel[i] = -1;
-        }
+        if ( it != -1 )
+            m_particle->DeleteParticle(it);
     }
+    m_partiSel.clear();
 
     if ( m_bSelect || IsProgram() || m_main->GetMissionType() == MISSION_RETRO )
     {
         // Creates particles lens for the headlights.
-        if ( m_type == OBJECT_MOBILEfa ||
-             m_type == OBJECT_MOBILEta ||
-             m_type == OBJECT_MOBILEwa ||
-             m_type == OBJECT_MOBILEia ||
-             m_type == OBJECT_MOBILEfb ||
-             m_type == OBJECT_MOBILEtb ||
-             m_type == OBJECT_MOBILEwb ||
-             m_type == OBJECT_MOBILEib ||
-             m_type == OBJECT_MOBILEfc ||
-             m_type == OBJECT_MOBILEtc ||
-             m_type == OBJECT_MOBILEwc ||
-             m_type == OBJECT_MOBILEic ||
-             m_type == OBJECT_MOBILEfi ||
-             m_type == OBJECT_MOBILEti ||
-             m_type == OBJECT_MOBILEwi ||
-             m_type == OBJECT_MOBILEii ||
-             m_type == OBJECT_MOBILEfs ||
-             m_type == OBJECT_MOBILEts ||
-             m_type == OBJECT_MOBILEws ||
-             m_type == OBJECT_MOBILEis ||
-             m_type == OBJECT_MOBILErt ||
-             m_type == OBJECT_MOBILErc ||
-             m_type == OBJECT_MOBILErr ||
-             m_type == OBJECT_MOBILErs ||
-             m_type == OBJECT_MOBILEsa ||
-             m_type == OBJECT_MOBILEtg ||
-             m_type == OBJECT_MOBILEft ||
-             m_type == OBJECT_MOBILEtt ||
-             m_type == OBJECT_MOBILEwt ||
-             m_type == OBJECT_MOBILEit ||
-             m_type == OBJECT_MOBILErp ||
-             m_type == OBJECT_MOBILEst ||
-             m_type == OBJECT_MOBILEdr )  // vehicle?
+        auto lights = GetObjectControllableDetails(this).lights;
+        for ( auto it: lights )
         {
-            pos = glm::vec3(0.0f, 0.0f, 0.0f);
-            speed = glm::vec3(0.0f, 0.0f, 0.0f);
-            dim.x = 0.0f;
-            dim.y = 0.0f;
-            m_partiSel[0] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELY, 1.0f, 0.0f, 0.0f);
-            m_partiSel[1] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELY, 1.0f, 0.0f, 0.0f);
-            m_partiSel[2] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELR, 1.0f, 0.0f, 0.0f);
-            m_partiSel[3] = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISELR, 1.0f, 0.0f, 0.0f);
-            UpdateSelectParticle();
+            int particle = -1;
+            if ( MatchObjectPartFilter(this, it.filter) )
+            {
+                particle = m_particle->CreateParticle(glm::vec3(), glm::vec3(), glm::vec2(), it.color, 1.0f, 0.0f, 0.0f);
+            }
+            m_partiSel.push_back(particle);
         }
+        if ( lights.size() )
+            UpdateSelectParticle();
     }
 }
 
@@ -3091,170 +2520,26 @@ void COldObject::CreateSelectParticle()
 
 void COldObject::UpdateSelectParticle()
 {
-    glm::vec3    pos[4];
-    glm::vec2     dim[4];
-    float       zoom[4];
-    float       angle;
-    int         i;
-
     if ( !m_bSelect && !IsProgram() && m_main->GetMissionType() != MISSION_RETRO )  return;
 
-    dim[0].x = 1.0f;
-    dim[1].x = 1.0f;
-    dim[2].x = 1.2f;
-    dim[3].x = 1.2f;
-
-    // Lens front yellow.
-    if ( m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs ||
-         m_type == OBJECT_MOBILErp )  // large caterpillars?
-    {
-        pos[0] = glm::vec3(4.2f, 2.8f,  1.5f);
-        pos[1] = glm::vec3(4.2f, 2.8f, -1.5f);
-        dim[0].x = 1.5f;
-        dim[1].x = 1.5f;
-    }
-    else if ( m_type == OBJECT_MOBILEsa ||
-              m_type == OBJECT_MOBILEst )  // submarine?
-    {
-        pos[0] = glm::vec3(3.6f, 4.0f,  2.0f);
-        pos[1] = glm::vec3(3.6f, 4.0f, -2.0f);
-    }
-    else if ( m_type == OBJECT_MOBILEtg )  // target?
-    {
-        pos[0] = glm::vec3(3.4f, 6.5f,  2.0f);
-        pos[1] = glm::vec3(3.4f, 6.5f, -2.0f);
-    }
-    else if ( m_type == OBJECT_MOBILEdr )  // designer?
-    {
-        pos[0] = glm::vec3(4.9f, 3.5f,  2.5f);
-        pos[1] = glm::vec3(4.9f, 3.5f, -2.5f);
-    }
-    else if ( m_type == OBJECT_MOBILEwt ||
-              m_type == OBJECT_MOBILEtt ||
-              m_type == OBJECT_MOBILEft ||
-              m_type == OBJECT_MOBILEit ||
-              GetTrainer())                // trainer ?
-    {
-        pos[0] = glm::vec3(4.2f, 2.5f,  1.2f);
-        pos[1] = glm::vec3(4.2f, 2.5f, -1.2f);
-        dim[0].x = 1.5f;
-        dim[1].x = 1.5f;
-    }
-    else
-    {
-        pos[0] = glm::vec3(4.2f, 2.5f,  1.5f);
-        pos[1] = glm::vec3(4.2f, 2.5f, -1.5f);
-    }
-
-    // Red back lens
-    if ( m_type == OBJECT_MOBILEwt ||
-         m_type == OBJECT_MOBILEtt ||
-         m_type == OBJECT_MOBILEft ||
-         m_type == OBJECT_MOBILEit ||
-         GetTrainer())               // trainer?
-    {
-        pos[2] = glm::vec3(-4.0f, 2.5f,  2.2f);
-        pos[3] = glm::vec3(-4.0f, 2.5f, -2.2f);
-    }
-    else if ( m_type == OBJECT_MOBILEfa ||
-              m_type == OBJECT_MOBILEfb ||
-              m_type == OBJECT_MOBILEfc ||
-              m_type == OBJECT_MOBILEfi ||
-              m_type == OBJECT_MOBILEfs )  // flying?
-    {
-        pos[2] = glm::vec3(-4.0f, 3.1f,  4.5f);
-        pos[3] = glm::vec3(-4.0f, 3.1f, -4.5f);
-        dim[2].x = 0.6f;
-        dim[3].x = 0.6f;
-    }
-    else if ( m_type == OBJECT_MOBILEwa ||
-              m_type == OBJECT_MOBILEwb ||
-              m_type == OBJECT_MOBILEwc ||
-              m_type == OBJECT_MOBILEwi ||
-              m_type == OBJECT_MOBILEws )  // wheels?
-    {
-        pos[2] = glm::vec3(-4.5f, 2.7f,  2.8f);
-        pos[3] = glm::vec3(-4.5f, 2.7f, -2.8f);
-    }
-    else if ( m_type == OBJECT_MOBILEia ||
-              m_type == OBJECT_MOBILEib ||
-              m_type == OBJECT_MOBILEic ||
-              m_type == OBJECT_MOBILEii ||
-              m_type == OBJECT_MOBILEis )  // legs?
-    {
-        pos[2] = glm::vec3(-4.5f, 2.7f,  2.8f);
-        pos[3] = glm::vec3(-4.5f, 2.7f, -2.8f);
-    }
-    else if ( m_type == OBJECT_MOBILEta ||
-              m_type == OBJECT_MOBILEtb ||
-              m_type == OBJECT_MOBILEtc ||
-              m_type == OBJECT_MOBILEti ||
-              m_type == OBJECT_MOBILEts )  // caterpillars?
-    {
-        pos[2] = glm::vec3(-3.6f, 4.2f,  3.0f);
-        pos[3] = glm::vec3(-3.6f, 4.2f, -3.0f);
-    }
-    else if ( m_type == OBJECT_MOBILErt ||
-              m_type == OBJECT_MOBILErc ||
-              m_type == OBJECT_MOBILErr ||
-              m_type == OBJECT_MOBILErs )  // large caterpillars?
-    {
-        pos[2] = glm::vec3(-5.0f, 5.2f,  2.5f);
-        pos[3] = glm::vec3(-5.0f, 5.2f, -2.5f);
-    }
-    if ( m_type == OBJECT_MOBILErp || ( GetTrainer() &&
-       ( m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs)))  // large caterpillars (trainer)?
-    {
-        pos[2] = glm::vec3(-4.6f, 5.2f,  2.6f);
-        pos[3] = glm::vec3(-4.6f, 5.2f, -2.6f);
-    }
-    if ( m_type == OBJECT_MOBILEsa ||
-         m_type == OBJECT_MOBILEst )  // submarine?
-    {
-        pos[2] = glm::vec3(-3.6f, 4.0f,  2.0f);
-        pos[3] = glm::vec3(-3.6f, 4.0f, -2.0f);
-    }
-    if ( m_type == OBJECT_MOBILEtg )  // target?
-    {
-        pos[2] = glm::vec3(-2.4f, 6.5f,  2.0f);
-        pos[3] = glm::vec3(-2.4f, 6.5f, -2.0f);
-    }
-    if ( m_type == OBJECT_MOBILEdr )  // designer?
-    {
-        pos[2] = glm::vec3(-5.3f, 2.7f,  1.8f);
-        pos[3] = glm::vec3(-5.3f, 2.7f, -1.8f);
-    }
-
-    angle = GetRotationY()/Math::PI;
-
-    zoom[0] = 1.0f;
-    zoom[1] = 1.0f;
-    zoom[2] = 1.0f;
-    zoom[3] = 1.0f;
+    float angle = GetRotationY()/Math::PI;
+    float zoom  = 1.0f;
 
     if ( ( IsProgram() ||  // current program?
          m_main->GetMissionType() == MISSION_RETRO ) && // Retro mode?
          Math::Mod(m_aTime, 0.7f) < 0.3f )
     {
-        zoom[0] = 0.0f;  // blinks
-        zoom[1] = 0.0f;
-        zoom[2] = 0.0f;
-        zoom[3] = 0.0f;
+        zoom = 0.0f;  // blinks
     }
 
     // Updates lens.
-    for ( i=0 ; i<4 ; i++ )
+    auto lights = GetObjectControllableDetails(this).lights;
+    for (unsigned int i = 0 ; i < m_partiSel.size() ; i++)
     {
         if (m_partiSel[i] == -1) continue;
-        pos[i] = Math::Transform(m_objectPart[0].matWorld, pos[i]);
-        dim[i].y = dim[i].x;
-        m_particle->SetParam(m_partiSel[i], pos[i], dim[i], zoom[i], angle, 1.0f);
+        glm::vec3 pos = Math::Transform(m_objectPart[lights[i].partNum].matWorld, lights[i].position);
+        glm::vec2 dim  = glm::vec2(lights[i].zoom, lights[i].zoom);
+        m_particle->SetParam(m_partiSel[i], pos, dim, zoom, angle, 1.0f);
     }
 }
 
@@ -3273,19 +2558,10 @@ CMotion* COldObject::GetMotion()
     return m_motion.get();
 }
 
-// TODO: Temporary hack until we'll have subclasses for objects
-void COldObject::SetProgrammable()
-{
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::ProgramStorage)] = true;
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Programmable)] = true;
-}
-
-// TODO: Another hack
 void COldObject::SetMovable(std::unique_ptr<CMotion> motion, std::unique_ptr<CPhysics> physics)
 {
     m_motion = std::move(motion);
     m_physics = std::move(physics);
-    m_implementedInterfaces[static_cast<int>(ObjectInterfaceType::Movable)] = true;
 }
 
 // Returns the controller associated to the object.
@@ -3323,12 +2599,12 @@ void COldObject::SetRotation(const glm::vec3& rotation)
 
 glm::vec3 COldObject::GetScale() const
 {
-    return GetPartScale(0);
+    return GetPartScale(0) / m_scaleFactor;
 }
 
 void COldObject::SetScale(const glm::vec3& scale)
 {
-    SetPartScale(0, scale);
+    SetPartScale(0, scale * m_scaleFactor);
 }
 
 void COldObject::UpdateInterface()
@@ -3347,13 +2623,16 @@ void COldObject::StopProgram()
     CProgrammableObjectImpl::StopProgram();
 
     //TODO: I don't want CProgrammableObjectImpl to depend on motion and physics, refactor this somehow
-    m_physics->SetMotorSpeedX(0.0f);
-    m_physics->SetMotorSpeedY(0.0f);
-    m_physics->SetMotorSpeedZ(0.0f);
-
-    if (m_type != OBJECT_HUMAN) // Be sure not to stop the death animation!
+    if (Implements(ObjectInterfaceType::Movable))
     {
-        m_motion->SetAction(-1);
+        m_physics->SetMotorSpeedX(0.0f);
+        m_physics->SetMotorSpeedY(0.0f);
+        m_physics->SetMotorSpeedZ(0.0f);
+
+        if (m_type != OBJECT_HUMAN) // Be sure not to stop the death animation!
+        {
+            m_motion->SetAction(-1);
+        }
     }
 }
 
@@ -3391,95 +2670,27 @@ void COldObject::SetTraceWidth(float width)
 
 bool COldObject::IsRepairable()
 {
-    if (m_type == OBJECT_HUMAN) return false;
-    return true;
+    auto shielded = GetObjectShieldedDetails(this);
+    return shielded.enabled && !shielded.nonRepairable;
 }
 
 float COldObject::GetShieldFullRegenTime()
 {
-    if (m_type == OBJECT_HUMAN) return 120.0f;
-    assert(false);
-    return 0.0f;
+    auto shielded_auto_regen = GetObjectShieldedAutoRegenDetails(this);
+    assert(shielded_auto_regen.enabled);
+    return shielded_auto_regen.time;
 }
 
 float COldObject::GetLightningHitProbability()
 {
-    if ( m_type == OBJECT_BASE     ||
-         m_type == OBJECT_DERRICK  ||
-         m_type == OBJECT_FACTORY  ||
-         m_type == OBJECT_REPAIR   ||
-         m_type == OBJECT_DESTROYER||
-         m_type == OBJECT_STATION  ||
-         m_type == OBJECT_CONVERT  ||
-         m_type == OBJECT_TOWER    ||
-         m_type == OBJECT_RESEARCH ||
-         m_type == OBJECT_RADAR    ||
-         m_type == OBJECT_INFO     ||
-         m_type == OBJECT_ENERGY   ||
-         m_type == OBJECT_LABO     ||
-         m_type == OBJECT_NUCLEAR  ||
-         m_type == OBJECT_PARA     ||
-         m_type == OBJECT_SAFE     ||
-         m_type == OBJECT_HUSTON   )  // building?
-    {
-        return 1.0f;
-    }
-    if ( m_type == OBJECT_METAL    ||
-         m_type == OBJECT_POWER    ||
-         m_type == OBJECT_ATOMIC   ) // resource?
-    {
-        return 0.3f;
-    }
-    if ( m_type == OBJECT_MOBILEfa ||
-         m_type == OBJECT_MOBILEta ||
-         m_type == OBJECT_MOBILEwa ||
-         m_type == OBJECT_MOBILEia ||
-         m_type == OBJECT_MOBILEfb ||
-         m_type == OBJECT_MOBILEtb ||
-         m_type == OBJECT_MOBILEwb ||
-         m_type == OBJECT_MOBILEib ||
-         m_type == OBJECT_MOBILEfc ||
-         m_type == OBJECT_MOBILEtc ||
-         m_type == OBJECT_MOBILEwc ||
-         m_type == OBJECT_MOBILEic ||
-         m_type == OBJECT_MOBILEfi ||
-         m_type == OBJECT_MOBILEti ||
-         m_type == OBJECT_MOBILEwi ||
-         m_type == OBJECT_MOBILEii ||
-         m_type == OBJECT_MOBILEfs ||
-         m_type == OBJECT_MOBILEts ||
-         m_type == OBJECT_MOBILEws ||
-         m_type == OBJECT_MOBILEis ||
-         m_type == OBJECT_MOBILErt ||
-         m_type == OBJECT_MOBILErc ||
-         m_type == OBJECT_MOBILErr ||
-         m_type == OBJECT_MOBILErs ||
-         m_type == OBJECT_MOBILEsa ||
-         m_type == OBJECT_MOBILEft ||
-         m_type == OBJECT_MOBILEtt ||
-         m_type == OBJECT_MOBILEwt ||
-         m_type == OBJECT_MOBILEit ||
-         m_type == OBJECT_MOBILErp ||
-         m_type == OBJECT_MOBILEst ||
-         m_type == OBJECT_MOBILEtg ||
-         m_type == OBJECT_MOBILEdr )  // robot?
-    {
-        return 0.5f;
-    }
-    return 0.0f;
+    auto damageable = GetObjectDamageableDetails(this);
+    return damageable.lightning.lightningHitProbability;
 }
 
-bool COldObject::IsSelectableByDefault(ObjectType type)
+bool COldObject::IsSelectableByDefault()
 {
-    if ( type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     )
-    {
-        return false;
-    }
-    return true;
+    auto controllable = GetObjectControllableDetails(this);
+    return controllable.selectable;
 }
 
 void COldObject::SetBulletWall(bool bulletWall)
@@ -3492,12 +2703,41 @@ bool COldObject::IsBulletWall()
     return m_bulletWall;
 }
 
-bool COldObject::IsBulletWallByDefault(ObjectType type)
+bool COldObject::IsBulletWallByDefault()
 {
-    if ( type == OBJECT_BARRICADE0 ||
-         type == OBJECT_BARRICADE1 )
+    auto physical = GetObjectPhysicalDetails(this);
+    return physical.isBulletWall;
+}
+
+void COldObject::SetFixed(bool fixed)
+{
+    m_fixed = fixed;
+}
+
+bool COldObject::GetFixed()
+{
+    return m_fixed;
+}
+
+void COldObject::SetShieldRadius(float shieldRadius)
+{
+    m_shieldRadius = shieldRadius;
+}
+
+float COldObject::GetShieldRadius()
+{
+    return m_shieldRadius;
+}
+
+float COldObject::GetActiveShieldRadius()
+{
+    if (IsBackgroundTask())
     {
-        return true;
+        CTaskShield* taskShield = dynamic_cast<CTaskShield*>(GetBackgroundTask());
+        if (taskShield != nullptr)
+        {
+            return taskShield->GetActiveRadius();
+        }
     }
-    return false;
+    return 0.0f;
 }

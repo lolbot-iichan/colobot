@@ -42,15 +42,22 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/damageable_details.h"
+#include "object/details/destroyable_details.h"
+#include "object/details/flying_details.h"
+#include "object/details/jet_flying_details.h"
+#include "object/details/movable_details.h"
+#include "object/details/physical_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
+
 #include "object/interface/jostleable_object.h"
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
+#include "object/interface/thumpable_object.h"
 
 #include "object/motion/motion.h"
 #include "object/motion/motionhuman.h"
-#include "object/motion/motionvehicle.h"
-
-#include "object/subclass/base_alien.h"
 
 #include "object/task/task.h"
 
@@ -59,8 +66,6 @@
 
 
 const float LANDING_SPEED   = 3.0f;
-const float LANDING_ACCEL   = 5.0f;
-const float LANDING_ACCELh  = 1.5f;
 
 
 
@@ -753,12 +758,10 @@ bool CPhysics::EventProcess(const Event &event)
 
 void CPhysics::MotorUpdate(float aTime, float rTime)
 {
-    ObjectType  type;
-    CPowerContainerObject* power = nullptr;
     glm::vec3    pos{ 0, 0, 0 }, motorSpeed{ 0, 0, 0 };
     float       energy, speed, factor, h;
 
-    type = m_object->GetType();
+    ObjectType type = m_object->GetType();
 
     if(std::isnan(m_motorSpeed.x)) m_motorSpeed.x = 0.f;
     if(std::isnan(m_motorSpeed.y)) m_motorSpeed.y = 0.f;
@@ -766,43 +769,41 @@ void CPhysics::MotorUpdate(float aTime, float rTime)
 
     motorSpeed = m_motorSpeed;
 
-    if ( type == OBJECT_HUMAN ||
-         type == OBJECT_TECH  )
+    if ( GetObjectFlyingDetails(m_object).noFlyWithCargo )
     {
-        if (IsObjectCarryingCargo(m_object) &&  // carries something?
-             !m_bFreeze )
+        if ( HasObjectInCargoSlot(m_object) && !m_bFreeze )
         {
             motorSpeed.x *= 0.7f;  // forward more slowly
             motorSpeed.z *= 0.5f;
             motorSpeed.y = -1.0f;  // grave
         }
-        if ( m_bSwim )
-        {
-            if ( m_bLand )  // deep in the water?
-            {
-                motorSpeed.x *= 0.4f;  // forward more slowly
-                motorSpeed.z *= 0.5f;
-                motorSpeed.y *= 0.5f;
+    }
 
-                if (IsObjectCarryingCargo(m_object))  // carries something?
-                {
-                    motorSpeed.x *= 0.2f;
-                    motorSpeed.z *= 0.9f;
-                    motorSpeed.y *= 0.2f;
-                }
-            }
-            else    // swimming?
+    if ( GetObjectMovableDetails(m_object).slowUnderWater && m_bSwim )
+    {
+        if ( m_bLand )  // deep in the water?
+        {
+            motorSpeed.x *= 0.4f;  // forward more slowly
+            motorSpeed.z *= 0.5f;
+            motorSpeed.y *= 0.5f;
+
+            if (HasObjectInCargoSlot(m_object))  // carries something?
             {
-                motorSpeed.x *= 0.2f;  // forward more slowly
-                motorSpeed.z *= 0.5f;
+                motorSpeed.x *= 0.2f;
+                motorSpeed.z *= 0.9f;
                 motorSpeed.y *= 0.2f;
             }
+        }
+        else    // swimming?
+        {
+            motorSpeed.x *= 0.2f;  // forward more slowly
+            motorSpeed.z *= 0.5f;
+            motorSpeed.y *= 0.2f;
         }
     }
 
     if (HasPowerCellSlot(m_object))
     {
-        power = GetObjectPowerCell(m_object); // searches for the object battery uses
         if ( GetObjectEnergy(m_object) == 0.0f )  // no battery or flat?
         {
             motorSpeed.x =  0.0f;
@@ -849,16 +850,22 @@ void CPhysics::MotorUpdate(float aTime, float rTime)
         }
     }
 
-    if ( m_object->Implements(ObjectInterfaceType::JetFlying) &&
-         dynamic_cast<CJetFlyingObject&>(*m_object).GetRange() > 0.0f )  // limited flight range?
+    if ( m_object->Implements(ObjectInterfaceType::JetFlying) )  
     {
         CJetFlyingObject* jetFlying = dynamic_cast<CJetFlyingObject*>(m_object);
-        if ( m_bLand || m_bSwim || m_bObstacle )  // on the ground or in the water?
+        if ( jetFlying->GetRange() <= 0.0f )
         {
-            factor = 1.0f;
-            if ( m_bObstacle )  factor = 3.0f;  // in order to leave!
-            if ( m_bSwim )  factor = 3.0f;  // cools faster in water
-            jetFlying->SetReactorRange(jetFlying->GetReactorRange() + rTime*(1.0f/5.0f)*factor);
+            // unlimited flight range?
+        }
+        else if ( m_bLand || m_bSwim || m_bObstacle )  // on the ground or in the water?
+        {
+            auto cooling = jetFlying->GetCoolingFactors();
+            float factor = cooling.onLand;
+            if ( m_bObstacle )  factor = cooling.onObstacle;  // in order to leave!
+            if ( m_bSwim )  factor = cooling.onWater;  // cools faster in water
+
+            jetFlying->SetReactorRange(jetFlying->GetReactorRange() + rTime*factor);
+
             if ( jetFlying->GetReactorRange() == 1.0f )
             {
                 if ( m_bLowLevel && m_object->GetSelect() )  // beep cool?
@@ -871,8 +878,13 @@ void CPhysics::MotorUpdate(float aTime, float rTime)
         }
         else    // in flight?
         {
-            jetFlying->SetReactorRange(jetFlying->GetReactorRange() - rTime*(1.0f/jetFlying->GetRange()));
-            if ( jetFlying->GetReactorRange() < 0.5f )  m_bLowLevel = true;
+            float factor = 1.0f / jetFlying->GetRange();
+            jetFlying->SetReactorRange(jetFlying->GetReactorRange() - rTime*factor);
+
+            if ( jetFlying->GetReactorRange() < 0.5f )
+            {
+                m_bLowLevel = true;
+            }
         }
 
         if ( jetFlying->GetReactorRange() == 0.0f )  // reactor tilt?
@@ -940,15 +952,7 @@ void CPhysics::MotorUpdate(float aTime, float rTime)
 
     if ( m_object->Implements(ObjectInterfaceType::Flying) && m_bLand )  // flying on the ground?
     {
-        if ( type == OBJECT_HUMAN ||
-             type == OBJECT_TECH  )
-        {
-            factor = LANDING_ACCELh;
-        }
-        else
-        {
-            factor = LANDING_ACCEL;
-        }
+        factor = GetObjectFlyingDetails(m_object).landingAccel;
         m_linMotion.motorAccel.x = m_linMotion.stopAccel.x*factor;
         m_cirMotion.motorAccel.y = m_cirMotion.stopAccel.y*factor;
 
@@ -982,26 +986,17 @@ void CPhysics::MotorUpdate(float aTime, float rTime)
         }
     }
 
-    if ( power != nullptr )  // battery transported?
+    if ( motorSpeed != glm::vec3(0,0,0) )
     {
-        factor = 1.0f;
-        if ( type == OBJECT_MOBILEia ||
-             type == OBJECT_MOBILEib ||
-             type == OBJECT_MOBILEis ||
-             type == OBJECT_MOBILEic ||
-             type == OBJECT_MOBILEii ||
-             type == OBJECT_MOBILEit )  factor = 0.5f;
-
-        energy = power->GetEnergy();
-        energy -= fabs(motorSpeed.x)*rTime*factor*0.005f;
-        energy -= fabs(motorSpeed.z)*rTime*factor*0.005f;
-
+        float energy = 0;
+        energy += fabs(motorSpeed.x) * rTime * GetObjectMovableDetails(m_object).energyFactor;
+        energy += fabs(motorSpeed.z) * rTime * GetObjectMovableDetails(m_object).energyFactor;
         if ( m_object->Implements(ObjectInterfaceType::Flying) && motorSpeed.y > 0.0f )
         {
-            energy -= motorSpeed.y*rTime*factor*0.01f;
+            float factor = GetObjectFlyingDetails(m_object).energyFactor;
+            energy += fabs(motorSpeed.y) * rTime * factor;
         }
-        if ( energy < 0.0f )  energy = 0.0f;
-        power->SetEnergy(energy);
+        DecreaseObjectEnergy(m_object, energy);
     }
 }
 
@@ -1013,12 +1008,10 @@ void CPhysics::EffectUpdate(float aTime, float rTime)
     Character*  character;
     glm::vec3    vibLin{ 0, 0, 0 }, vibCir{ 0, 0, 0 }, incl{ 0, 0, 0 };
     float       speedLin, speedCir, accel;
-    ObjectType  type;
     bool        bOnBoard;
 
     if ( !m_engine->IsVisiblePoint(m_object->GetPosition()) )  return;
 
-    type = m_object->GetType();
     character = m_object->GetCharacter();
 
     bOnBoard = false;
@@ -1032,134 +1025,127 @@ void CPhysics::EffectUpdate(float aTime, float rTime)
     vibCir = m_motion->GetCirVibration();
     incl   = m_motion->GetTilt();
 
-    if ( type == OBJECT_HUMAN ||  // human?
-         type == OBJECT_TECH  )
+    auto tiltDetails = GetObjectMovableDetails(m_object).tilt;
+
+    if ( tiltDetails.onFlightAsHuman && !m_bSwim && !m_bLand ) // in flight?
     {
-        if ( !m_bLand && !m_bSwim )  // in flight?
+        vibLin.y = sinf(aTime*2.00f)*0.5f+
+                   sinf(aTime*2.11f)*0.3f;
+
+        vibCir.z = sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
+
+        vibCir.x = sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
+
+        speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
+        speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
+        incl.x = -speedLin*speedCir*0.5f;  // looks if turn
+
+//?     speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
+        speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
+        speedLin /= m_linMotion.advanceSpeed.x;
+        m_linMotion.finalInclin.z = speedLin*1.4f;
+        if ( incl.z < m_linMotion.finalInclin.z )
         {
-            vibLin.y = sinf(aTime*2.00f)*0.5f+
-                       sinf(aTime*2.11f)*0.3f;
-
-            vibCir.z = sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
-
-            vibCir.x = sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
-
-            speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
-            speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
-            incl.x = -speedLin*speedCir*0.5f;  // looks if turn
-
-//?         speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
-            speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
-            speedLin /= m_linMotion.advanceSpeed.x;
-            m_linMotion.finalInclin.z = speedLin*1.4f;
+            incl.z += rTime*0.4f;
+            if ( incl.z > m_linMotion.finalInclin.z )
+            {
+                incl.z = m_linMotion.finalInclin.z;
+            }
+        }
+        else if ( incl.z > m_linMotion.finalInclin.z )
+        {
+            incl.z -= rTime*0.4f;
             if ( incl.z < m_linMotion.finalInclin.z )
             {
-                incl.z += rTime*0.4f;
-                if ( incl.z > m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
+                incl.z = m_linMotion.finalInclin.z;
             }
-            else if ( incl.z > m_linMotion.finalInclin.z )
-            {
-                incl.z -= rTime*0.4f;
-                if ( incl.z < m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
-            }
-
-            vibLin *= m_linVibrationFactor;
-            vibCir *= m_cirVibrationFactor;
-            incl *= m_inclinaisonFactor;
-
-            m_motion->SetLinVibration(vibLin);
-            m_motion->SetCirVibration(vibCir);
-            m_motion->SetTilt(incl);
         }
-        else if ( m_bSwim )  // swimming?
-        {
-            vibLin.y = sinf(aTime*2.00f)*0.5f+
-                       sinf(aTime*2.11f)*0.3f;
 
-            vibCir.z = sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
-//?                    sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f)-Math::PI/2.0f;
-                       sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
+        vibLin *= m_linVibrationFactor;
+        vibCir *= m_cirVibrationFactor;
+        incl *= m_inclinaisonFactor;
 
-            vibCir.x = sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
-
-            speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
-            speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
-            incl.x = -speedLin*speedCir*5.0f;  // looks if turn
-
-//?         speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
-            speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
-            speedLin /= m_linMotion.advanceSpeed.x;
-            m_linMotion.finalInclin.z = speedLin*1.4f;
-            if ( incl.z < m_linMotion.finalInclin.z )
-            {
-                incl.z += rTime*0.4f;
-                if ( incl.z > m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
-            }
-            else if ( incl.z > m_linMotion.finalInclin.z )
-            {
-                incl.z -= rTime*0.4f;
-                if ( incl.z < m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
-            }
-
-            if ( m_linMotion.realSpeed.y > 0.0f )  // up?
-            {
-                vibCir.z += m_linMotion.realSpeed.y*0.05f;
-            }
-            else    // down?
-            {
-                vibCir.z += m_linMotion.realSpeed.y*0.12f;
-            }
-            vibCir.z -= Math::PI*0.4f;
-
-            vibLin *= m_linVibrationFactor;
-            vibCir *= m_cirVibrationFactor;
-            incl *= m_inclinaisonFactor;
-
-            m_motion->SetLinVibration(vibLin);
-            m_motion->SetCirVibration(vibCir);
-            m_motion->SetTilt(incl);
-        }
-        else
-        {
-            m_motion->SetLinVibration(glm::vec3(0.0f, 0.0f, 0.0f));
-
-//?         m_motion->SetCirVibration(glm::vec3(0.0f, 0.0f, 0.0f));
-//?         m_motion->SetTilt(glm::vec3(0.0f, 0.0f, 0.0f));
-        }
+        m_motion->SetLinVibration(vibLin);
+        m_motion->SetCirVibration(vibCir);
+        m_motion->SetTilt(incl);
     }
 
-    if ( type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_APOLLO2  )  // wheels?
+    if ( tiltDetails.onSwimAsHuman && m_bSwim )
+    {
+        vibLin.y = sinf(aTime*2.00f)*0.5f+
+                   sinf(aTime*2.11f)*0.3f;
+
+        vibCir.z = sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
+//?                sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f)-Math::PI/2.0f;
+                   sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
+
+        vibCir.x = sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
+
+        speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
+        speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
+        incl.x = -speedLin*speedCir*5.0f;  // looks if turn
+
+//?     speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
+        speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
+        speedLin /= m_linMotion.advanceSpeed.x;
+        m_linMotion.finalInclin.z = speedLin*1.4f;
+        if ( incl.z < m_linMotion.finalInclin.z )
+        {
+            incl.z += rTime*0.4f;
+            if ( incl.z > m_linMotion.finalInclin.z )
+            {
+                incl.z = m_linMotion.finalInclin.z;
+            }
+        }
+        else if ( incl.z > m_linMotion.finalInclin.z )
+        {
+            incl.z -= rTime*0.4f;
+            if ( incl.z < m_linMotion.finalInclin.z )
+            {
+                incl.z = m_linMotion.finalInclin.z;
+            }
+        }
+
+        if ( m_linMotion.realSpeed.y > 0.0f )  // up?
+        {
+            vibCir.z += m_linMotion.realSpeed.y*0.05f;
+        }
+        else    // down?
+        {
+            vibCir.z += m_linMotion.realSpeed.y*0.12f;
+        }
+        vibCir.z -= Math::PI*0.4f;
+
+        vibLin *= m_linVibrationFactor;
+        vibCir *= m_cirVibrationFactor;
+        incl *= m_inclinaisonFactor;
+
+        m_motion->SetLinVibration(vibLin);
+        m_motion->SetCirVibration(vibCir);
+        m_motion->SetTilt(incl);
+    }
+        
+    if ( tiltDetails.onLandAsHuman && !m_bSwim && m_bLand ) // on the ground?
+    {
+        m_motion->SetLinVibration(glm::vec3(0.0f, 0.0f, 0.0f));
+
+//?     m_motion->SetCirVibration(glm::vec3(0.0f, 0.0f, 0.0f));
+//?     m_motion->SetTilt(glm::vec3(0.0f, 0.0f, 0.0f));
+    }
+
+    if ( tiltDetails.onLandAsNormalRobot || tiltDetails.onLandAsApolloRobot )
     {
         speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
         speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
         incl.x = speedLin*speedCir*0.20f;  // looks if turn
-        if ( type == OBJECT_APOLLO2 )  incl.x *= 0.25f;
+        if ( tiltDetails.onLandAsApolloRobot )  incl.x *= 0.25f;
 
         speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x;
         speedLin /= m_linMotion.advanceSpeed.x;
@@ -1183,7 +1169,7 @@ void CPhysics::EffectUpdate(float aTime, float rTime)
             }
         }
         if ( bOnBoard )  incl.z *= 0.1f;
-        if ( type == OBJECT_APOLLO2 )  incl.z *= 0.25f;
+        if ( tiltDetails.onLandAsApolloRobot )  incl.z *= 0.25f;
         m_object->SetTilt(incl);
 
         vibLin.x = 0.0f;
@@ -1193,120 +1179,110 @@ void CPhysics::EffectUpdate(float aTime, float rTime)
         m_motion->SetLinVibration(vibLin);
     }
 
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEft )  // flying?
+    if ( tiltDetails.onLandAsWingedRobot && m_bLand )  // on the ground?
     {
-        if ( m_bLand )  // on the ground?
-        {
-            m_motion->SetLinVibration(glm::vec3(0.0f, 0.0f, 0.0f));
-            m_motion->SetCirVibration(glm::vec3(0.0f, 0.0f, 0.0f));
-            m_motion->SetTilt(glm::vec3(0.0f, 0.0f, 0.0f));
-        }
-        else    // in flight?
-        {
-            vibLin.y = sinf(aTime*2.00f)*0.5f+
-                       sinf(aTime*2.11f)*0.3f;
-
-            vibCir.z = sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
-
-            vibCir.x = sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
-
-            if ( bOnBoard )  vibCir *= 0.4f;
-
-            speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
-            speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
-            incl.x = -speedLin*speedCir*0.5f;  // looks if turn
-
-//?         speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
-            speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
-            speedLin /= m_linMotion.advanceSpeed.x;
-            m_linMotion.finalInclin.z = speedLin*0.8f;
-            if ( incl.z < m_linMotion.finalInclin.z )
-            {
-                incl.z += rTime*0.4f;
-                if ( incl.z > m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
-            }
-            else if ( incl.z > m_linMotion.finalInclin.z )
-            {
-                incl.z -= rTime*0.4f;
-                if ( incl.z < m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
-            }
-//?         if ( bOnBoard )  incl.z *= 0.5f;
-
-            vibLin *= m_linVibrationFactor;
-            vibCir *= m_cirVibrationFactor;
-            incl *= m_inclinaisonFactor;
-
-            m_motion->SetLinVibration(vibLin);
-            m_motion->SetCirVibration(vibCir);
-            m_motion->SetTilt(incl);
-        }
+        m_motion->SetLinVibration(glm::vec3(0.0f, 0.0f, 0.0f));
+        m_motion->SetCirVibration(glm::vec3(0.0f, 0.0f, 0.0f));
+        m_motion->SetTilt(glm::vec3(0.0f, 0.0f, 0.0f));
     }
 
-    if ( type == OBJECT_BEE )  // bee?
+    if ( tiltDetails.onFlightAsWingedRobot && !m_bLand )  // in flight?
     {
-        if ( !m_bLand )  // in flight?
+        vibLin.y = sinf(aTime*2.00f)*0.5f+
+                   sinf(aTime*2.11f)*0.3f;
+
+        vibCir.z = sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
+
+        vibCir.x = sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
+
+        if ( bOnBoard )  vibCir *= 0.4f;
+
+        speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
+        speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
+        incl.x = -speedLin*speedCir*0.5f;  // looks if turn
+
+//?     speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
+        speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
+        speedLin /= m_linMotion.advanceSpeed.x;
+        m_linMotion.finalInclin.z = speedLin*0.8f;
+        if ( incl.z < m_linMotion.finalInclin.z )
         {
-            vibLin.y = sinf(aTime*2.00f)*0.5f+
-                       sinf(aTime*2.11f)*0.3f;
-
-            vibCir.z = (Math::Rand()-0.5f)*0.1f+
-                       sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
-
-            vibCir.x = (Math::Rand()-0.5f)*0.1f+
-                       sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
-                       sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
-                       sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
-
-            speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
-            speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
-            incl.x = -speedLin*speedCir*1.5f;  // looks if turn
-
-//?         speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
-            speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
-            speedLin /= m_linMotion.advanceSpeed.x;
-            m_linMotion.finalInclin.z = speedLin*1.4f;
+            incl.z += rTime*0.4f;
+            if ( incl.z > m_linMotion.finalInclin.z )
+            {
+                incl.z = m_linMotion.finalInclin.z;
+            }
+        }
+        else if ( incl.z > m_linMotion.finalInclin.z )
+        {
+            incl.z -= rTime*0.4f;
             if ( incl.z < m_linMotion.finalInclin.z )
             {
-                incl.z += rTime*1.6f;
-                if ( incl.z > m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
+                incl.z = m_linMotion.finalInclin.z;
             }
-            else if ( incl.z > m_linMotion.finalInclin.z )
-            {
-                incl.z -= rTime*1.6f;
-                if ( incl.z < m_linMotion.finalInclin.z )
-                {
-                    incl.z = m_linMotion.finalInclin.z;
-                }
-            }
-
-            vibLin *= m_linVibrationFactor;
-            vibCir *= m_cirVibrationFactor;
-            incl *= m_inclinaisonFactor;
-
-            m_motion->SetLinVibration(vibLin);
-            m_motion->SetCirVibration(vibCir);
-            m_motion->SetTilt(incl);
         }
+//?         if ( bOnBoard )  incl.z *= 0.5f;
+
+        vibLin *= m_linVibrationFactor;
+        vibCir *= m_cirVibrationFactor;
+        incl *= m_inclinaisonFactor;
+
+        m_motion->SetLinVibration(vibLin);
+        m_motion->SetCirVibration(vibCir);
+        m_motion->SetTilt(incl);
+    }
+
+    if ( tiltDetails.onFlightAsAlienWasp && !m_bLand )  // in flight?
+    {
+        vibLin.y = sinf(aTime*2.00f)*0.5f+
+                   sinf(aTime*2.11f)*0.3f;
+
+        vibCir.z = (Math::Rand()-0.5f)*0.1f+
+                   sinf(aTime*Math::PI* 2.01f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.51f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.01f)*(Math::PI/400.0f);
+
+        vibCir.x = (Math::Rand()-0.5f)*0.1f+
+                   sinf(aTime*Math::PI* 2.03f)*(Math::PI/150.0f)+
+                   sinf(aTime*Math::PI* 2.52f)*(Math::PI/200.0f)+
+                   sinf(aTime*Math::PI*19.53f)*(Math::PI/400.0f);
+
+        speedLin = m_linMotion.realSpeed.x / m_linMotion.advanceSpeed.x;
+        speedCir = m_cirMotion.realSpeed.y / m_cirMotion.advanceSpeed.y;
+        incl.x = -speedLin*speedCir*1.5f;  // looks if turn
+
+//?         speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.5f;
+        speedLin  = m_linMotion.currentSpeed.x - m_linMotion.motorSpeed.x*1.2f;
+        speedLin /= m_linMotion.advanceSpeed.x;
+        m_linMotion.finalInclin.z = speedLin*1.4f;
+        if ( incl.z < m_linMotion.finalInclin.z )
+        {
+            incl.z += rTime*1.6f;
+            if ( incl.z > m_linMotion.finalInclin.z )
+            {
+                incl.z = m_linMotion.finalInclin.z;
+            }
+        }
+        else if ( incl.z > m_linMotion.finalInclin.z )
+        {
+            incl.z -= rTime*1.6f;
+            if ( incl.z < m_linMotion.finalInclin.z )
+            {
+                incl.z = m_linMotion.finalInclin.z;
+            }
+        }
+
+        vibLin *= m_linVibrationFactor;
+        vibCir *= m_cirVibrationFactor;
+        incl *= m_inclinaisonFactor;
+
+        m_motion->SetLinVibration(vibLin);
+        m_motion->SetCirVibration(vibCir);
+        m_motion->SetTilt(incl);
     }
 }
 
@@ -1439,7 +1415,7 @@ void CPhysics::UpdateMotionStruct(float rTime, Motion &motion)
 bool CPhysics::EventFrame(const Event &event)
 {
     ObjectType  type;
-    glm::mat4    objRotate, matRotate;
+    glm::mat4    matRotate;
     glm::vec3    iPos{ 0, 0, 0 }, iAngle{ 0, 0, 0 }, tAngle{ 0, 0, 0 }, pos{ 0, 0, 0 }, newpos{ 0, 0, 0 }, angle{ 0, 0, 0 }, newangle{ 0, 0, 0 }, n{ 0, 0, 0 };
     float       h, w;
     int         i;
@@ -1512,8 +1488,8 @@ bool CPhysics::EventFrame(const Event &event)
         m_linMotion.terrainSpeed.y = -h*2.5f;  // is not above
     }
 
-    // (*)  High enough to pass over the tower defense (OBJECT_TOWER),
-    //      but not too much to pass under the cover of the ship (OBJECT_BASE)!
+    // (*)  High enough to pass over the tower defense,
+    //      but not too much to pass under the cover of the ship!
 
     UpdateMotionStruct(event.rTime, m_linMotion);
     UpdateMotionStruct(event.rTime, m_cirMotion);
@@ -1599,12 +1575,11 @@ bool CPhysics::EventFrame(const Event &event)
 
 void CPhysics::SoundMotor(float rTime)
 {
-    ObjectType  type;
+    auto sounds = GetObjectMovableDetails(m_object).sounds;
 
     m_lastSoundInsect -= rTime;
-    type = m_object->GetType();
 
-    if ( type == OBJECT_MOTHER )
+    if ( sounds == MOTION_SOUND_MOTHER )
     {
         if ( m_lastSoundInsect <= 0.0f && m_object->GetDetectable() )
         {
@@ -1613,11 +1588,12 @@ void CPhysics::SoundMotor(float rTime)
             else             m_lastSoundInsect = 1.5f+Math::Rand()*4.0f;
         }
     }
-    else if ( type == OBJECT_ANT )
+    else if ( sounds == MOTION_SOUND_ANT )
     {
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
         if ( dynamic_cast<CDestroyableObject&>(*m_object).GetDying() == DeathType::Burning ||
-             dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+             dynamic_cast<CThumpableObject&>(*m_object).GetFixed() )
         {
             if ( m_lastSoundInsect <= 0.0f )
             {
@@ -1635,7 +1611,7 @@ void CPhysics::SoundMotor(float rTime)
             }
         }
     }
-    else if ( type == OBJECT_BEE )
+    else if ( sounds == MOTION_SOUND_BEE )
     {
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
         if ( m_object->GetDetectable() )
@@ -1656,7 +1632,7 @@ void CPhysics::SoundMotor(float rTime)
             }
         }
     }
-    else if ( type == OBJECT_WORM )
+    else if ( sounds == MOTION_SOUND_WORM )
     {
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
         if ( m_object->GetDetectable() )
@@ -1677,11 +1653,12 @@ void CPhysics::SoundMotor(float rTime)
             }
         }
     }
-    else if ( type == OBJECT_SPIDER )
+    else if ( sounds == MOTION_SOUND_SPIDER )
     {
         assert(m_object->Implements(ObjectInterfaceType::Destroyable));
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
         if ( dynamic_cast<CDestroyableObject&>(*m_object).GetDying() == DeathType::Burning ||
-             dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+             dynamic_cast<CThumpableObject&>(*m_object).GetFixed() )
         {
             if ( m_lastSoundInsect <= 0.0f )
             {
@@ -1705,7 +1682,7 @@ void CPhysics::SoundMotor(float rTime)
         {
             if ( m_bMotor && m_object->GetDetectable() )
             {
-                SoundMotorFull(rTime, type);  // full diet
+                SoundMotorFull(rTime);  // full diet
             }
             else
             {
@@ -1714,11 +1691,11 @@ void CPhysics::SoundMotor(float rTime)
                 if ( m_object->GetSelect() &&
                      energy != 0.0f        )
                 {
-                    SoundMotorSlow(rTime, type);  // in slow motion
+                    SoundMotorSlow(rTime);  // in slow motion
                 }
                 else
                 {
-                    SoundMotorStop(rTime, type);  // to the stop
+                    SoundMotorStop(rTime);  // to the stop
                 }
             }
         }
@@ -1728,11 +1705,11 @@ void CPhysics::SoundMotor(float rTime)
             if ( m_bMotor && !m_bSwim &&
                  m_object->GetDetectable() )
             {
-                SoundReactorFull(rTime, type);  // full diet
+                SoundReactorFull(rTime);  // full diet
             }
             else
             {
-                SoundReactorStop(rTime, type);  // to the stop
+                SoundReactorStop(rTime);  // to the stop
             }
         }
     }
@@ -1787,51 +1764,18 @@ void CPhysics::WaterFrame(float aTime, float rTime)
     if ( pos.y >= m_water->GetLevel(m_object) )  return;  // out of water?
 
     type = m_object->GetType();
-    if ( type == OBJECT_TOTO )  return;
+
     if ( type == OBJECT_NULL )  return;
 
     if ( !m_object->GetDetectable() )  return;
 
-    if (type == OBJECT_HUMAN && m_object->GetOption() != 0 )  // human without a helmet?)
+    if ( m_object->Implements(ObjectInterfaceType::Destroyable) )
     {
-        assert(m_object->Implements(ObjectInterfaceType::Destroyable));
-        dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::Drowned);
-    }
-    else if ( m_water->GetLava() ||
-         type == OBJECT_MOBILEfa || // TODO: A function in CObject to check if object is waterproof or not
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2  )
-    {
-        if (m_object->Implements(ObjectInterfaceType::Destroyable))
+        if (type == OBJECT_HUMAN && m_object->GetOption() != 0 )  // human without a helmet?)
+        {
+            dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::Drowned);
+        }
+        else if ( m_water->GetLava() || GetObjectDestroyableDetails(m_object).water.enabled )
         {
             dynamic_cast<CDestroyableObject*>(m_object)->DestroyObject(DestructionType::ExplosionWater);
         }
@@ -1840,17 +1784,14 @@ void CPhysics::WaterFrame(float aTime, float rTime)
 
 // Sounds the engine at full power.
 
-void CPhysics::SoundMotorFull(float rTime, ObjectType type)
+void CPhysics::SoundMotorFull(float rTime)
 {
+    auto sounds = GetObjectMovableDetails(m_object).sounds;
+
     SoundType   sound;
     float       amplitude, time, freq;
 
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEit )
+    if ( sounds == MOTION_SOUND_LEGGED )
     {
         if ( m_soundChannel == -1 )
         {
@@ -1877,34 +1818,25 @@ void CPhysics::SoundMotorFull(float rTime, ObjectType type)
         return;
     }
 
-    if ( type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEst )
+    if ( sounds == MOTION_SOUND_SUBBER )
     {
         sound = SOUND_MOTORs;
         amplitude = 0.6f;
         time = 0.5f;
     }
-    else if ( type == OBJECT_MOBILErt ||
-              type == OBJECT_MOBILErc ||
-              type == OBJECT_MOBILErr ||
-              type == OBJECT_MOBILErs ||
-              type == OBJECT_MOBILErp )
+    else if ( sounds == MOTION_SOUND_HEAVY )
     {
         sound = SOUND_MOTORr;
         amplitude = 1.0f;
         time = 0.7f;
     }
-    else if ( type == OBJECT_MOBILEta ||
-              type == OBJECT_MOBILEtc ||
-              type == OBJECT_MOBILEti ||
-              type == OBJECT_MOBILEts ||
-              type == OBJECT_MOBILEtt )
+    else if ( sounds == MOTION_SOUND_TRACKED )
     {
         sound = SOUND_MOTORt;
         amplitude = 1.0f;
         time = 0.5f;
     }
-    else if ( type == OBJECT_APOLLO2 )
+    else if ( sounds == MOTION_SOUND_APOLLO )
     {
         sound = SOUND_MANIP;
         amplitude = 1.0f;
@@ -1956,7 +1888,7 @@ void CPhysics::SoundMotorFull(float rTime, ObjectType type)
 
 // Sounds the engine idling.
 
-void CPhysics::SoundMotorSlow(float rTime, ObjectType type)
+void CPhysics::SoundMotorSlow(float rTime)
 {
     glm::vec3    pos{ 0, 0, 0 }, speed{ 0, 0, 0 };
     glm::vec2       dim;
@@ -1964,12 +1896,9 @@ void CPhysics::SoundMotorSlow(float rTime, ObjectType type)
     float       amplitude;
     int         i, max;
 
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEit )
+    auto sounds = GetObjectMovableDetails(m_object).sounds;
+
+    if ( sounds == MOTION_SOUND_LEGGED )
     {
         if ( m_soundChannel != -1 )  // engine is running?
         {
@@ -1980,32 +1909,22 @@ void CPhysics::SoundMotorSlow(float rTime, ObjectType type)
         return;
     }
 
-    if ( type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEst )
+    if ( sounds == MOTION_SOUND_SUBBER )
     {
         sound = SOUND_MOTORs;
         amplitude = 0.4f;
     }
-    else if ( type == OBJECT_MOBILErt ||
-              type == OBJECT_MOBILErc ||
-              type == OBJECT_MOBILErr ||
-              type == OBJECT_MOBILErs ||
-              type == OBJECT_MOBILErp )
+    else if ( sounds == MOTION_SOUND_HEAVY )
     {
         sound = SOUND_MOTORr;
         amplitude = 0.9f;
     }
-    else if ( type == OBJECT_MOBILEta ||
-              type == OBJECT_MOBILEtb ||
-              type == OBJECT_MOBILEtc ||
-              type == OBJECT_MOBILEti ||
-              type == OBJECT_MOBILEts ||
-              type == OBJECT_MOBILEtt )
+    else if ( sounds == MOTION_SOUND_TRACKED )
     {
         sound = SOUND_MOTORt;
         amplitude = 0.7f;
     }
-    else if ( type == OBJECT_APOLLO2 )
+    else if ( sounds == MOTION_SOUND_APOLLO )
     {
         if ( m_soundChannel != -1 )  // engine is running?
         {
@@ -2046,11 +1965,7 @@ void CPhysics::SoundMotorSlow(float rTime, ObjectType type)
         }
     }
 
-    if ( type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILErp )
+    if ( GetObjectMovableDetails(m_object).pshhh )
     {
         m_soundTimePshhh -= rTime;
 
@@ -2090,14 +2005,11 @@ void CPhysics::SoundMotorSlow(float rTime, ObjectType type)
 
 // Sounds the engine not running.
 
-void CPhysics::SoundMotorStop(float rTime, ObjectType type)
+void CPhysics::SoundMotorStop(float rTime)
 {
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEit )
+    auto sounds = GetObjectMovableDetails(m_object).sounds;
+
+    if ( sounds == MOTION_SOUND_LEGGED )
     {
         if ( m_soundChannel != -1 )  // engine is running?
         {
@@ -2120,13 +2032,15 @@ void CPhysics::SoundMotorStop(float rTime, ObjectType type)
 
 // Sounds the reactor at full power.
 
-void CPhysics::SoundReactorFull(float rTime, ObjectType type)
+void CPhysics::SoundReactorFull(float rTime)
 {
     SoundType      sound;
     glm::vec3    pos{ 0, 0, 0 }, speed{ 0, 0, 0 };
     glm::vec2       dim;
     float       freq;
     int         i;
+
+    auto sounds = GetObjectMovableDetails(m_object).sounds;
 
     if ( m_soundChannelSlide != -1 )  // slides?
     {
@@ -2139,8 +2053,7 @@ void CPhysics::SoundReactorFull(float rTime, ObjectType type)
     {
         if ( m_soundChannel == -1 )
         {
-            if ( type == OBJECT_HUMAN ||
-                 type == OBJECT_TECH  )
+            if ( sounds == MOTION_SOUND_HUMAN )
             {
                 sound = SOUND_FLYh;
             }
@@ -2179,8 +2092,7 @@ void CPhysics::SoundReactorFull(float rTime, ObjectType type)
 
             for ( i=0 ; i<5 ; i++ )
             {
-                if ( m_object->GetType() == OBJECT_HUMAN ||
-                     m_object->GetType() == OBJECT_TECH  )
+                if ( sounds == MOTION_SOUND_HUMAN )
                 {
                     pos = glm::vec3(-1.6f, -0.5f, 0.0f);
                 }
@@ -2204,8 +2116,7 @@ void CPhysics::SoundReactorFull(float rTime, ObjectType type)
         }
         else
         {
-            if ( m_object->GetType() == OBJECT_HUMAN ||
-                 m_object->GetType() == OBJECT_TECH  )
+            if ( sounds == MOTION_SOUND_HUMAN )
             {
                 pos = glm::vec3(-1.6f, -0.5f, 0.0f);
             }
@@ -2230,7 +2141,7 @@ void CPhysics::SoundReactorFull(float rTime, ObjectType type)
 
 // Sounds the reactor stopped.
 
-void CPhysics::SoundReactorStop(float rTime, ObjectType type)
+void CPhysics::SoundReactorStop(float rTime)
 {
     float energy = GetObjectEnergy(m_object);
 
@@ -2241,38 +2152,27 @@ void CPhysics::SoundReactorStop(float rTime, ObjectType type)
         m_soundChannel = -1;
     }
 
-    if ( type == OBJECT_HUMAN ||
-         type == OBJECT_TECH  )
+    SoundType sound = GetObjectMovableDetails(m_object).onSlide;
+
+    if ( sound != SOUND_NONE && energy != 0.0f &&
+         (m_motorSpeed.x != 0.0f ||  // slides with small reactors in skates?
+          m_cirMotion.realSpeed.y != 0.0f) )
+    {
+        if ( m_soundChannelSlide == -1 )
+        {
+            m_soundChannelSlide = m_sound->Play(sound, m_object->GetPosition(), 0.0f, 1.0f, true);
+            m_sound->AddEnvelope(m_soundChannelSlide, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
+            m_sound->AddEnvelope(m_soundChannelSlide, 0.5f, 1.0f, 1.0f, SOPER_LOOP);
+        }
+        m_sound->Position(m_soundChannelSlide, m_object->GetPosition());
+    }
+    else
     {
         if ( m_soundChannelSlide != -1 )  // slides?
         {
             m_sound->FlushEnvelope(m_soundChannelSlide);
             m_sound->AddEnvelope(m_soundChannelSlide, 0.0f, 1.0f, 0.3f, SOPER_STOP);
             m_soundChannelSlide = -1;
-        }
-    }
-    else
-    {
-        if ( energy != 0.0f &&
-             (m_motorSpeed.x != 0.0f ||  // slides with small reactors in skates?
-              m_cirMotion.realSpeed.y != 0.0f) )
-        {
-            if ( m_soundChannelSlide == -1 )
-            {
-                m_soundChannelSlide = m_sound->Play(SOUND_SLIDE, m_object->GetPosition(), 0.0f, 1.0f, true);
-                m_sound->AddEnvelope(m_soundChannelSlide, 0.5f, 1.0f, 0.3f, SOPER_CONTINUE);
-                m_sound->AddEnvelope(m_soundChannelSlide, 0.5f, 1.0f, 1.0f, SOPER_LOOP);
-            }
-            m_sound->Position(m_soundChannelSlide, m_object->GetPosition());
-        }
-        else
-        {
-            if ( m_soundChannelSlide != -1 )  // slides?
-            {
-                m_sound->FlushEnvelope(m_soundChannelSlide);
-                m_sound->AddEnvelope(m_soundChannelSlide, 0.0f, 1.0f, 0.3f, SOPER_STOP);
-                m_soundChannelSlide = -1;
-            }
         }
     }
 }
@@ -2301,7 +2201,7 @@ void CPhysics::FloorAdapt(float aTime, float rTime,
     h -= character->height;
     m_floorHeight = h;
 
-    WaterParticle(aTime, pos, type, m_floorLevel,
+    WaterParticle(aTime, pos, m_floorLevel,
                    fabs(m_linMotion.realSpeed.x),
                    fabs(m_cirMotion.realSpeed.y*15.0f));
 
@@ -2524,7 +2424,7 @@ int CPhysics::ObjectAdapt(const glm::vec3 &pos, const glm::vec3 &angle)
         if ( pObj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*pObj).GetDying() == DeathType::Exploding )  continue;  // is exploding?
 
         oType = pObj->GetType();
-        if ( oType == OBJECT_TOTO            )  continue;
+
         if ( !m_object->CanCollideWith(pObj) )  continue;
 
         if (pObj->Implements(ObjectInterfaceType::Jostleable))
@@ -2561,13 +2461,8 @@ int CPhysics::ObjectAdapt(const glm::vec3 &pos, const glm::vec3 &angle)
             glm::vec3 oPos = crashSphere.sphere.pos;
             float oRad = crashSphere.sphere.radius;
 
-            // Aliens ignore small objects
-            // TODO: But why? :/
-            if ( iType == OBJECT_MOTHER && oRad <= 1.2f )  continue;
-            if ( iType == OBJECT_ANT    && oRad <= 1.2f )  continue;
-            if ( iType == OBJECT_SPIDER && oRad <= 1.2f )  continue;
-            if ( iType == OBJECT_BEE    && oRad <= 1.2f )  continue;
-            if ( iType == OBJECT_WORM   && oRad <= 1.2f )  continue;
+            float ignoredRadius = GetObjectDamageableDetails(m_object).collision.ignoreRadius;
+            if ( ignoredRadius > 0 && oRad <= ignoredRadius )  continue;
 
             distance = glm::distance(oPos, iPos);
             if ( distance < iRad+oRad )  // collision?
@@ -2582,8 +2477,8 @@ int CPhysics::ObjectAdapt(const glm::vec3 &pos, const glm::vec3 &angle)
                     {
                         force = fabs(m_linMotion.realSpeed.x);
                         force *= crashSphere.hardness*2.0f;
-                        if ( ExploOther(iType, pObj, oType, force) )  continue;
-                        colType = ExploHimself(iType, oType, force);
+                        if ( ExploOther(iType, pObj, force) )  continue;
+                        colType = ExploHimself(iType, pObj, force);
                         if ( colType == 2 )  return 2;  // destroyed?
                         if ( colType == 0 )  continue;  // ignores?
                     }
@@ -2703,105 +2598,56 @@ bool CPhysics::JostleObject(CObject* pObj, float force)
 // Effects of the explosion on the object buffers.
 // Returns true if we ignore this obstacle.
 
-bool CPhysics::ExploOther(ObjectType iType,
-                          CObject *pObj, ObjectType oType, float force)
+bool CPhysics::ExploOther(ObjectType iType, CObject *pObj, float force)
 {
     JostleObject(pObj, 1.0f);  // shakes the object
 
+    // TODO: implement "killer"?
     if (pObj->Implements(ObjectInterfaceType::Damageable))
     {
         // TODO: CFragileObject::GetDestructionForce (I can't do this now because you can't inherit both in COldObject ~krzys_h)
-        DamageType damageType = DamageType::Collision;
-        float destructionForce = pObj->Implements(ObjectInterfaceType::Fragile) ? 50.0f : -1.0f; // Titanium, PowerCell, NuclearCell, default
-        if (pObj->GetType() == OBJECT_STONE   ) { destructionForce = 25.0f; } // TitaniumOre
-        if (pObj->GetType() == OBJECT_URANIUM ) { destructionForce = 25.0f; } // UraniumOre
-        if (pObj->GetType() == OBJECT_MOBILEtg) { destructionForce = 10.0f; damageType = DamageType::Explosive; } // TargetBot (something running into it)
-        if (iType           == OBJECT_MOBILEtg) { destructionForce =  0.0f; damageType = DamageType::Explosive; } // TargetBot (it running into something)
-        if (pObj->GetType() == OBJECT_TNT     ) { destructionForce = 10.0f; damageType = DamageType::Explosive; } // TNT
-        if (pObj->GetType() == OBJECT_BOMB    ) { destructionForce =  0.0f; damageType = DamageType::Explosive; } // Mine
+        auto explosive = GetObjectPhysicalDetails(pObj).explosive;
+
+        float destructionForce = -1.0f;
+        if ( explosive.enabled )        destructionForce = explosive.collisionForce;
+        if ( iType == OBJECT_MOBILEtg ) destructionForce = 0.0f; // TargetBot (it running into something)
 
         if ( force > destructionForce && destructionForce >= 0.0f )
         {
-            // TODO: implement "killer"?
-            dynamic_cast<CDamageableObject&>(*pObj).DamageObject(damageType);
+            dynamic_cast<CDamageableObject&>(*pObj).DamageObject(DamageType::Explosive);
+            return false;
+        }
+
+        auto collision = GetObjectDamageableDetails(pObj).collision;
+        if ( collision.enabled && collision.byOthers )
+        {
+            if ( force > 50.0f && pObj->Implements(ObjectInterfaceType::Fragile) )
+            {
+                dynamic_cast<CDamageableObject&>(*pObj).DamageObject(DamageType::Collision);
+                return false;
+            }
+    
+            if ( force > 25.0f )
+            {
+                // TODO: Some function in CShieldedObject. GetCollisionResistance()?
+                float resistance = collision.resistance;
+    
+                // TODO: implement "killer"?
+                if (resistance > 0.0f)
+                    dynamic_cast<CDamageableObject&>(*pObj).DamageObject(DamageType::Collision, force/resistance);
+                else if (resistance == 0.0f)
+                    dynamic_cast<CDamageableObject&>(*pObj).DamageObject(DamageType::Collision);
+                return false;
+            }
         }
     }
 
-    if ( force > 25.0f )
+    if (GetObjectPhysicalDetails(m_object).squashing)
     {
-        // TODO: Some function in CShieldedObject. GetCollisionResistance()?
-        if (oType == OBJECT_DERRICK  ||
-            oType == OBJECT_FACTORY  ||
-            oType == OBJECT_STATION  ||
-            oType == OBJECT_CONVERT  ||
-            oType == OBJECT_REPAIR   ||
-            oType == OBJECT_DESTROYER||
-            oType == OBJECT_TOWER    ||
-            oType == OBJECT_RESEARCH ||
-            oType == OBJECT_RADAR    ||
-            oType == OBJECT_INFO     ||
-            oType == OBJECT_ENERGY   ||
-            oType == OBJECT_LABO     ||
-            oType == OBJECT_NUCLEAR  ||
-            oType == OBJECT_PARA     ||
-            oType == OBJECT_SAFE     ||
-            oType == OBJECT_HUSTON    )  // building?
+        if ( pObj->Implements(ObjectInterfaceType::Destroyable) && GetObjectDestroyableDetails(pObj).squash.enabled)
         {
-            assert(pObj->Implements(ObjectInterfaceType::Damageable));
-            // TODO: implement "killer"?
-            dynamic_cast<CDamageableObject&>(*pObj).DamageObject(DamageType::Collision, force/400.0f);
+            dynamic_cast<CDestroyableObject*>(pObj)->DestroyObject(DestructionType::Squash);
         }
-
-        if (oType == OBJECT_MOBILEwa ||
-            oType == OBJECT_MOBILEta ||
-            oType == OBJECT_MOBILEfa ||
-            oType == OBJECT_MOBILEia ||
-            oType == OBJECT_MOBILEwb ||
-            oType == OBJECT_MOBILEtb ||
-            oType == OBJECT_MOBILEfb ||
-            oType == OBJECT_MOBILEib ||
-            oType == OBJECT_MOBILEwc ||
-            oType == OBJECT_MOBILEtc ||
-            oType == OBJECT_MOBILEfc ||
-            oType == OBJECT_MOBILEic ||
-            oType == OBJECT_MOBILEwi ||
-            oType == OBJECT_MOBILEti ||
-            oType == OBJECT_MOBILEfi ||
-            oType == OBJECT_MOBILEii ||
-            oType == OBJECT_MOBILEws ||
-            oType == OBJECT_MOBILEts ||
-            oType == OBJECT_MOBILEfs ||
-            oType == OBJECT_MOBILEis ||
-            oType == OBJECT_MOBILErt ||
-            oType == OBJECT_MOBILErc ||
-            oType == OBJECT_MOBILErr ||
-            oType == OBJECT_MOBILErs ||
-            oType == OBJECT_MOBILEsa ||
-            oType == OBJECT_MOBILEwt ||
-            oType == OBJECT_MOBILEtt ||
-            oType == OBJECT_MOBILEft ||
-            oType == OBJECT_MOBILEit ||
-            oType == OBJECT_MOBILErp ||
-            oType == OBJECT_MOBILEst  )  // vehicle?
-        {
-            assert(pObj->Implements(ObjectInterfaceType::Damageable));
-            // TODO: implement "killer"?
-            dynamic_cast<CDamageableObject&>(*pObj).DamageObject(DamageType::Collision, force/200.0f);
-        }
-    }
-
-    if((oType == OBJECT_PLANT0  ||
-        oType == OBJECT_PLANT1  ||
-        oType == OBJECT_PLANT2  ||
-        oType == OBJECT_PLANT3  ||
-        oType == OBJECT_PLANT4  ||
-        oType == OBJECT_PLANT15 ||
-        oType == OBJECT_PLANT16 ||
-        oType == OBJECT_PLANT17 ||
-        oType == OBJECT_PLANT18)&&
-        GetDriveFromObject(iType)==DriveType::Heavy)
-    {
-        dynamic_cast<CDestroyableObject*>(pObj)->DestroyObject(DestructionType::Squash);
     }
 
     return false;
@@ -2812,108 +2658,31 @@ bool CPhysics::ExploOther(ObjectType iType,
 // Returns 1 -> immobile object
 // Returns 2 -> object destroyed
 
-int CPhysics::ExploHimself(ObjectType iType, ObjectType oType, float force)
+int CPhysics::ExploHimself(ObjectType iType, CObject *pObj, float force)
 {
-    if (!m_object->Implements(ObjectInterfaceType::Damageable)) return 1;
-
-    // TODO: CExplosiveObject? derrives from CFragileObject
-    float destructionForce = -1.0f; // minimal force required to destroy an object using this explosive, default: not explosive
-    if ( oType == OBJECT_TNT      ) destructionForce = 10.0f; // TNT
-    if ( oType == OBJECT_MOBILEtg ) destructionForce = 10.0f; // TargetBot (something running into it)
-    if ( iType == OBJECT_MOBILEtg ) destructionForce =  0.0f; // TargetBot (it running into something)
-    if ( oType == OBJECT_BOMB     ) destructionForce =  0.0f; // Mine
-
-    if ( force > destructionForce && destructionForce >= 0.0f )
+    // TODO: implement "killer"?
+    if (m_object->Implements(ObjectInterfaceType::Damageable))
     {
-        // TODO: implement "killer"?
-        dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive);
-        return 2;
-    }
+        // TODO: CExplosiveObject? derrives from CFragileObject
+        auto explosive = GetObjectPhysicalDetails(pObj).explosive;
 
-    if ( force > 25.0f )
-    {
-        if ( iType == OBJECT_HUMAN    ||
-             iType == OBJECT_MOBILEwa ||
-             iType == OBJECT_MOBILEta ||
-             iType == OBJECT_MOBILEfa ||
-             iType == OBJECT_MOBILEia ||
-             iType == OBJECT_MOBILEwb ||
-             iType == OBJECT_MOBILEtb ||
-             iType == OBJECT_MOBILEfb ||
-             iType == OBJECT_MOBILEib ||
-             iType == OBJECT_MOBILEwc ||
-             iType == OBJECT_MOBILEtc ||
-             iType == OBJECT_MOBILEfc ||
-             iType == OBJECT_MOBILEic ||
-             iType == OBJECT_MOBILEwi ||
-             iType == OBJECT_MOBILEti ||
-             iType == OBJECT_MOBILEfi ||
-             iType == OBJECT_MOBILEii ||
-             iType == OBJECT_MOBILEws ||
-             iType == OBJECT_MOBILEts ||
-             iType == OBJECT_MOBILEfs ||
-             iType == OBJECT_MOBILEis ||
-             iType == OBJECT_MOBILErt ||
-             iType == OBJECT_MOBILErc ||
-             iType == OBJECT_MOBILErr ||
-             iType == OBJECT_MOBILErs ||
-             iType == OBJECT_MOBILEsa ||
-             iType == OBJECT_MOBILEwt ||
-             iType == OBJECT_MOBILEtt ||
-             iType == OBJECT_MOBILEft ||
-             iType == OBJECT_MOBILEit ||
-             iType == OBJECT_MOBILErp ||
-             iType == OBJECT_MOBILEst ||
-             iType == OBJECT_MOBILEdr ||
-             iType == OBJECT_APOLLO2  )  // vehicle?
+        float destructionForce = -1.0f;
+        if ( explosive.enabled )        destructionForce = explosive.collisionForce;
+        if ( iType == OBJECT_MOBILEtg ) destructionForce = 0.0f; // TargetBot (it running into something)
+
+        if ( force > destructionForce && destructionForce >= 0.0f )
         {
-            if ( oType == OBJECT_DERRICK  ||
-                 oType == OBJECT_FACTORY  ||
-                 oType == OBJECT_STATION  ||
-                 oType == OBJECT_CONVERT  ||
-                 oType == OBJECT_REPAIR   ||
-                 oType == OBJECT_DESTROYER||
-                 oType == OBJECT_TOWER    ||
-                 oType == OBJECT_RESEARCH ||
-                 oType == OBJECT_RADAR    ||
-                 oType == OBJECT_INFO     ||
-                 oType == OBJECT_ENERGY   ||
-                 oType == OBJECT_LABO     ||
-                 oType == OBJECT_NUCLEAR  ||
-                 oType == OBJECT_PARA     ||
-                 oType == OBJECT_SAFE     ||
-                 oType == OBJECT_HUSTON   )  // building?
-            {
-                force /= 200.0f;
-            }
-            else if ( oType == OBJECT_MOTHER ||
-                      oType == OBJECT_ANT    ||
-                      oType == OBJECT_SPIDER ||
-                      oType == OBJECT_BEE    ||
-                      oType == OBJECT_WORM   )  // insect?
-            {
-                force /= 400.0f;
-            }
-            else
-            if ( oType == OBJECT_STONE ||
-                 oType == OBJECT_METAL )
-            {
-                force /= 500.0f;
-            }
-            else
-            if ( oType == OBJECT_URANIUM ||
-                 oType == OBJECT_POWER   ||
-                 oType == OBJECT_ATOMIC  )
-            {
-                force /= 100.0f;
-            }
-            else
-            {
-                force /= 200.0f;
-            }
+            if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Explosive) )  return 2;
+        }
 
-            // TODO: implement "killer"?
-            if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Collision, force) )  return 2;
+        auto collision = GetObjectDamageableDetails(m_object).collision;
+        if ( collision.enabled && collision.byItself )
+        {
+            if ( force > 25.0f )
+            {
+                force /= GetObjectPhysicalDetails(pObj).collisionSoftness;
+                if ( dynamic_cast<CDamageableObject&>(*m_object).DamageObject(DamageType::Collision, force) )  return 2;
+            }
         }
     }
 
@@ -2965,7 +2734,7 @@ void CPhysics::PowerParticle(float factor, bool bBreak)
     bCarryPower = false;
     if (m_object->Implements(ObjectInterfaceType::Slotted))
     {
-        CObject* cargo = dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::CARRYING);
+        CObject* cargo = GetObjectInCargoSlot(m_object);
         if ( cargo != nullptr && cargo->Implements(ObjectInterfaceType::PowerContainer) &&
             dynamic_cast<CPowerContainerObject&>(*cargo).IsRechargeable() &&
             m_object->GetPartRotationZ(1) == ARM_STOCK_ANGLE1 )
@@ -3052,8 +2821,9 @@ void CPhysics::CrashParticle(float crash)
 
 void CPhysics::MotorParticle(float aTime, float rTime)
 {
-    glm::vec3    pos{ 0, 0, 0 }, speed{ 0, 0, 0 };
-    glm::vec2       dim;
+    glm::vec3   pos{ 0, 0, 0 };
+    glm::vec3   speed{ 0, 0, 0 };
+    glm::vec2   dim;
     ObjectType  type;
     glm::vec2   c, p;
     float       h, a, delay, level;
@@ -3062,88 +2832,79 @@ void CPhysics::MotorParticle(float aTime, float rTime)
     if ( m_object->GetToy() )  return;
 
     type = m_object->GetType();
+    auto exhaustDetails = GetObjectMovableDetails(m_object).exhaust;
 
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEit ||  // legs?
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_APOLLO2  )  return;
-
-    if ( type == OBJECT_HUMAN )  delay = 3.0f;
-    else                         delay = 8.0f;
-    if ( m_bSwim && m_timeUnderWater < delay )  // bubbles when entering water?
+    if ( exhaustDetails.bubblesOnEnteringWater )
     {
-        if ( aTime-m_lastUnderParticle >= m_engine->ParticleAdapt(0.05f) )
+        delay = exhaustDetails.bubblesOnEnteringWaterTime;
+        if ( m_bSwim && m_timeUnderWater < delay )  // bubbles when entering water?
         {
-            m_lastUnderParticle = aTime;
-
-            nb = static_cast<int>(20.0f-(20.0f/delay)*m_timeUnderWater);
-            for ( i=0 ; i<nb ; i++ )
+            if ( aTime-m_lastUnderParticle >= m_engine->ParticleAdapt(0.05f) )
             {
-                pos = m_object->GetPosition();
-                pos.x += (Math::Rand()-0.5f)*4.0f;
-                pos.y += (Math::Rand()-0.5f)*4.0f;
-                pos.z += (Math::Rand()-0.5f)*4.0f;
-                speed.y = (Math::Rand()-0.5f)*8.0f+8.0f;
-                speed.x = (Math::Rand()-0.5f)*0.2f;
-                speed.z = (Math::Rand()-0.5f)*0.2f;
-                dim.x = 0.06f+Math::Rand()*0.10f;
-                dim.y = dim.x;
-                m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIBUBBLE, 3.0f, 0.0f, 0.0f);
+                m_lastUnderParticle = aTime;
+    
+                nb = static_cast<int>(20.0f-(20.0f/delay)*m_timeUnderWater);
+                for ( i=0 ; i<nb ; i++ )
+                {
+                    pos = m_object->GetPosition();
+                    pos.x += (Math::Rand()-0.5f)*4.0f;
+                    pos.y += (Math::Rand()-0.5f)*4.0f;
+                    pos.z += (Math::Rand()-0.5f)*4.0f;
+                    speed.y = (Math::Rand()-0.5f)*8.0f+8.0f;
+                    speed.x = (Math::Rand()-0.5f)*0.2f;
+                    speed.z = (Math::Rand()-0.5f)*0.2f;
+                    dim.x = 0.06f+Math::Rand()*0.10f;
+                    dim.y = dim.x;
+                    m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIBUBBLE, 3.0f, 0.0f, 0.0f);
+                }
+            }
+        }
+    }
+    
+    if ( exhaustDetails.dropsOnLeavingWater )
+    {
+        level = m_water->GetLevel();
+        pos = m_object->GetPosition();
+        if ( type == OBJECT_HUMAN )  pos.y -= 2.0f;
+        if ( pos.y < level )  // underwater?
+        {
+            m_absorbWater += rTime*(1.0f/2.0f);  // gets wet
+            if ( m_absorbWater > 1.0f )  m_absorbWater = 1.0f;
+        }
+        else    // out of water?
+        {
+            m_absorbWater -= rTime*(1.0f/3.0f);  // to dry
+            if ( m_absorbWater < 0.0f )  m_absorbWater = 0.0f;
+        }
+    
+        if ( pos.y >= level       &&
+             m_absorbWater > 0.0f &&
+             !m_water->GetLava()  )  // drops on leaving the water?
+        {
+            if ( aTime-m_lastUnderParticle >= m_engine->ParticleAdapt(0.05f) )
+            {
+                m_lastUnderParticle = aTime;
+    
+                nb = static_cast<int>(8.0f*m_absorbWater);
+                for ( i=0 ; i<nb ; i++ )
+                {
+                    pos = m_object->GetPosition();
+                    if ( type == OBJECT_HUMAN )  pos.y -= Math::Rand()*2.0f;
+                    else                         pos.y += Math::Rand()*2.0f;
+                    pos.x += (Math::Rand()-0.5f)*2.0f;
+                    pos.z += (Math::Rand()-0.5f)*2.0f;
+                    speed.y = -((Math::Rand()-0.5f)*8.0f+8.0f);
+                    speed.x = 0.0f;
+                    speed.z = 0.0f;
+                    dim.x = 0.2f;
+                    dim.y = 0.2f;
+                    m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIWATER, 2.0f, 0.0f, 1.0f);
+                }
             }
         }
     }
 
-    level = m_water->GetLevel();
-    pos = m_object->GetPosition();
-    if ( type == OBJECT_HUMAN )  pos.y -= 2.0f;
-    if ( pos.y < level )  // underwater?
-    {
-        m_absorbWater += rTime*(1.0f/2.0f);  // gets wet
-        if ( m_absorbWater > 1.0f )  m_absorbWater = 1.0f;
-    }
-    else    // out of water?
-    {
-        m_absorbWater -= rTime*(1.0f/3.0f);  // to dry
-        if ( m_absorbWater < 0.0f )  m_absorbWater = 0.0f;
-    }
-
-    if ( pos.y >= level       &&
-         m_absorbWater > 0.0f &&
-         !m_water->GetLava()  )  // drops on leaving the water?
-    {
-        if ( aTime-m_lastUnderParticle >= m_engine->ParticleAdapt(0.05f) )
-        {
-            m_lastUnderParticle = aTime;
-
-            nb = static_cast<int>(8.0f*m_absorbWater);
-            for ( i=0 ; i<nb ; i++ )
-            {
-                pos = m_object->GetPosition();
-                if ( type == OBJECT_HUMAN )  pos.y -= Math::Rand()*2.0f;
-                else                         pos.y += Math::Rand()*2.0f;
-                pos.x += (Math::Rand()-0.5f)*2.0f;
-                pos.z += (Math::Rand()-0.5f)*2.0f;
-                speed.y = -((Math::Rand()-0.5f)*8.0f+8.0f);
-                speed.x = 0.0f;
-                speed.z = 0.0f;
-                dim.x = 0.2f;
-                dim.y = 0.2f;
-                m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIWATER, 2.0f, 0.0f, 1.0f);
-            }
-        }
-    }
-
-    if ( type == OBJECT_HUMAN ||  // human?
-         type == OBJECT_TECH  )
+    if ( exhaustDetails.onCrashAsHuman ) // human?
     {
         if ( m_bLand &&
              aTime-m_lastSlideParticle >= m_engine->ParticleAdapt(0.05f) )
@@ -3170,12 +2931,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEtt )  // caterpillars?
+    if ( exhaustDetails.onCrashAsTrackedRobot )  // caterpillars?
     {
         if ( aTime-m_lastSlideParticle >= m_engine->ParticleAdapt(0.05f) )
         {
@@ -3199,11 +2955,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILErp )  // large caterpillars?
+    if ( exhaustDetails.onCrashAsHeavyRobot )  // large caterpillars?
     {
         if ( aTime-m_lastSlideParticle >= m_engine->ParticleAdapt(0.05f) )
         {
@@ -3227,229 +2979,219 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( (type == OBJECT_HUMAN || type == OBJECT_TECH) && !m_bSwim )
+    if ( exhaustDetails.onLandAsHuman && !m_bSwim && m_bLand ) // on the ground?
     {
-        if ( m_bLand )  // on the ground?
+        if ( m_reactorTemperature > 0.0f )
         {
-            if ( m_reactorTemperature > 0.0f )
+            m_reactorTemperature -= rTime*(1.0f/10.0f);  // cooling
+            if ( m_reactorTemperature < 0.0f )
             {
-                m_reactorTemperature -= rTime*(1.0f/10.0f);  // cooling
-                if ( m_reactorTemperature < 0.0f )
-                {
-                    m_reactorTemperature = 0.0f;
-                }
+                m_reactorTemperature = 0.0f;
             }
+        }
 
-            if ( m_reactorTemperature == 0.0f ||
-                 aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.05f) )  return;
+        if ( m_reactorTemperature == 0.0f ||
+             aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.05f) )  return;
+        m_lastMotorParticle = aTime;
+
+        pos = glm::vec3(-1.6f, -0.5f, 0.0f);
+        glm::mat4 mat = m_object->GetWorldMatrix(0);
+        pos = Math::Transform(mat, pos);
+
+        speed.x = (Math::Rand()-0.5f)*0.6f;
+        speed.z = (Math::Rand()-0.5f)*0.6f;
+        speed.y = -(0.5f+Math::Rand()*0.3f)*(1.0f-m_reactorTemperature);
+
+        dim.x = (1.0f+Math::Rand()*0.5f)*(0.2f+m_reactorTemperature*0.8f);
+        dim.y = dim.x;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISMOKE2, 3.0f, 0.0f, 0.1f);
+    }
+
+    if ( exhaustDetails.onFlightAsHuman && !m_bSwim && !m_bLand ) // in flight?
+    {
+        if ( !m_bMotor || (m_object->Implements(ObjectInterfaceType::JetFlying) && dynamic_cast<CJetFlyingObject&>(*m_object).GetReactorRange() == 0.0f) )  return;
+
+        if ( m_reactorTemperature < 1.0f )  // not too hot?
+        {
+            m_reactorTemperature += rTime*(1.0f/4.0f);  // heating
+            if ( m_reactorTemperature > 1.0f )
+            {
+                m_reactorTemperature = 1.0f;  // but not too much
+            }
+        }
+
+        if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.02f) )  return;
+        m_lastMotorParticle = aTime;
+
+        pos = glm::vec3(-1.6f, -1.0f, 0.0f);
+        pos.x += (Math::Rand()-0.5f)*3.0f;
+        pos.y += (Math::Rand()-0.5f)*1.5f;
+        pos.z += (Math::Rand()-0.5f)*3.0f;
+        glm::mat4 mat = m_object->GetWorldMatrix(0);
+        pos = Math::Transform(mat, pos);
+
+        h = m_floorHeight;
+        if ( h > 10.0f )  // high enough?
+        {
+            speed = glm::vec3(0.0f, -10.0f, 0.0f);  // against the bottom
+        }
+        else
+        {
+            speed.y = 10.0f-2.0f*h - Math::Rand()*(10.0f-h);  //against the top
+            speed.x = (Math::Rand()-0.5f)*(5.0f-h)*1.0f;  // horizontal (xz)
+            speed.z = (Math::Rand()-0.5f)*(5.0f-h)*1.0f;
+        }
+
+        dim.x = 0.12f;
+        dim.y = 0.12f;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISCRAPS, 2.0f, 10.0f);
+
+        pos = glm::vec3(-1.6f, -0.5f, 0.0f);
+        pos = Math::Transform(mat, pos);
+
+        speed.x = (Math::Rand()-0.5f)*1.0f;
+        speed.z = (Math::Rand()-0.5f)*1.0f;
+        speed.y = -(4.0f+Math::Rand()*3.0f);
+        speed.x += m_linMotion.realSpeed.x*0.8f;
+        speed.z -= m_linMotion.realSpeed.x*m_cirMotion.realSpeed.y*0.05f;
+        if ( m_linMotion.realSpeed.y > 0.0f )
+        {
+            speed.y += m_linMotion.realSpeed.y*0.5f;
+        }
+        else
+        {
+            speed.y += m_linMotion.realSpeed.y*1.2f;
+        }
+        a = m_object->GetRotationY();
+        p.x = speed.x;
+        p.y = speed.z;
+        p = Math::RotatePoint(-a, p);
+        speed.x = p.x;
+        speed.z = p.y;
+
+        dim.x = 0.4f+Math::Rand()*0.2f;
+        dim.y = dim.x;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT, 0.3f, 10.0f);
+    }
+
+    if ( exhaustDetails.onFlightAsWingedRobot && !m_bSwim && m_bLand ) // on the ground?
+    {
+        if ( m_motorSpeed.x == 0.0f &&  // glide slope due to ground?
+             m_cirMotion.realSpeed.y == 0.0f )
+        {
+            h = Math::Max(fabs(m_linMotion.realSpeed.x),
+                    fabs(m_linMotion.realSpeed.z));
+
+            if ( h < 3.0f )  return;
+
+            if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.2f) )  return;
             m_lastMotorParticle = aTime;
 
-            pos = glm::vec3(-1.6f, -0.5f, 0.0f);
+            r = rand()%3;
+            if ( r == 0 )  pos = glm::vec3(-3.0f, 0.0f, -4.0f);
+            if ( r == 1 )  pos = glm::vec3(-3.0f, 0.0f,  4.0f);
+            if ( r == 2 )  pos = glm::vec3( 4.0f, 0.0f,  0.0f);
+
+            pos.x += (Math::Rand()-0.5f)*2.0f;
+            pos.z += (Math::Rand()-0.5f)*2.0f;
             glm::mat4 mat = m_object->GetWorldMatrix(0);
             pos = Math::Transform(mat, pos);
-
-            speed.x = (Math::Rand()-0.5f)*0.6f;
-            speed.z = (Math::Rand()-0.5f)*0.6f;
-            speed.y = -(0.5f+Math::Rand()*0.3f)*(1.0f-m_reactorTemperature);
-
-            dim.x = (1.0f+Math::Rand()*0.5f)*(0.2f+m_reactorTemperature*0.8f);
+            speed = glm::vec3(0.0f, 0.0f, 0.0f);
+            dim.x = Math::Rand()*h/5.0f+2.0f;
             dim.y = dim.x;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISMOKE2, 3.0f, 0.0f, 0.1f);
+            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTICRASH, 2.0f);
         }
-        else    // in flight?
+        else    // glide with small reactors in skates?
         {
-            if ( !m_bMotor || (m_object->Implements(ObjectInterfaceType::JetFlying) && dynamic_cast<CJetFlyingObject&>(*m_object).GetReactorRange() == 0.0f) )  return;
-
-            if ( m_reactorTemperature < 1.0f )  // not too hot?
-            {
-                m_reactorTemperature += rTime*(1.0f/4.0f);  // heating
-                if ( m_reactorTemperature > 1.0f )
-                {
-                    m_reactorTemperature = 1.0f;  // but not too much
-                }
-            }
+            if ( m_linMotion.realSpeed.x == 0.0f &&
+                 m_cirMotion.realSpeed.y == 0.0f )  return;
 
             if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.02f) )  return;
             m_lastMotorParticle = aTime;
 
-            pos = glm::vec3(-1.6f, -1.0f, 0.0f);
-            pos.x += (Math::Rand()-0.5f)*3.0f;
-            pos.y += (Math::Rand()-0.5f)*1.5f;
-            pos.z += (Math::Rand()-0.5f)*3.0f;
+            r = rand()%3;
+            if ( r == 0 )  pos = glm::vec3(-3.0f, 0.0f, -4.0f);
+            if ( r == 1 )  pos = glm::vec3(-3.0f, 0.0f,  4.0f);
+            if ( r == 2 )  pos = glm::vec3( 4.0f, 0.0f,  0.0f);
+
+            pos.x += (Math::Rand()-0.5f)*1.0f;
+            pos.z += (Math::Rand()-0.5f)*1.0f;
             glm::mat4 mat = m_object->GetWorldMatrix(0);
             pos = Math::Transform(mat, pos);
-
-            h = m_floorHeight;
-            if ( h > 10.0f )  // high enough?
-            {
-                speed = glm::vec3(0.0f, -10.0f, 0.0f);  // against the bottom
-            }
-            else
-            {
-                speed.y = 10.0f-2.0f*h - Math::Rand()*(10.0f-h);  //against the top
-                speed.x = (Math::Rand()-0.5f)*(5.0f-h)*1.0f;  // horizontal (xz)
-                speed.z = (Math::Rand()-0.5f)*(5.0f-h)*1.0f;
-            }
-
-            dim.x = 0.12f;
-            dim.y = 0.12f;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISCRAPS, 2.0f, 10.0f);
-
-            pos = glm::vec3(-1.6f, -0.5f, 0.0f);
-            pos = Math::Transform(mat, pos);
-
-            speed.x = (Math::Rand()-0.5f)*1.0f;
-            speed.z = (Math::Rand()-0.5f)*1.0f;
-            speed.y = -(4.0f+Math::Rand()*3.0f);
-            speed.x += m_linMotion.realSpeed.x*0.8f;
-            speed.z -= m_linMotion.realSpeed.x*m_cirMotion.realSpeed.y*0.05f;
-            if ( m_linMotion.realSpeed.y > 0.0f )
-            {
-                speed.y += m_linMotion.realSpeed.y*0.5f;
-            }
-            else
-            {
-                speed.y += m_linMotion.realSpeed.y*1.2f;
-            }
-            a = m_object->GetRotationY();
-            p.x = speed.x;
-            p.y = speed.z;
-            p = Math::RotatePoint(-a, p);
-            speed.x = p.x;
-            speed.z = p.y;
-
-            dim.x = 0.4f+Math::Rand()*0.2f;
+            speed = glm::vec3(0.0f, 0.0f, 0.0f);
+            dim.x = 1.0f;
             dim.y = dim.x;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT, 0.3f, 10.0f);
+            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT);
         }
     }
 
-    if ( (type == OBJECT_HUMAN || type == OBJECT_TECH) && m_bSwim )
+    if ( exhaustDetails.onFlightAsWingedRobot && !m_bSwim && !m_bLand ) // in flight?
+    {
+        if ( !m_bMotor || (m_object->Implements(ObjectInterfaceType::JetFlying) && dynamic_cast<CJetFlyingObject&>(*m_object).GetReactorRange() == 0.0f) )  return;
+
+        if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.02f) )  return;
+        m_lastMotorParticle = aTime;
+
+        pos = glm::vec3(0.0f, -1.0f, 0.0f);
+        pos.x += (Math::Rand()-0.5f)*6.0f;
+        pos.y += (Math::Rand()-0.5f)*3.0f;
+        pos.z += (Math::Rand()-0.5f)*6.0f;
+        glm::mat4 mat = m_object->GetWorldMatrix(0);
+        pos = Math::Transform(mat, pos);
+
+        h = m_floorHeight;
+        if ( h > 10.0f )  // high enough?
+        {
+            speed = glm::vec3(0.0f, -10.0f, 0.0f);  // against the bottom
+        }
+        else
+        {
+            speed.y = 10.0f-2.0f*h - Math::Rand()*(10.0f-h);  // against the top
+            speed.x = (Math::Rand()-0.5f)*(10.0f-h)*2.0f;  // horizontal (xz)
+            speed.z = (Math::Rand()-0.5f)*(10.0f-h)*2.0f;
+        }
+
+        dim.x = 0.2f;
+        dim.y = 0.2f;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISCRAPS, 2.0f, 10.0f);
+
+        pos = glm::vec3(0.0f, 1.0f, 0.0f);
+        pos = Math::Transform(mat, pos);
+
+        speed.x = (Math::Rand()-0.5f)*1.0f;
+        speed.z = (Math::Rand()-0.5f)*1.0f;
+        speed.y = -(6.0f+Math::Rand()*4.5f);
+        speed.x += m_linMotion.realSpeed.x*0.8f;
+        speed.z -= m_linMotion.realSpeed.x*m_cirMotion.realSpeed.y*0.05f;
+        if ( m_linMotion.realSpeed.y > 0.0f )
+        {
+            speed.y += m_linMotion.realSpeed.y*0.5f;
+        }
+        else
+        {
+            speed.y += m_linMotion.realSpeed.y*1.2f;
+        }
+        a = m_object->GetRotationY();
+        p.x = speed.x;
+        p.y = speed.z;
+        p = Math::RotatePoint(-a, p);
+        speed.x = p.x;
+        speed.z = p.y;
+
+        dim.x = 0.7f+Math::Rand()*0.6f;
+        dim.y = dim.x;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT, 0.5f, 10.0f);
+    }
+
+    if ( exhaustDetails.onSwimAsHuman && m_bSwim )
     {
         m_reactorTemperature = 0.0f;  // reactor cold
-    }
 
-    if ( m_object->Implements(ObjectInterfaceType::Flying) &&
-         type != OBJECT_HUMAN &&
-         type != OBJECT_TECH  &&
-         !m_bSwim )
-    {
-        if ( m_bLand )  // on the ground?
-        {
-            if ( m_motorSpeed.x == 0.0f &&  // glide slope due to ground?
-                 m_cirMotion.realSpeed.y == 0.0f )
-            {
-                h = Math::Max(fabs(m_linMotion.realSpeed.x),
-                        fabs(m_linMotion.realSpeed.z));
-
-                if ( h < 3.0f )  return;
-
-                if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.2f) )  return;
-                m_lastMotorParticle = aTime;
-
-                r = rand()%3;
-                if ( r == 0 )  pos = glm::vec3(-3.0f, 0.0f, -4.0f);
-                if ( r == 1 )  pos = glm::vec3(-3.0f, 0.0f,  4.0f);
-                if ( r == 2 )  pos = glm::vec3( 4.0f, 0.0f,  0.0f);
-
-                pos.x += (Math::Rand()-0.5f)*2.0f;
-                pos.z += (Math::Rand()-0.5f)*2.0f;
-                glm::mat4 mat = m_object->GetWorldMatrix(0);
-                pos = Math::Transform(mat, pos);
-                speed = glm::vec3(0.0f, 0.0f, 0.0f);
-                dim.x = Math::Rand()*h/5.0f+2.0f;
-                dim.y = dim.x;
-                m_particle->CreateParticle(pos, speed, dim, Gfx::PARTICRASH, 2.0f);
-            }
-            else    // glide with small reactors in skates?
-            {
-                if ( m_linMotion.realSpeed.x == 0.0f &&
-                     m_cirMotion.realSpeed.y == 0.0f )  return;
-
-                if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.02f) )  return;
-                m_lastMotorParticle = aTime;
-
-                r = rand()%3;
-                if ( r == 0 )  pos = glm::vec3(-3.0f, 0.0f, -4.0f);
-                if ( r == 1 )  pos = glm::vec3(-3.0f, 0.0f,  4.0f);
-                if ( r == 2 )  pos = glm::vec3( 4.0f, 0.0f,  0.0f);
-
-                pos.x += (Math::Rand()-0.5f)*1.0f;
-                pos.z += (Math::Rand()-0.5f)*1.0f;
-                glm::mat4 mat = m_object->GetWorldMatrix(0);
-                pos = Math::Transform(mat, pos);
-                speed = glm::vec3(0.0f, 0.0f, 0.0f);
-                dim.x = 1.0f;
-                dim.y = dim.x;
-                m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT);
-            }
-        }
-        else    // in flight?
-        {
-            if ( !m_bMotor || (m_object->Implements(ObjectInterfaceType::JetFlying) && dynamic_cast<CJetFlyingObject&>(*m_object).GetReactorRange() == 0.0f) )  return;
-
-            if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.02f) )  return;
-            m_lastMotorParticle = aTime;
-
-            pos = glm::vec3(0.0f, -1.0f, 0.0f);
-            pos.x += (Math::Rand()-0.5f)*6.0f;
-            pos.y += (Math::Rand()-0.5f)*3.0f;
-            pos.z += (Math::Rand()-0.5f)*6.0f;
-            glm::mat4 mat = m_object->GetWorldMatrix(0);
-            pos = Math::Transform(mat, pos);
-
-            h = m_floorHeight;
-            if ( h > 10.0f )  // high enough?
-            {
-                speed = glm::vec3(0.0f, -10.0f, 0.0f);  // against the bottom
-            }
-            else
-            {
-                speed.y = 10.0f-2.0f*h - Math::Rand()*(10.0f-h);  // against the top
-                speed.x = (Math::Rand()-0.5f)*(10.0f-h)*2.0f;  // horizontal (xz)
-                speed.z = (Math::Rand()-0.5f)*(10.0f-h)*2.0f;
-            }
-
-            dim.x = 0.2f;
-            dim.y = 0.2f;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTISCRAPS, 2.0f, 10.0f);
-
-            pos = glm::vec3(0.0f, 1.0f, 0.0f);
-            pos = Math::Transform(mat, pos);
-
-            speed.x = (Math::Rand()-0.5f)*1.0f;
-            speed.z = (Math::Rand()-0.5f)*1.0f;
-            speed.y = -(6.0f+Math::Rand()*4.5f);
-            speed.x += m_linMotion.realSpeed.x*0.8f;
-            speed.z -= m_linMotion.realSpeed.x*m_cirMotion.realSpeed.y*0.05f;
-            if ( m_linMotion.realSpeed.y > 0.0f )
-            {
-                speed.y += m_linMotion.realSpeed.y*0.5f;
-            }
-            else
-            {
-                speed.y += m_linMotion.realSpeed.y*1.2f;
-            }
-            a = m_object->GetRotationY();
-            p.x = speed.x;
-            p.y = speed.z;
-            p = Math::RotatePoint(-a, p);
-            speed.x = p.x;
-            speed.z = p.y;
-
-            dim.x = 0.7f+Math::Rand()*0.6f;
-            dim.y = dim.x;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIEJECT, 0.5f, 10.0f);
-        }
-    }
-
-    if ( (type == OBJECT_HUMAN || type == OBJECT_TECH) && m_bSwim )
-    {
         if ( !m_object->Implements(ObjectInterfaceType::Destroyable) || dynamic_cast<CDestroyableObject&>(*m_object).GetDying() != DeathType::Dead )
         {
             h = Math::Mod(aTime, 5.0f);
@@ -3477,7 +3219,7 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( (type == OBJECT_MOBILEsa || type == OBJECT_MOBILEst) && m_bSwim )
+    if ( exhaustDetails.onSwimAsAmphibiousRobot && m_bSwim )
     {
         h = Math::Mod(aTime, 3.0f);
         if ( h < 1.5f && ( h < 0.5f || h > 0.9f ) )  return;
@@ -3503,98 +3245,83 @@ void CPhysics::MotorParticle(float aTime, float rTime)
         }
     }
 
-    if ( !m_object->Implements(ObjectInterfaceType::Flying) )
+    if ( exhaustDetails.onLandAsHeavyRobot && !m_bSwim && m_bLand ) // Create engine smoke
     {
-        if ( type == OBJECT_APOLLO2 )  return;  // electric motors!
+        if ( !m_bMotor )  return;
 
-        // Create engine smoke
-        if ( type == OBJECT_MOBILErt ||
-             type == OBJECT_MOBILErc ||
-             type == OBJECT_MOBILErr ||
-             type == OBJECT_MOBILErs ||
-             type == OBJECT_MOBILErp )
+        if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.1f) )  return;
+        m_lastMotorParticle = aTime;
+
+        pos = glm::vec3(-2.5f, 10.3f, -1.3f);
+        pos.x += (Math::Rand()-0.5f)*1.0f;
+        pos.z += (Math::Rand()-0.5f)*1.0f;
+        glm::mat4 mat = m_object->GetWorldMatrix(0);
+        pos   = Math::Transform(mat, pos);
+
+        speed.x = (Math::Rand()-0.5f)*2.0f;
+        speed.z = (Math::Rand()-0.5f)*2.0f;
+        speed.y = 1.5f+Math::Rand()*1.0f;
+
+        dim.x = Math::Rand()*0.6f+0.4f;
+        dim.y = dim.x;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIMOTOR, 2.0f);
+    }
+
+    if ( exhaustDetails.onLandAsNormalRobot && !m_bSwim && m_bLand )
+    {
+        if ( !m_bMotor )  return;
+
+        if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.05f) )  return;
+        m_lastMotorParticle = aTime;
+
+        pos = glm::vec3(-3.4f, 1.8f, 0.5f);
+
+        speed = pos;
+        if ( m_linMotion.currentSpeed.x < 0.0f )
         {
-            if ( !m_bMotor )  return;
-
-            if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.1f) )  return;
-            m_lastMotorParticle = aTime;
-
-            pos = glm::vec3(-2.5f, 10.3f, -1.3f);
-            pos.x += (Math::Rand()-0.5f)*1.0f;
-            pos.z += (Math::Rand()-0.5f)*1.0f;
-            glm::mat4 mat = m_object->GetWorldMatrix(0);
-            pos   = Math::Transform(mat, pos);
-
-            speed.x = (Math::Rand()-0.5f)*2.0f;
-            speed.z = (Math::Rand()-0.5f)*2.0f;
-            speed.y = 1.5f+Math::Rand()*1.0f;
-
-            dim.x = Math::Rand()*0.6f+0.4f;
-            dim.y = dim.x;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIMOTOR, 2.0f);
+            speed.x += m_linMotion.currentSpeed.x*1.2f;
+        }
+        else if ( m_linMotion.currentSpeed.x > 0.0f )
+        {
+            speed.x += 0.0f;
         }
         else
         {
-            if ( !m_bMotor )  return;
-
-            if ( aTime-m_lastMotorParticle < m_engine->ParticleAdapt(0.05f) )  return;
-            m_lastMotorParticle = aTime;
-
-            pos = glm::vec3(-3.4f, 1.8f, 0.5f);
-
-            speed = pos;
-            if ( m_linMotion.currentSpeed.x < 0.0f )
-            {
-                speed.x += m_linMotion.currentSpeed.x*1.2f;
-            }
-            else if ( m_linMotion.currentSpeed.x > 0.0f )
-            {
-                speed.x += 0.0f;
-            }
-            else
-            {
-                speed.x -= 3.0f;
-            }
-            speed.y -= 0.5f+Math::Rand()*2.0f;
-            speed.z += (Math::Rand()-0.5f)*3.0f;
-
-            glm::mat4 mat = m_object->GetWorldMatrix(0);
-            pos   = Math::Transform(mat, pos);
-            speed = Math::Transform(mat, speed)-pos;
-
-            dim.x = Math::Rand()*0.4f+0.3f;
-            dim.y = dim.x;
-
-            m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIMOTOR, 2.0f);
+            speed.x -= 3.0f;
         }
+        speed.y -= 0.5f+Math::Rand()*2.0f;
+        speed.z += (Math::Rand()-0.5f)*3.0f;
+
+        glm::mat4 mat = m_object->GetWorldMatrix(0);
+        pos   = Math::Transform(mat, pos);
+        speed = Math::Transform(mat, speed)-pos;
+
+        dim.x = Math::Rand()*0.4f+0.3f;
+        dim.y = dim.x;
+
+        m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIMOTOR, 2.0f);
     }
 }
 
 // Generates some particles after falling into the water.
 
-void CPhysics::WaterParticle(float aTime, glm::vec3 pos, ObjectType type,
+void CPhysics::WaterParticle(float aTime, glm::vec3 pos,
                               float floor, float advance, float turn)
 {
     glm::vec3    ppos{ 0, 0, 0 }, speed{ 0, 0, 0 };
     glm::vec2       dim;
-    float       delay, level, min, max, force, volume, diam;
+    float       delay, level, min, max, force, volume, diam, factor;
     int         i, nb;
 
     level = m_water->GetLevel();
     if ( floor >= level )  return;
 
-    if ( type == OBJECT_HUMAN ||
-         type == OBJECT_TECH  )
-    {
-        min = 3.0f;
-        max = 3.0f;
-    }
-    else
-    {
-        min = 0.0f;
-        max = 9.0f;
-    }
+    auto waterDetails = GetObjectMovableDetails(m_object).water;
+    min = waterDetails.splashLevelMin;
+    max = waterDetails.splashLevelMax;
+    diam = waterDetails.splashDiameter;
+    factor = waterDetails.splashForce;
 
     if ( pos.y+max < level || pos.y-min > level )  return;
 
@@ -3605,16 +3332,7 @@ void CPhysics::WaterParticle(float aTime, glm::vec3 pos, ObjectType type,
         m_lastPloufParticle = aTime;
 
         force = -m_linMotion.realSpeed.y/20.0f;  // power according to speed drops
-        if ( type == OBJECT_HUMAN ||
-             type == OBJECT_TECH  )
-        {
-            diam = 2.5f;
-        }
-        else
-        {
-            diam = 5.0f;
-            force *= 1.3f;  // a robot is heavier
-        }
+        force *= factor;  // a robot is heavier
 
         pos = m_object->GetPosition();
         pos.y = m_water->GetLevel()-1.0f;
@@ -3752,46 +3470,6 @@ void CPhysics::WheelParticle(TraceColor color, float width)
     {
         m_bWheelParticleBrake = false;
     }
-}
-
-
-// Returns an error related to the general state.
-
-Error CPhysics::GetError()
-{
-    ObjectType type = m_object->GetType();
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_TECH     ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_APOLLO2  ||
-         type == OBJECT_MOBILEdr )  return ERR_OK;
-
-    if (m_object->Implements(ObjectInterfaceType::ProgramStorage))
-    {
-        if ( dynamic_cast<CProgramStorageObject&>(*m_object).GetActiveVirus() )
-        {
-            return ERR_VEH_VIRUS;
-        }
-    }
-
-    if (HasPowerCellSlot(m_object))
-    {
-        CPowerContainerObject* power = GetObjectPowerCell(m_object);  // searches for the object battery used
-        if (power == nullptr)
-        {
-            return ERR_VEH_POWER;
-        }
-        else
-        {
-            if ( power->GetEnergy() == 0.0f )  return ERR_VEH_ENERGY;
-        }
-    }
-
-    return ERR_OK;
 }
 
 void CPhysics::SetFalling()

@@ -21,42 +21,7 @@
 
 #include "object/object_interface_type.h"
 
-#include <string>
-
-namespace Gfx
-{
-struct Color;
-}
-
-enum class TraceColor
-{
-    Default = -1,
-
-    Blue = 0,
-    Red = 1,
-    Green = 2,
-    Yellow = 3,
-    Violet = 4,
-    White = 5,
-    Black = 6,
-    Gray = 7,
-    LightGray = 8,
-    Pink = 9,
-    Purple = 10,
-    Orange = 11,
-    Beige = 12,
-    Brown = 13,
-    Skin = 14,
-    LightGreen = 15,
-    LightBlue = 16,
-    BlackArrow = 17,
-    RedArrow = 18,
-    Max,
-};
-//! Convert TraceColor to a std::string
-std::string TraceColorName(TraceColor color);
-//! Return Gfx::Color for this TraceColor constants
-Gfx::Color TraceColorColor(TraceColor color);
+#include "graphics/engine/trace_color.h"
 
 /**
  * \class CTraceDrawingObject
@@ -74,16 +39,19 @@ public:
 
     //! Put the drawing pencil down
     virtual void        SetTraceDown(bool down) = 0;
+
     //! Is the pencil down?
     virtual bool        GetTraceDown() = 0;
 
     //! Set color of the trace
     virtual void        SetTraceColor(TraceColor color) = 0;
+
     //! Return color of the trace
     virtual TraceColor  GetTraceColor() = 0;
 
     //! Set trace width
     virtual void        SetTraceWidth(float width) = 0;
+
     //! Return trace width
     virtual float       GetTraceWidth() = 0;
 };

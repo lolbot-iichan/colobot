@@ -27,12 +27,9 @@
 
 #include "common/error.h"
 
-#include "object/object_type.h"
-
-#include "object/interface/trace_drawing_object.h"
+#include "graphics/engine/trace_color.h"
 
 #include <glm/glm.hpp>
-
 
 class CObject;
 class COldObject;
@@ -41,6 +38,8 @@ class CSoundInterface;
 class CLevelParserLine;
 class CJostleableObject;
 struct Event;
+
+enum ObjectType : unsigned int;
 
 namespace Gfx
 {
@@ -158,8 +157,6 @@ public:
     float       GetMotorSpeedY();
     float       GetMotorSpeedZ();
 
-    Error       GetError();
-
     float       GetFallingHeight();
 
     void        SetMinFallingHeight(float value);
@@ -172,11 +169,11 @@ protected:
     bool        EventFrame(const Event &event);
     void        WaterFrame(float aTime, float rTime);
     void        SoundMotor(float rTime);
-    void        SoundMotorFull(float rTime, ObjectType type);
-    void        SoundMotorSlow(float rTime, ObjectType type);
-    void        SoundMotorStop(float rTime, ObjectType type);
-    void        SoundReactorFull(float rTime, ObjectType type);
-    void        SoundReactorStop(float rTime, ObjectType type);
+    void        SoundMotorFull(float rTime);
+    void        SoundMotorSlow(float rTime);
+    void        SoundMotorStop(float rTime);
+    void        SoundReactorFull(float rTime);
+    void        SoundReactorStop(float rTime);
     void        FrameParticle(float aTime, float rTime);
     void        MotorUpdate(float aTime, float rTime);
     void        EffectUpdate(float aTime, float rTime);
@@ -186,13 +183,13 @@ protected:
     int         ObjectAdapt(const glm::vec3 &pos, const glm::vec3 &angle);
     bool        JostleObject(CJostleableObject* pObj, glm::vec3 iPos, float iRad);
     bool        JostleObject(CObject* pObj, float force);
-    bool        ExploOther(ObjectType iType, CObject *pObj, ObjectType oType, float force);
-    int         ExploHimself(ObjectType iType, ObjectType oType, float force);
+    bool        ExploOther(ObjectType iType, CObject *pObj, float force);
+    int         ExploHimself(ObjectType iType, CObject *pObj, float force);
 
     void        PowerParticle(float factor, bool bBreak);
     void        CrashParticle(float crash);
     void        MotorParticle(float aTime, float rTime);
-    void        WaterParticle(float aTime, glm::vec3 pos, ObjectType type, float floor, float advance, float turn);
+    void        WaterParticle(float aTime, glm::vec3 pos, float floor, float advance, float turn);
     void        WheelParticle(TraceColor color, float width);
     void        SetFalling();
 

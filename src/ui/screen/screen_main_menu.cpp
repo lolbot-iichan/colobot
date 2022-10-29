@@ -25,6 +25,7 @@
 #include "common/restext.h"
 
 #include "level/parser/parser.h"
+#include "level/parser/parserexceptions.h"
 
 #include "sound/sound.h"
 

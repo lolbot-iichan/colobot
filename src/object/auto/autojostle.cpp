@@ -18,16 +18,18 @@
  */
 
 
+#include "math/const.h"
+
 #include "object/auto/autojostle.h"
 
-#include "object/old_object.h"
+#include "object/object.h"
 
 #include "graphics/engine/engine.h"
 
 
 // Object's constructor.
 
-CAutoJostle::CAutoJostle(COldObject* object) : CAuto(object)
+CAutoJostle::CAutoJostle(CObject* object) : CAuto(object)
 {
     Init();
 }
@@ -36,14 +38,6 @@ CAutoJostle::CAutoJostle(COldObject* object) : CAuto(object)
 
 CAutoJostle::~CAutoJostle()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoJostle::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -62,8 +56,6 @@ void CAutoJostle::Init()
 
 void CAutoJostle::Start(int param, float force)
 {
-    ObjectType  type;
-
     if ( force < 0.0f )  force = 0.0f;
     if ( force > 1.0f )  force = 1.0f;
 
@@ -72,13 +64,6 @@ void CAutoJostle::Start(int param, float force)
     m_speed = 1.0f/(0.5f+force*1.0f);  // 0.5 .. 1.5
     m_time = 0.0f;
     m_error = ERR_CONTINUE;
-
-    type = m_object->GetType();
-    if ( type >= OBJECT_PLANT5 &&
-         type <= OBJECT_PLANT7 )  // clover?
-    {
-        m_force *= 3.0f;
-    }
 }
 
 // Should never be called
@@ -131,7 +116,9 @@ bool CAutoJostle::EventProcess(const Event &event)
     {
         m_object->SetRotationX(0.0f);
         m_object->SetRotationZ(0.0f);
-        m_object->SetScale(glm::vec3(1.0f, 1.0f, 1.0f));
+        m_object->SetScaleX(1.0f);
+        m_object->SetScaleY(1.0f);
+        m_object->SetScaleZ(1.0f);
         m_error = ERR_STOP;
     }
 

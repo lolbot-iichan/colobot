@@ -32,7 +32,10 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
+#include "object/helpers/power_helpers.h"
 
 #include "physics/physics.h"
 
@@ -40,7 +43,6 @@
 
 
 const float ENERGY_RECOVER  = 0.25f;        // energy consumed by recovery
-const float RECOVER_DIST    = 11.8f;
 
 
 
@@ -88,35 +90,36 @@ bool CTaskRecover::EventProcess(const Event &event)
 
     if ( m_phase == TRP_DOWN )
     {
-        angle = Math::PropAngle(126, -10, m_progress);
-        m_object->SetPartRotationZ(2, angle);
-        m_object->SetPartRotationZ(4, angle);
-
-        angle = Math::PropAngle(-144, 0, m_progress);
-        m_object->SetPartRotationZ(3, angle);
-        m_object->SetPartRotationZ(5, angle);
+        auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+        if ( task.execution == ExecutionAsRobot )
+        {
+            angle = Math::PropAngle(126, -10, m_progress);
+            m_object->SetPartRotationZ(2, angle);
+            m_object->SetPartRotationZ(4, angle);
+    
+            angle = Math::PropAngle(-144, 0, m_progress);
+            m_object->SetPartRotationZ(3, angle);
+            m_object->SetPartRotationZ(5, angle);
+        }
     }
 
     if ( m_phase == TRP_MOVE )  // preliminary forward/backward?
     {
         dist = glm::distance(m_object->GetPosition(), m_ruin->GetPosition());
+
+        auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+
         linSpeed = 0.0f;
-        if ( dist > RECOVER_DIST )  linSpeed =  1.0f;
-        if ( dist < RECOVER_DIST )  linSpeed = -1.0f;
+        if ( dist > task.distance )  linSpeed =  1.0f;
+        if ( dist < task.distance )  linSpeed = -1.0f;
         m_physics->SetMotorSpeedX(linSpeed);  // forward/backward
         return true;
     }
 
     if ( m_phase == TRP_OPER )
     {
-        assert(HasPowerCellSlot(m_object));
-        if (CPowerContainerObject* power = GetObjectPowerCell(m_object))
-        {
-            energy = power->GetEnergy();
-            energy -= event.rTime * ENERGY_RECOVER * m_speed;
-            power->SetEnergy(energy);
-        }
-
+        float energy = event.rTime * ENERGY_RECOVER * m_speed;
+        DecreaseObjectEnergy(m_object, energy);
 
         speed.x = (Math::Rand()-0.5f)*0.1f*m_progress;
         speed.y = (Math::Rand()-0.5f)*0.1f*m_progress;
@@ -152,13 +155,17 @@ bool CTaskRecover::EventProcess(const Event &event)
 
     if ( m_phase == TRP_UP )
     {
-        angle = Math::PropAngle(-10, 126, m_progress);
-        m_object->SetPartRotationZ(2, angle);
-        m_object->SetPartRotationZ(4, angle);
-
-        angle = Math::PropAngle(0, -144, m_progress);
-        m_object->SetPartRotationZ(3, angle);
-        m_object->SetPartRotationZ(5, angle);
+        auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+        if ( task.execution == ExecutionAsRobot )
+        {
+            angle = Math::PropAngle(-10, 126, m_progress);
+            m_object->SetPartRotationZ(2, angle);
+            m_object->SetPartRotationZ(4, angle);
+    
+            angle = Math::PropAngle(0, -144, m_progress);
+            m_object->SetPartRotationZ(3, angle);
+            m_object->SetPartRotationZ(5, angle);
+        }
 
         if ( m_lastParticle+m_engine->ParticleAdapt(0.02f) <= m_time )
         {
@@ -183,39 +190,42 @@ bool CTaskRecover::EventProcess(const Event &event)
 
 Error CTaskRecover::Start()
 {
+    auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+
     m_bError = true;  // operation impossible
-    if ( !m_physics->GetLand() )  return ERR_WRONG_BOT;
+    {
+        float energy = ENERGY_RECOVER;
+        if ( energy > 0 ) energy += 0.05f;
 
-    ObjectType type = m_object->GetType();
-    if ( type != OBJECT_MOBILErr )  return ERR_WRONG_BOT;
-
-    CPowerContainerObject *power = GetObjectPowerCell(m_object);
-    if (power == nullptr)  return ERR_RECOVER_ENERGY;
-
-    float energy = power->GetEnergy();
-    if ( energy < ENERGY_RECOVER+0.05f )  return ERR_RECOVER_ENERGY;
-
-    glm::mat4 mat = m_object->GetWorldMatrix(0);
-    glm::vec3 pos = glm::vec3(RECOVER_DIST, 3.3f, 0.0f);
-    pos = Math::Transform(mat, pos);  // position in front
-    m_recoverPos = pos;
-
-    m_ruin = SearchRuin();
-    if ( m_ruin == nullptr )  return ERR_RECOVER_NULL;
-    m_ruin->SetLock(true);  // ruin no longer usable
-
-    glm::vec3 iPos = m_object->GetPosition();
-    glm::vec3 oPos = m_ruin->GetPosition();
-    m_angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
-
-    m_metal = nullptr;
-
-    m_phase    = TRP_TURN;
-    m_progress = 0.0f;
-    m_speed    = 1.0f/1.0f;
-    m_time     = 0.0f;
-    m_lastParticle = 0.0f;
-
+        Error err = CanStartTask(&task, energy);
+        if ( err != ERR_OK )  return err;
+    
+        glm::mat4 mat = m_object->GetWorldMatrix(task.partNum);
+        m_recoverPos = Math::Transform(mat, task.position);  // position in front
+    
+        m_ruin = SearchRuin();
+        if ( m_ruin == nullptr )  return ERR_RECOVER_NULL;
+        m_ruin->SetLock(true);  // ruin no longer usable
+    
+        for ( auto it : task.objects )
+        {
+            if ( it.input == m_ruin->GetType() )
+                m_metalType = it.output;
+        }
+    
+        glm::vec3 iPos = m_object->GetPosition();
+        glm::vec3 oPos = m_ruin->GetPosition();
+    
+        m_angle = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
+    
+        m_metal = nullptr;
+    
+        m_phase    = TRP_TURN;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/1.0f;
+        m_time     = 0.0f;
+        m_lastParticle = 0.0f;
+    }
     m_bError = false;  // ok
 
     m_camera->StartCentering(m_object, Math::PI*0.85f, 99.9f, 10.0f, 3.0f);
@@ -226,10 +236,8 @@ Error CTaskRecover::Start()
 
 Error CTaskRecover::IsEnded()
 {
-    glm::vec3    pos, speed, goal;
-    glm::vec2       dim;
+    glm::vec3   pos, goal;
     float       angle, dist, time;
-    int         i;
 
     if ( m_engine->GetPause() )  return ERR_CONTINUE;
     if ( m_bError )  return ERR_STOP;
@@ -244,14 +252,17 @@ Error CTaskRecover::IsEnded()
             m_physics->SetMotorSpeedZ(0.0f);
 
             dist = glm::distance(m_object->GetPosition(), m_ruin->GetPosition());
-            if ( dist > RECOVER_DIST )
+
+            auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+    
+            if ( dist > task.distance )
             {
-                time = m_physics->GetLinTimeLength(dist-RECOVER_DIST, 1.0f);
+                time = m_physics->GetLinTimeLength(dist-task.distance, 1.0f);
                 m_speed = 1.0f/time;
             }
             else
             {
-                time = m_physics->GetLinTimeLength(RECOVER_DIST-dist, -1.0f);
+                time = m_physics->GetLinTimeLength(task.distance-dist, -1.0f);
                 m_speed = 1.0f/time;
             }
             m_phase = TRP_MOVE;
@@ -264,17 +275,18 @@ Error CTaskRecover::IsEnded()
     {
         dist = glm::distance(m_object->GetPosition(), m_ruin->GetPosition());
 
-        if ( dist >= RECOVER_DIST-1.0f &&
-             dist <= RECOVER_DIST+1.0f )
+        auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+
+        if ( dist >= task.distance - 1.0f &&
+             dist <= task.distance + 1.0f )
         {
             m_physics->SetMotorSpeedX(0.0f);
 
-            glm::mat4 mat = m_object->GetWorldMatrix(0);
-            pos = glm::vec3(RECOVER_DIST, 3.3f, 0.0f);
-            pos = Math::Transform(mat, pos);  // position in front
+            glm::mat4 mat = m_object->GetWorldMatrix(task.partNum);
+            pos = Math::Transform(mat, task.position);  // position in front
             m_recoverPos = pos;
 
-            i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.9f, true);
+            int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.9f, true);
             m_sound->AddEnvelope(i, 1.0f, 1.5f, 0.3f, SOPER_CONTINUE);
             m_sound->AddEnvelope(i, 1.0f, 1.5f, 1.0f, SOPER_CONTINUE);
             m_sound->AddEnvelope(i, 0.0f, 0.9f, 0.3f, SOPER_STOP);
@@ -301,17 +313,20 @@ Error CTaskRecover::IsEnded()
 
     if ( m_phase == TRP_DOWN )
     {
-        m_metal = CObjectManager::GetInstancePointer()->CreateObject(m_recoverPos, 0.0f, OBJECT_METAL);
+        m_metal = CObjectManager::GetInstancePointer()->CreateObject(m_recoverPos, 0.0f, m_metalType);
         m_metal->SetLock(true);  // metal not yet usable
         m_metal->SetScale(0.0f);
 
-        glm::mat4 mat = m_object->GetWorldMatrix(0);
-        pos = glm::vec3(RECOVER_DIST, 3.1f, 3.9f);
-        pos = Math::Transform(mat, pos);
-        goal = glm::vec3(RECOVER_DIST, 3.1f, -3.9f);
-        goal = Math::Transform(mat, goal);
-        m_particle->CreateRay(pos, goal, Gfx::PARTIRAY2,
-                              { 2.0f, 2.0f }, 8.0f);
+        auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+        if ( task.execution == ExecutionAsRobot )
+        {
+            glm::mat4 mat = m_object->GetWorldMatrix(task.partNum);
+            pos = task.position + glm::vec3(0.0f, -0.2f, -3.9f);
+            pos = Math::Transform(mat, pos);
+            goal = task.position + glm::vec3(0.0f, -0.2f, 3.9f);
+            goal = Math::Transform(mat, goal);
+            m_particle->CreateRay(pos, goal, Gfx::PARTIRAY2, { 2.0f, 2.0f }, 8.0f);
+        }
 
         m_soundChannel = m_sound->Play(SOUND_RECOVER, m_ruin->GetPosition(), 0.0f, 1.0f, true);
         m_sound->AddEnvelope(m_soundChannel, 0.6f, 1.0f, 2.0f, SOPER_CONTINUE);
@@ -332,7 +347,7 @@ Error CTaskRecover::IsEnded()
 
         m_soundChannel = -1;
 
-        i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.9f, true);
+        int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.0f, 0.9f, true);
         m_sound->AddEnvelope(i, 1.0f, 1.5f, 0.3f, SOPER_CONTINUE);
         m_sound->AddEnvelope(i, 1.0f, 1.5f, 1.0f, SOPER_CONTINUE);
         m_sound->AddEnvelope(i, 0.0f, 0.9f, 0.3f, SOPER_STOP);
@@ -352,10 +367,14 @@ Error CTaskRecover::IsEnded()
 
 bool CTaskRecover::Abort()
 {
-    m_object->SetPartRotationZ(2,  126.0f*Math::PI/180.0f);
-    m_object->SetPartRotationZ(4,  126.0f*Math::PI/180.0f);
-    m_object->SetPartRotationZ(3, -144.0f*Math::PI/180.0f);
-    m_object->SetPartRotationZ(5, -144.0f*Math::PI/180.0f);  // rest
+    auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+    if ( task.execution == ExecutionAsRobot )
+    {
+        m_object->SetPartRotationZ(2,  126.0f*Math::PI/180.0f);
+        m_object->SetPartRotationZ(4,  126.0f*Math::PI/180.0f);
+        m_object->SetPartRotationZ(3, -144.0f*Math::PI/180.0f);
+        m_object->SetPartRotationZ(5, -144.0f*Math::PI/180.0f);  // rest
+    }
 
     if ( m_soundChannel != -1 )
     {
@@ -373,5 +392,11 @@ bool CTaskRecover::Abort()
 
 CObject* CTaskRecover::SearchRuin()
 {
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, m_recoverPos, {OBJECT_RUINmobilew1, OBJECT_RUINmobilew2, OBJECT_RUINmobilet1, OBJECT_RUINmobilet2, OBJECT_RUINmobiler1, OBJECT_RUINmobiler2}, 40.0f/g_unit);
+    auto task = GetObjectTaskExecutorDetails(m_object).recycle;
+
+    std::vector<ObjectType> types;
+    for ( auto it : task.objects )
+        types.push_back(it.input);
+
+    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, m_recoverPos, types, 40.0f/g_unit);
 }

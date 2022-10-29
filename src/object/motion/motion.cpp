@@ -18,11 +18,10 @@
  */
 
 
-#include "object/motion/motion.h"
-
 #include "app/app.h"
 
 #include "graphics/engine/engine.h"
+#include "graphics/engine/water.h"
 
 #include "level/robotmain.h"
 
@@ -33,7 +32,11 @@
 
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/assistant_details.h"
+#include "object/details/movable_details.h"
 
+#include "object/motion/motion.h"
 
 #include <cstdio>
 #include <cstring>
@@ -62,6 +65,8 @@ CMotion::CMotion(COldObject* object)
     m_linVibration  = glm::vec3(0.0f, 0.0f, 0.0f);
     m_cirVibration  = glm::vec3(0.0f, 0.0f, 0.0f);
     m_inclinaison   = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    m_bDisplayPerso = false;
 }
 
 // Object's destructor.
@@ -82,8 +87,11 @@ bool CMotion::EventProcess(const Event &event)
     glm::vec3    pos, dir;
     float       time;
 
-    if ( m_object->GetType() != OBJECT_TOTO &&
-         m_engine->GetPause() )  return true;
+    if ( m_engine->GetPause() )
+    {
+        auto assistant = GetObjectAssistantDetails(m_object);
+        if ( !(assistant.enabled && assistant.unpausable) ) return true;
+    }
 
     if ( event.type != EVENT_FRAME )  return true;
 
@@ -117,6 +125,11 @@ bool CMotion::EventProcess(const Event &event)
     dir.y = Math::Smooth(dir.y, m_inclinaison.y, time);
     dir.z = Math::Smooth(dir.z, m_inclinaison.z, time);
     m_object->SetTilt(dir);
+
+    if ( m_bDisplayPerso )
+    {
+        m_object->SetCirVibration(glm::vec3(0.0f, m_main->GetPersoAngle()+0.2f, 0.0f));
+    }
 
     return true;
 }
@@ -215,4 +228,62 @@ void CMotion::SetTilt(glm::vec3 dir)
 glm::vec3 CMotion::GetTilt()
 {
     return m_inclinaison;
+}
+
+void CMotion::DeleteObject(bool bAll)
+{
+}
+    
+void CMotion::Create()
+{
+    auto movable = GetObjectMovableDetails(m_object);
+
+    auto character = m_object->GetCharacter();
+    character->wheelFront = movable.wheels.wheelFront;
+    character->wheelBack  = movable.wheels.wheelBack;
+    character->wheelLeft  = movable.wheels.wheelLeft;
+    character->wheelRight = movable.wheels.wheelRight;
+    character->height     = movable.wheels.height;
+
+    if ( m_physics == nullptr )
+        return;
+
+    m_physics->SetLinMotion(MO_ADVACCEL, movable.linMotion.advanceAccel);
+    m_physics->SetLinMotion(MO_RECACCEL, movable.linMotion.recedeAccel );
+    m_physics->SetLinMotion(MO_STOACCEL, movable.linMotion.stopAccel   );
+    m_physics->SetLinMotion(MO_TERSPEED, movable.linMotion.terrainSpeed);
+    m_physics->SetLinMotion(MO_TERSLIDE, movable.linMotion.terrainSlide);
+    m_physics->SetLinMotion(MO_MOTACCEL, movable.linMotion.motorAccel  );
+    m_physics->SetLinMotion(MO_TERFORCE, movable.linMotion.terrainForce);
+    m_physics->SetLinMotion(MO_ADVSPEED, movable.linMotion.advanceSpeed);
+    m_physics->SetLinMotion(MO_RECSPEED, movable.linMotion.recedeSpeed );
+    m_physics->SetLinMotion(MO_MOTSPEED, movable.linMotion.motorSpeed  );
+    m_physics->SetLinMotion(MO_CURSPEED, movable.linMotion.currentSpeed);
+    m_physics->SetLinMotion(MO_REASPEED, movable.linMotion.realSpeed   );
+
+    m_physics->SetCirMotion(MO_ADVACCEL, movable.cirMotion.advanceAccel);
+    m_physics->SetCirMotion(MO_RECACCEL, movable.cirMotion.recedeAccel );
+    m_physics->SetCirMotion(MO_STOACCEL, movable.cirMotion.stopAccel   );
+    m_physics->SetCirMotion(MO_TERSPEED, movable.cirMotion.terrainSpeed);
+    m_physics->SetCirMotion(MO_TERSLIDE, movable.cirMotion.terrainSlide);
+    m_physics->SetCirMotion(MO_MOTACCEL, movable.cirMotion.motorAccel  );
+    m_physics->SetCirMotion(MO_TERFORCE, movable.cirMotion.terrainForce);
+    m_physics->SetCirMotion(MO_ADVSPEED, movable.cirMotion.advanceSpeed);
+    m_physics->SetCirMotion(MO_RECSPEED, movable.cirMotion.recedeSpeed );
+    m_physics->SetCirMotion(MO_MOTSPEED, movable.cirMotion.motorSpeed  );
+    m_physics->SetCirMotion(MO_CURSPEED, movable.cirMotion.currentSpeed);
+    m_physics->SetCirMotion(MO_REASPEED, movable.cirMotion.realSpeed   );
+}
+
+
+// Management of the display mode when customizing the personal.
+
+void CMotion::StartDisplayPerso()
+{
+    m_bDisplayPerso = true;
+}
+
+void CMotion::StopDisplayPerso()
+{
+    m_bDisplayPerso = false;
 }

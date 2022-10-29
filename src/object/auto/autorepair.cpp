@@ -21,14 +21,20 @@
 #include "object/auto/autorepair.h"
 
 #include "graphics/engine/engine.h"
+#include "graphics/engine/particle.h"
 
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
 #include "math/func.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/helpers/modeled_helpers.h"
+
+#include "object/interface/movable_object.h"
+#include "object/interface/shielded_object.h"
 
 #include "physics/physics.h"
 
@@ -41,7 +47,7 @@
 
 // Object's constructor.
 
-CAutoRepair::CAutoRepair(COldObject* object) : CAuto(object)
+CAutoRepair::CAutoRepair(CObject* object) : CAuto(object)
 {
     Init();
     m_phase = ARP_WAIT;  // paused until the first Init ()
@@ -51,14 +57,6 @@ CAutoRepair::CAutoRepair(COldObject* object) : CAuto(object)
 
 CAutoRepair::~CAutoRepair()
 {
-}
-
-
-// Destroys the object.
-
-void CAutoRepair::DeleteObject(bool bAll)
-{
-    CAuto::DeleteObject(bAll);
 }
 
 
@@ -130,11 +128,11 @@ bool CAutoRepair::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = -m_progress*(Math::PI/2.0f)+Math::PI/2.0f;
-            m_object->SetPartRotationZ(1, angle);
+            SetPartRotationZ(m_object, 1, angle);
         }
         else
         {
-            m_object->SetPartRotationZ(1, 0.0f);
+            SetPartRotationZ(m_object, 1, 0.0f);
             m_sound->Play(SOUND_REPAIR, m_object->GetPosition());
 
             m_phase    = ARP_REPAIR;
@@ -189,11 +187,11 @@ bool CAutoRepair::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = -(1.0f-m_progress)*(Math::PI/2.0f)+Math::PI/2.0f;
-            m_object->SetPartRotationZ(1, angle);
+            SetPartRotationZ(m_object, 1, angle);
         }
         else
         {
-            m_object->SetPartRotationZ(1, Math::PI/2.0f);
+            SetPartRotationZ(m_object, 1, Math::PI/2.0f);
 
             m_phase    = ARP_WAIT;
             m_progress = 0.0f;
@@ -203,37 +201,6 @@ bool CAutoRepair::EventProcess(const Event &event)
 
     return true;
 }
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoRepair::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 106, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
 
 // Seeking the vehicle on the station.
 
@@ -256,20 +223,6 @@ CObject* CAutoRepair::SearchVehicle()
 
     return nullptr;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoRepair::GetError()
-{
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
-
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

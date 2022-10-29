@@ -32,11 +32,6 @@
 
 
 const std::unordered_map<ObjectType, std::string, ObjectTypeHash> CStaticObject::m_staticModelNames{};
-// TODO: commenting out temporarily
-//=
-//{
-//   { OBJECT_TREE0, "tree0" }
-//};
 
 
 CStaticObject::CStaticObject(int id,
@@ -91,8 +86,9 @@ void CStaticObject::Write(CLevelParserLine* line)
 {
 }
 
-void CStaticObject::TransformCrashSphere(Math::Sphere& crashSphere)
+void CStaticObject::TransformCrashSphere(Math::Sphere& crashSphere, int partNum)
 {
+    assert(partNum == 0);
     glm::mat4 worldMatrix = m_engine->GetStaticMeshWorldMatrix(m_meshHandle);
     Math::Transform(worldMatrix, crashSphere.pos);
 }

@@ -28,7 +28,7 @@ class CObject;
 enum AutoDerrickPhase
 {
     ADP_WAIT        = 1,
-    ADP_EXCAVATE        = 2,    // down the drill
+    ADP_EXCAVATE    = 2,    // down the drill
     ADP_ASCEND      = 3,    // up the drill
     ADP_EXPORT      = 4,    // exports matter
     ADP_ISFREE      = 5,    // expected material loss
@@ -39,7 +39,7 @@ enum AutoDerrickPhase
 class CAutoDerrick : public CAuto
 {
 public:
-    CAutoDerrick(COldObject* object);
+    CAutoDerrick(CObject* object);
     ~CAutoDerrick();
 
     void        DeleteObject(bool all=false) override;
@@ -48,8 +48,6 @@ public:
     bool        EventProcess(const Event &event) override;
     Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
@@ -57,8 +55,8 @@ protected:
     CObject*    SearchCargo();
     bool        SearchFree(glm::vec3 pos);
     void        CreateCargo(glm::vec3 pos, float angle, ObjectType type, float height);
-    bool        ExistKey();
 
+    void        FindSomethingToDig();
     glm::vec3   GetCargoPos();
 
 protected:
@@ -70,4 +68,6 @@ protected:
     float               m_lastTrack = 0.0f;
     int                 m_soundChannel = 0;
     bool                m_bSoundFall = false;
+    float               m_typeTime = 10.0f;
+    std::string         m_onCompleted;
 };

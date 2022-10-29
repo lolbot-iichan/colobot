@@ -79,7 +79,6 @@ protected:
     void        StopEditScript(bool closeWithErrors);
 
     void        GroundFlat();
-    void        ColorFlag(int color);
 
     void        UpdateScript(CWindow *pw);
     int         GetSelScript();
@@ -108,18 +107,18 @@ protected:
     CPhysics*           m_physics;
     CMotion*            m_motion;
 
+    int                 m_uiParam;
+
     std::unique_ptr<CStudio> m_studio;
 
     int                 m_selScript;        // rank of the selected script
 
-    EventType           m_manipStyle;
     EventType           m_defaultEnter;
 
     float               m_time;
     float               m_lastUpdateTime;
     float               m_lastAlarmTime;
     int                 m_soundChannelAlarm;
-    int                 m_flagColor;
 
     bool                m_buildInterface;
 };

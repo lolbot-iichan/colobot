@@ -24,25 +24,10 @@
 
 #pragma once
 
-#include "graphics/core/color.h"
-
-#include "graphics/engine/camera.h"
-#include "graphics/engine/planet_type.h"
-#include "graphics/engine/pyro_type.h"
-#include "graphics/engine/water.h"
-
-#include "level/scoreboard.h"
-
-#include "object/drive_type.h"
-#include "object/mission_type.h"
-#include "object/object_type.h"
-#include "object/tool_type.h"
-
-#include <glm/glm.hpp>
-
 #include <string>
 #include <vector>
 #include <memory>
+#include <glm/fwd.hpp>
 
 class CLevelParserLine;
 
@@ -50,11 +35,36 @@ class CLevelParserParam;
 using CLevelParserParamUPtr = std::unique_ptr<CLevelParserParam>;
 using CLevelParserParamVec = std::vector<CLevelParserParamUPtr>;
 
+enum class DriveType : unsigned int;
+enum class ToolType : unsigned int;
+
+enum class ScoreboardSortType : unsigned char;
+
+enum EventType : unsigned int;
+enum MissionType : unsigned int;
+enum ObjectType : unsigned int;
+
+enum TaskExecutionType : unsigned char;
+enum SoundType : signed char;
+
 namespace Gfx
 {
 class CEngine;
+class Color;
 
+enum CameraType : unsigned char;
 enum EngineObjectType : unsigned char;
+enum ParticleType : unsigned char;
+enum PlanetType : unsigned char;
+enum PyroType : unsigned char;
+enum WaterType : unsigned char;
+
+enum TerrainRes: signed char;
+}
+
+namespace Ui
+{
+enum WidgetType : unsigned char;
 }
 
 class CLevelParserParam
@@ -62,6 +72,7 @@ class CLevelParserParam
 public:
     //! Create param with given value
     //@{
+    CLevelParserParam(unsigned char value);
     CLevelParserParam(int value);
     CLevelParserParam(float value);
     CLevelParserParam(std::string value);
@@ -69,7 +80,10 @@ public:
     CLevelParserParam(Gfx::Color value);
     CLevelParserParam(glm::vec2 value);
     CLevelParserParam(glm::vec3 value);
+    CLevelParserParam(EventType value);
     CLevelParserParam(ObjectType value);
+    CLevelParserParam(DriveType value);
+    CLevelParserParam(ToolType value);
     CLevelParserParam(Gfx::CameraType value);
     CLevelParserParam(CLevelParserParamVec&& array);
     //@}
@@ -94,7 +108,7 @@ public:
     Gfx::EngineObjectType AsTerrainType();
     int AsBuildFlag();
     int AsResearchFlag();
-    CScoreboard::SortType AsSortType();
+    ScoreboardSortType AsSortType();
     Gfx::PyroType AsPyroType();
     Gfx::CameraType AsCameraType();
     MissionType AsMissionType();
@@ -110,6 +124,7 @@ public:
     bool AsBool(bool def);
     std::string AsPath(const std::string defaultDir, std::string def);
     Gfx::Color AsColor(Gfx::Color def);
+    glm::vec2 AsPoint(glm::vec2 def);
     glm::vec3 AsPoint(glm::vec3 def);
     ObjectType AsObjectType(ObjectType def);
     DriveType AsDriveType(DriveType def);
@@ -118,10 +133,17 @@ public:
     Gfx::EngineObjectType AsTerrainType(Gfx::EngineObjectType def);
     int AsBuildFlag(int def);
     int AsResearchFlag(int def);
-    CScoreboard::SortType AsSortType(CScoreboard::SortType def);
+    ScoreboardSortType AsSortType(ScoreboardSortType def);
     Gfx::PyroType AsPyroType(Gfx::PyroType def);
     Gfx::CameraType AsCameraType(Gfx::CameraType def);
     MissionType AsMissionType(MissionType def);
+    EventType AsEventType(EventType def);
+    Ui::WidgetType AsWidgetType(Ui::WidgetType def);
+    Gfx::EngineObjectType AsEngineObjectType(Gfx::EngineObjectType def);
+    Gfx::ParticleType AsParticleType(Gfx::ParticleType def);
+    SoundType AsSoundType(SoundType def);
+    TaskExecutionType AsTaskExecutionType(TaskExecutionType def);
+    Gfx::TerrainRes AsTerrainRes(Gfx::TerrainRes def);
     //@}
 
     //! Set line this param is part of
@@ -133,7 +155,10 @@ public:
     std::string GetValue();
     bool IsDefined();
 
+    static const std::string FromEventType(EventType value);
     static const std::string FromObjectType(ObjectType value);
+    static const std::string FromDriveType(DriveType value);
+    static const std::string FromToolType(ToolType value);
 
 private:
     void ParseArray();
@@ -150,7 +175,7 @@ private:
     Gfx::EngineObjectType ToTerrainType(std::string value);
     int ToBuildFlag(std::string value);
     int ToResearchFlag(std::string value);
-    CScoreboard::SortType ToSortType(std::string value);
+    ScoreboardSortType ToSortType(std::string value);
     Gfx::PyroType ToPyroType(std::string value);
     Gfx::CameraType ToCameraType(std::string value);
     MissionType ToMissionType(std::string value);

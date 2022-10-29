@@ -28,18 +28,19 @@
 
 #include "common/error.h"
 
+#include <glm/glm.hpp>
+
 #include <string>
 #include <unordered_map>
 #include <memory>
 
 class CObject;
 class CScript;
-class CExchangePost;
+class CExchangePostObject;
 namespace CBot
 {
 class CBotVar;
 }
-
 
 class CScriptFunctions
 {
@@ -71,8 +72,7 @@ private:
     static CBot::CBotTypResult cGrabDrop(CBot::CBotVar* &var, void* user);
     static CBot::CBotTypResult cReceive(CBot::CBotVar* &var, void* user);
     static CBot::CBotTypResult cSend(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cDeleteInfo(CBot::CBotVar* &var, void* user);
-    static CBot::CBotTypResult cTestInfo(CBot::CBotVar* &var, void* user);
+    static CBot::CBotTypResult cDeleteTestInfo(CBot::CBotVar* &var, void* user);
     static CBot::CBotTypResult cShield(CBot::CBotVar* &var, void* user);
     static CBot::CBotTypResult cFire(CBot::CBotVar* &var, void* user);
     static CBot::CBotTypResult cAim(CBot::CBotVar* &var, void* user);
@@ -154,17 +154,25 @@ private:
     static bool rResearch(CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
     static bool rDestroy(CBot::CBotVar* var, CBot::CBotVar* result, int& exception, void* user);
 
-    static CBot::CBotTypResult cClassNull(CBot::CBotVar* thisclass, CBot::CBotVar* &var);
-    static CBot::CBotTypResult cClassOneFloat(CBot::CBotVar* thisclass, CBot::CBotVar* &var);
-
     static CBot::CBotTypResult cPointConstructor(CBot::CBotVar* pThis, CBot::CBotVar* &var);
     static bool rPointConstructor(CBot::CBotVar* pThis, CBot::CBotVar* var, CBot::CBotVar* pResult, int& Exception, void* user);
 
     static void uObject(CBot::CBotVar* botThis, void* user);
 
 private:
+    static bool     ReturnInt(int ret, Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnFloat(float ret, Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnPoint(glm::vec3& ret, Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnPointer(CObject* ret, Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnPointerList(std::vector<CObject*> ret, Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnNan(Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnErr(Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnErrOrForegroundTask(Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ReturnErrOrBackgroundTask(Error err, CScript* script, CBot::CBotVar* result, int &exception);
+    static bool     ExitWithExceptionIfNeeded(Error err, CScript* script, int &exception);
+
     static bool     WaitForForegroundTask(CScript* script, CBot::CBotVar* result, int &exception);
     static bool     WaitForBackgroundTask(CScript* script, CBot::CBotVar* result, int &exception);
     static bool     ShouldTaskStop(Error err, int errMode);
-    static CExchangePost* FindExchangePost(CObject* object, float power);
+    static CExchangePostObject* FindExchangePost(CObject* object, float power);
 };

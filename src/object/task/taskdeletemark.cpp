@@ -34,7 +34,8 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "physics/physics.h"
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
 
 
 CTaskDeleteMark::CTaskDeleteMark(COldObject* object) : CForegroundTask(object)
@@ -54,6 +55,11 @@ bool CTaskDeleteMark::EventProcess(const Event &event)
 
 Error CTaskDeleteMark::Start()
 {
+    auto task = GetObjectTaskExecutorDetails(m_object).demark;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
     DeleteMark();
 
     m_bExecuted = true;
@@ -78,18 +84,17 @@ bool CTaskDeleteMark::Abort()
 
 void CTaskDeleteMark::DeleteMark()
 {
-    CObject* obj = CObjectManager::GetInstancePointer()->FindNearest(m_object, {
-        OBJECT_MARKPOWER,
-        OBJECT_MARKSTONE,
-        OBJECT_MARKURANIUM,
-        OBJECT_MARKKEYa,
-        OBJECT_MARKKEYb,
-        OBJECT_MARKKEYc,
-        OBJECT_MARKKEYd
-    }, 8.0f/g_unit);
+    auto demark = GetObjectTaskExecutorDetails(m_object).demark;
+
+    std::vector<ObjectType> types;
+    for ( auto it : demark.objects )
+        types.push_back(it.input);
+
+    CObject* obj = CObjectManager::GetInstancePointer()->FindNearest(m_object, types, demark.radius/g_unit);
 
     if (obj != nullptr)
     {
+        // TODO: Should we use DestroyObject instead ?!
         m_engine->GetPyroManager()->Create(Gfx::PT_WPCHECK, obj);
     }
 }

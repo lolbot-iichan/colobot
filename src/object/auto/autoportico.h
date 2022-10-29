@@ -40,7 +40,7 @@ enum AutoPorticoPhase
 class CAutoPortico : public CAuto
 {
 public:
-    CAutoPortico(COldObject* object);
+    CAutoPortico(CObject* object);
     ~CAutoPortico();
 
     void        DeleteObject(bool bAll=false) override;
@@ -49,7 +49,6 @@ public:
     void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
     bool        Abort() override;
-    Error       GetError() override;
 
 protected:
     void        UpdateTrackMapping(float left, float right);

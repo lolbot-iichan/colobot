@@ -39,7 +39,7 @@ enum AutoConvertPhase
 class CAutoConvert : public CAuto
 {
 public:
-    CAutoConvert(COldObject* object);
+    CAutoConvert(CObject* object);
     ~CAutoConvert();
 
     void        DeleteObject(bool all=false) override;
@@ -49,15 +49,13 @@ public:
     Error       GetError() override;
     bool        Abort() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
 protected:
-    CObject*    SearchStone(ObjectType type);
+    CObject*    SearchStone();
     bool        SearchVehicle();
-    void        CreateMetal();
+    void        CreateMetal(ObjectType type);
 
 protected:
     AutoConvertPhase    m_phase = ACP_STOP;

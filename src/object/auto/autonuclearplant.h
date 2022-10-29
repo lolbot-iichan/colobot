@@ -39,7 +39,7 @@ enum AutoNuclearPlantPhase
 class CAutoNuclearPlant : public CAuto
 {
 public:
-    CAutoNuclearPlant(COldObject* object);
+    CAutoNuclearPlant(CObject* object);
     ~CAutoNuclearPlant();
 
     void        DeleteObject(bool all=false) override;
@@ -48,15 +48,13 @@ public:
     bool        EventProcess(const Event &event) override;
     Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
 
 protected:
     CObject*    SearchUranium();
     bool        SearchVehicle();
-    void        CreatePower();
+    void        CreatePower(ObjectType type);
 
 protected:
     AutoNuclearPlantPhase    m_phase = ANUP_STOP;
@@ -66,4 +64,5 @@ protected:
     float               m_lastParticle = 0.0f;
     glm::vec3           m_pos = { 0, 0, 0 };
     int                 m_channelSound = 0;
+    std::string         m_onCompleted;
 };

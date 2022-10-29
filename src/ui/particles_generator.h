@@ -19,9 +19,11 @@
 
 #pragma once
 
-#include "graphics/engine/particle.h"
-
 #include <glm/glm.hpp>
+
+namespace Gfx {
+class CParticle;
+} // namespace Gfx
 
 namespace UI
 {

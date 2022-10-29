@@ -34,13 +34,11 @@
 #include "object/object.h"
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/programmable_details.h"
+
 #include "object/interface/controllable_object.h"
 #include "object/interface/task_executor_object.h"
-
-#include "object/motion/motion.h"
-#include "object/motion/motionvehicle.h"
-
-#include "physics/physics.h"
 
 #include "script/script.h"
 
@@ -327,7 +325,11 @@ void CProgramStorageObjectImpl::SaveAllProgramsForSavedScene(CLevelParserLine* l
     }
 
     if (m_programStorageIndex < 0) return;
-    if (!m_object->Implements(ObjectInterfaceType::Controllable) || !dynamic_cast<CControllableObject&>(*m_object).GetSelectable() || m_object->GetType() == OBJECT_HUMAN) return;
+    if (!m_object->Implements(ObjectInterfaceType::Controllable)) return;
+    if (!dynamic_cast<CControllableObject&>(*m_object).GetSelectable()) return;
+
+    //TODO: Why do we even have this? Why don't we save all states of all programs?
+    if (GetObjectProgrammableDetails(m_object).noSaveState) return;
 
     GetLogger()->Debug("Saving saved scene programs to '%s/prog%.3d___.txt'\n", levelSource.c_str(), m_programStorageIndex);
     for (unsigned int i = 0; i < m_program.size(); i++)

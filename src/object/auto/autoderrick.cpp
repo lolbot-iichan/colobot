@@ -23,30 +23,31 @@
 #include "graphics/engine/engine.h"
 #include "graphics/engine/terrain.h"
 
+#include "level/robotmain.h"
+
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/modeled_helpers.h"
 
 #include "sound/sound.h"
 
 #include "ui/controls/interface.h"
 #include "ui/controls/window.h"
 
-
-
-const float DERRICK_DELAY   = 10.0f;    // duration of the extraction
-const float DERRICK_DELAYu  = 30.0f;    // same, but for uranium
-
-
-
+#include "ui/displaytext.h"
 
 // Object's constructor.
 
-CAutoDerrick::CAutoDerrick(COldObject* object) : CAuto(object)
+CAutoDerrick::CAutoDerrick(CObject* object) : CAuto(object)
 {
     Init();
     m_phase = ADP_WAIT;  // paused until the first Init ()
@@ -88,34 +89,7 @@ void CAutoDerrick::DeleteObject(bool all)
 
 void CAutoDerrick::Init()
 {
-    glm::vec3 pos = m_object->GetPosition();
-    Gfx::TerrainRes res = m_terrain->GetResource(pos);
-
-    if ( res == Gfx::TR_STONE   ||
-         res == Gfx::TR_URANIUM ||
-         res == Gfx::TR_KEY_A    ||
-         res == Gfx::TR_KEY_B    ||
-         res == Gfx::TR_KEY_C   ||
-         res == Gfx::TR_KEY_D   )
-    {
-        m_type = OBJECT_NULL;
-        if ( res == Gfx::TR_STONE   )  m_type = OBJECT_STONE;
-        if ( res == Gfx::TR_URANIUM )  m_type = OBJECT_URANIUM;
-        if ( res == Gfx::TR_KEY_A    )  m_type = OBJECT_KEYa;
-        if ( res == Gfx::TR_KEY_B    )  m_type = OBJECT_KEYb;
-        if ( res == Gfx::TR_KEY_C    )  m_type = OBJECT_KEYc;
-        if ( res == Gfx::TR_KEY_D    )  m_type = OBJECT_KEYd;
-
-        m_phase    = ADP_EXCAVATE;
-        m_progress = 0.0f;
-        m_speed    = 1.0f/(m_type==OBJECT_URANIUM?DERRICK_DELAYu:DERRICK_DELAY);
-    }
-    else
-    {
-        m_phase    = ADP_WAIT;
-        m_progress = 0.0f;
-        m_speed    = 1.0f;
-    }
+    FindSomethingToDig();
 
     m_time = 0.0f;
     m_timeVirus = 0.0f;
@@ -123,15 +97,53 @@ void CAutoDerrick::Init()
     m_lastTrack = 0.0f;
 }
 
+void CAutoDerrick::FindSomethingToDig()
+{
+    auto digging = GetObjectAutomatedDetails(m_object).digging;
+
+    Gfx::TerrainRes res = m_terrain->GetResource(m_object->GetPosition());
+
+    std::vector<CObjectDiggingAutomated> matched;
+    for ( auto it: digging.objects )
+    {
+        if (it.soil != Gfx::TR_ANY && it.soil != res)    continue;
+        if (it.maxCount != -1)
+        {
+            size_t maxCount = static_cast<size_t>(it.maxCount);
+            size_t count    = CObjectManager::GetInstancePointer()->RadarAll(nullptr, it.output).size();
+            if ( count >= maxCount ) continue;
+        }
+        matched.push_back(it);
+    }
+
+    if ( matched.size() > 0 )
+    {
+        CObjectDiggingAutomated matchedFinal = matched[ std::rand() % matched.size() ];
+        m_type        = matchedFinal.output;
+        m_onCompleted = matchedFinal.message;
+
+        m_typeTime    = matchedFinal.duration;
+
+        m_phase    = ADP_EXCAVATE;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/m_typeTime;
+    }
+    else
+    {
+        m_phase    = ADP_WAIT;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/10.0f;
+    }
+}
+
 glm::vec3 CAutoDerrick::GetCargoPos()
 {
-    glm::vec3 pos = glm::vec3(7.0f, 0.0f, 0.0f);
-    glm::mat4 mat = m_object->GetWorldMatrix(0);
-    pos = Math::Transform(mat, pos);
+    auto digging = GetObjectAutomatedDetails(m_object).digging;
+    glm::mat4 mat = m_object->GetWorldMatrix(digging.partNum);
+    glm::vec3 pos = Math::Transform(mat, digging.position);
     m_terrain->AdjustToFloor(pos);
     return pos;
 }
-
 
 // Management of an event.
 
@@ -146,7 +158,6 @@ bool CAutoDerrick::EventProcess(const Event &event)
 
     if ( m_engine->GetPause() )  return true;
     if ( event.type != EVENT_FRAME )  return true;
-    if ( m_phase == ADP_WAIT )  return true;
 
     m_progress += event.rTime*m_speed;
     m_timeVirus -= event.rTime;
@@ -160,28 +171,30 @@ bool CAutoDerrick::EventProcess(const Event &event)
             pos.x = 0.0f;
             pos.z = 0.0f;
             pos.y = -2.0f*Math::Rand();
-            m_object->SetPartPosition(1, pos);  // up / down the drill
+            SetPartPosition(m_object, 1, pos);  // up / down the drill
 
-            m_object->SetPartRotationY(1, Math::Rand()*0.5f);  // rotates the drill
+            SetPartRotationY(m_object, 1, Math::Rand()*0.5f);  // rotates the drill
         }
         return true;
+    }
+
+    if ( m_phase == ADP_WAIT )
+    {
+        if ( m_progress >= 1.0f )
+        {
+            FindSomethingToDig();
+        }
     }
 
     if ( m_phase == ADP_EXCAVATE )
     {
         if ( m_soundChannel == -1 )
         {
-            if ( m_type == OBJECT_URANIUM )
-            {
-                factor = DERRICK_DELAYu/DERRICK_DELAY;
-            }
-            else
-            {
-                factor = 1.0f;
-            }
+            factor = m_typeTime;
+
             m_soundChannel = m_sound->Play(SOUND_DERRICK, m_object->GetPosition(), 1.0f, 0.5f, true);
-            m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.5f, 4.0f*factor, SOPER_CONTINUE);
-            m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.3f, 6.0f*factor, SOPER_CONTINUE);
+            m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.5f, 0.4f*factor, SOPER_CONTINUE);
+            m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.3f, 0.6f*factor, SOPER_CONTINUE);
             m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.5f, 1.0f, SOPER_CONTINUE);
             m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.5f, 4.0f, SOPER_STOP);
         }
@@ -223,11 +236,11 @@ bool CAutoDerrick::EventProcess(const Event &event)
             pos.x = 0.0f;
             pos.z = 0.0f;
             pos.y = -m_progress*16.0f;
-            m_object->SetPartPosition(1, pos);  // down the drill
+            SetPartPosition(m_object, 1, pos);  // down the drill
 
-            angle = m_object->GetPartRotationY(1);
+            angle = GetPartRotationY(m_object, 1);
             angle += event.rTime*8.0f;
-            m_object->SetPartRotationY(1, angle);  // rotates the drill
+            SetPartRotationY(m_object, 1, angle);  // rotates the drill
         }
         else
         {
@@ -276,11 +289,11 @@ bool CAutoDerrick::EventProcess(const Event &event)
             pos.x = 0.0f;
             pos.z = 0.0f;
             pos.y = -(1.0f-m_progress)*16.0f;
-            m_object->SetPartPosition(1, pos);  // back the drill
+            SetPartPosition(m_object, 1, pos);  // back the drill
 
-            angle = m_object->GetPartRotationY(1);
+            angle = GetPartRotationY(m_object, 1);
             angle -= event.rTime*2.0f;
-            m_object->SetPartRotationY(1, angle);  // rotates the drill
+            SetPartRotationY(m_object, 1, angle);  // rotates the drill
         }
         else
         {
@@ -313,7 +326,8 @@ bool CAutoDerrick::EventProcess(const Event &event)
             if ( SearchFree(cargoPos) )
             {
                 angle = m_object->GetRotationY();
-                CreateCargo(cargoPos, angle, m_type, 16.0f);
+                if (m_type != OBJECT_NULL)
+                    CreateCargo(cargoPos, angle, m_type, 16.0f);
             }
             else
             {
@@ -378,54 +392,13 @@ bool CAutoDerrick::EventProcess(const Event &event)
         }
         else
         {
-            if ( ExistKey() )  // key already exists?
-            {
-                m_phase    = ADP_WAIT;
-                m_progress = 0.0f;
-                m_speed    = 1.0f/10.0f;
-            }
-            else
-            {
-                m_phase    = ADP_EXCAVATE;
-                m_progress = 0.0f;
-                m_speed    = 1.0f/(m_type==OBJECT_URANIUM?DERRICK_DELAYu:DERRICK_DELAY);
-            }
+            m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
+            FindSomethingToDig();
         }
     }
 
     return true;
 }
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoDerrick::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 109, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
 
 // Saves all parameters of the controller.
 
@@ -438,6 +411,7 @@ bool CAutoDerrick::Write(CLevelParserLine* line)
     line->AddParam("aPhase", std::make_unique<CLevelParserParam>(static_cast<int>(m_phase)));
     line->AddParam("aProgress", std::make_unique<CLevelParserParam>(m_progress));
     line->AddParam("aSpeed", std::make_unique<CLevelParserParam>(m_speed));
+    line->AddParam("aTime", std::make_unique<CLevelParserParam>(m_typeTime));
 
     return true;
 }
@@ -452,6 +426,7 @@ bool CAutoDerrick::Read(CLevelParserLine* line)
     m_phase = static_cast< AutoDerrickPhase >(line->GetParam("aPhase")->AsInt(ADP_WAIT));
     m_progress = line->GetParam("aProgress")->AsFloat(0.0f);
     m_speed = line->GetParam("aSpeed")->AsFloat(1.0f);
+    m_typeTime = line->GetParam("aTime")->AsFloat(10.0f);
 
     m_lastParticle = 0.0f;
 
@@ -466,11 +441,9 @@ CObject* CAutoDerrick::SearchCargo()
     glm::vec3 cargoPos = GetCargoPos();
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_DERRICK )  continue;
+        if (obj == m_object) continue;
 
-            glm::vec3 oPos = obj->GetPosition();
-
+        glm::vec3 oPos = obj->GetPosition();
         if ( oPos.x == cargoPos.x &&
              oPos.z == cargoPos.z )  return obj;
     }
@@ -484,8 +457,7 @@ bool CAutoDerrick::SearchFree(glm::vec3 pos)
 {
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_DERRICK )  continue;
+        if (obj == m_object) continue;
 
         for (const auto& crashSphere : obj->GetAllCrashSpheres())
         {
@@ -514,28 +486,13 @@ void CAutoDerrick::CreateCargo(glm::vec3 pos, float angle, ObjectType type,
     cargo->SetPosition(pos);
 }
 
-// Look if there is already a key.
-
-bool CAutoDerrick::ExistKey()
-{
-    if ( m_type != OBJECT_KEYa &&
-         m_type != OBJECT_KEYb &&
-         m_type != OBJECT_KEYc &&
-         m_type != OBJECT_KEYd )  return false;
-
-    return CObjectManager::GetInstancePointer()->FindNearest(nullptr, m_type) != nullptr;
-}
-
-
 // returns an error due the state of the automaton.
 
 Error CAutoDerrick::GetError()
 {
-    if ( m_object->GetVirusMode() )
+    if ( m_phase == ADP_WAIT )
     {
-        return ERR_BAT_VIRUS;
+        m_main->DisplayText(GetObjectAutomatedDetails(m_object).digging.noSoil, m_object, Ui::TT_WARNING);
     }
-
-    if ( m_phase == ADP_WAIT )  return ERR_DERRICK_NULL;
     return ERR_OK;
 }

@@ -31,8 +31,15 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/slotted_details.h"
+#include "object/details/task_executor_details.h"
+#include "object/details/transportable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
+
 #include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
 
 #include "physics/physics.h"
 
@@ -58,8 +65,6 @@ CTaskManip::CTaskManip(COldObject* object) : CForegroundTask(object)
 {
     m_arm  = TMA_NEUTRAL;
     m_hand = TMH_OPEN;
-
-    assert(m_object->MapPseudoSlot(CSlottedObject::Pseudoslot::CARRYING) >= 0);
 }
 
 // Object's destructor.
@@ -268,11 +273,10 @@ void CTaskManip::InitAngle()
 
 Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
 {
-    ObjectType   type;
     CObject      *front, *other;
     float        iAngle, dist, len;
     float        fDist, fAngle, oDist, oAngle, oHeight;
-    glm::vec3 pos, fPos, oPos;
+    glm::vec3    pos, fPos, oPos;
 
     m_arm      = arm;
     m_height   = 0.0f;
@@ -286,54 +290,9 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
 
     m_bError = true;  // operation impossible
 
-    if ( m_arm != TMA_FFRONT &&
-         m_arm != TMA_FBACK  &&
-         m_arm != TMA_POWER  &&
-         m_arm != TMA_GRAB   )  return ERR_WRONG_BOT;
-
-    m_physics->SetMotorSpeed(glm::vec3(0.0f, 0.0f, 0.0f));
-
-    type = m_object->GetType();
-    if ( type == OBJECT_BEE )  // bee?
-    {
-        if (m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) == nullptr)
-        {
-            if ( !m_physics->GetLand() )  return ERR_MANIP_FLY;
-
-            other = SearchTakeUnderObject(m_targetPos, MARGIN_BEE);
-            if (other == nullptr)  return ERR_MANIP_NIL;
-            assert(other->Implements(ObjectInterfaceType::Transportable));
-
-            m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, other);  // takes the ball
-            dynamic_cast<CTransportableObject&>(*other).SetTransporter(m_object);
-            dynamic_cast<CTransportableObject&>(*other).SetTransporterPart(0);  // taken with the base
-            other->SetPosition(glm::vec3(0.0f, -3.0f, 0.0f));
-        }
-        else
-        {
-            other = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);  // other = ball
-            assert(other->Implements(ObjectInterfaceType::Transportable));
-
-            m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, nullptr);  // lick the ball
-            dynamic_cast<CTransportableObject&>(*other).SetTransporter(nullptr);
-            pos = m_object->GetPosition();
-            pos.y -= 3.0f;
-            other->SetPosition(pos);
-
-            pos = m_object->GetPosition();
-            pos.y += 2.0f;
-            m_object->SetPosition(pos);  // against the top of jump
-
-            m_engine->GetPyroManager()->Create(Gfx::PT_FALL, other);  // the ball falls
-        }
-
-        m_bBee = true;
-        m_bError = false;  // ok
-        return ERR_OK;
-    }
-    m_bBee = false;
-
-    m_bSubm = ( type == OBJECT_MOBILEsa );  // submarine?
+    auto task = GetObjectTaskExecutorDetails(m_object).manip;
+    m_bBee = task.execution == ExecutionNoMotion || task.execution == ExecutionAsInsect;  // bee?
+    m_bSubm = task.execution == ExecutionAsSubber;  // submarine?
 
     if ( m_arm == TMA_GRAB )  // takes immediately?
     {
@@ -342,15 +301,52 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         return ERR_OK;
     }
 
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
+    if ( m_arm == TMA_POWER && !HasPowerCellSlot(m_object) )
+        return ERR_WRONG_BOT;
+
+    if (!HasCargoSlot(m_object))
+        return ERR_WRONG_BOT;
+
+    if ( m_arm != TMA_FFRONT &&
+         m_arm != TMA_FBACK  &&
+         m_arm != TMA_POWER  )  return ERR_WRONG_BOT;
+
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+        m_physics->SetMotorSpeed(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    if (m_bBee)  // bee?
+    {
+        if (!HasObjectInCargoSlot(m_object))
+        {
+            if ( !m_physics->GetLand() )  return ERR_MANIP_FLY;
+
+            CObject* cargo = SearchTakeUnderObject(m_targetPos, MARGIN_BEE);
+
+            if (cargo == nullptr)  return ERR_MANIP_NIL;
+
+            SetObjectInCargoSlot(m_object, cargo);  // takes the ball
+        }
+        else
+        {
+            other = GetObjectInCargoSlot(m_object);  // other = ball
+            SetObjectInCargoSlot(m_object, nullptr);   // lick the ball
+
+            pos = m_object->GetPosition();
+            other->SetPosition(pos + glm::vec3(0.0f, -3.0f, 0.0f));
+            m_object->SetPosition(pos + glm::vec3(0.0f, 2.0f, 0.0f));  // against the top of jump
+
+            m_engine->GetPyroManager()->Create(Gfx::PT_FALL, other);  // the ball falls
+        }
+
+        m_bBee = true;
+        m_bError = false;  // ok
+        return ERR_OK;
+    }
+
     m_energy = GetObjectEnergy(m_object);
-
-    if ( !m_physics->GetLand() )  return ERR_MANIP_FLY;
-
-    if ( type != OBJECT_MOBILEfa &&
-         type != OBJECT_MOBILEta &&
-         type != OBJECT_MOBILEwa &&
-         type != OBJECT_MOBILEia &&
-         type != OBJECT_MOBILEsa )  return ERR_WRONG_BOT;
 
     if ( m_bSubm )  // submarine?
     {
@@ -362,32 +358,21 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
 
     if ( order == TMO_AUTO )
     {
-        if (m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) == nullptr)
-        {
-            m_order = TMO_GRAB;
-        }
-        else
-        {
-            m_order = TMO_DROP;
-        }
+        m_order = HasObjectInCargoSlot(m_object) ? TMO_DROP : TMO_GRAB;
     }
     else
     {
         m_order = order;
     }
 
-    if (m_order == TMO_GRAB && m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) != nullptr)
+    if (m_order == TMO_GRAB && HasObjectInCargoSlot(m_object))
     {
         return ERR_MANIP_BUSY;
     }
-    if (m_order == TMO_DROP && m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) == nullptr)
+    if (m_order == TMO_DROP && !HasObjectInCargoSlot(m_object))
     {
         return ERR_MANIP_EMPTY;
     }
-
-//? speed = m_physics->GetMotorSpeed();
-//? if ( speed.x != 0.0f ||
-//?      speed.z != 0.0f )  return ERR_MANIP_MOTOR;
 
     if ( m_order == TMO_GRAB )
     {
@@ -405,7 +390,7 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
             }
             else if ( other != nullptr && oDist < fDist )
             {
-                if (dynamic_cast<CSlottedObject&>(*other).GetSlotContainedObject(slotNum) == nullptr) return ERR_MANIP_NIL;
+                if (GetObjectInSlot(other, slotNum) == nullptr) return ERR_MANIP_NIL;
                 m_targetPos = oPos;
                 m_angle = oAngle;
                 m_height = oHeight;
@@ -429,8 +414,7 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         }
         if ( m_arm == TMA_POWER )
         {
-            assert(HasPowerCellSlot(m_object));
-            if (m_object->GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::POWER) == nullptr)  return ERR_MANIP_NIL;
+            if (!HasObjectInPowerCellSlot(m_object))  return ERR_MANIP_NIL;
         }
     }
 
@@ -440,7 +424,7 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         {
             int slotNum;
             other = SearchOtherObject(true, oPos, oDist, oAngle, oHeight, slotNum);
-            if (other != nullptr && dynamic_cast<CSlottedObject&>(*other).GetSlotContainedObject(slotNum) == nullptr)
+            if (other != nullptr && GetObjectInSlot(other, slotNum) == nullptr)
             {
                 m_targetPos = oPos;
                 m_angle = oAngle;
@@ -459,8 +443,7 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         }
         if ( m_arm == TMA_POWER )
         {
-            assert(HasPowerCellSlot(m_object));
-            if (m_object->GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::POWER) != nullptr)  return ERR_MANIP_OCC;
+            if (HasObjectInPowerCellSlot(m_object))  return ERR_MANIP_OCC;
         }
     }
 
@@ -469,8 +452,12 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
     if ( m_arm == TMA_OTHER ) len -= TAKE_DIST_OTHER;
     if ( len < 0.0f )  len = 0.0f;
     if ( m_arm == TMA_FBACK ) len = -len;
-    m_advanceLength = dist-m_physics->GetLinLength(len);
-    if ( dist <= m_advanceLength+0.2f )  m_move = 0.0f;  // not necessary to advance
+
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+    {
+        m_advanceLength = dist-m_physics->GetLinLength(len);
+        if ( dist <= m_advanceLength+0.2f )  m_move = 0.0f;  // not necessary to advance
+    }
 
     if ( m_energy == 0.0f )  m_move = 0.0f;
 
@@ -480,14 +467,7 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         if ( m_timeLimit < 0.5f )  m_timeLimit = 0.5f;
     }
 
-    if (m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) == nullptr)  // not carrying anything?
-    {
-        m_hand = TMH_OPEN;  // open clamp
-    }
-    else
-    {
-        m_hand = TMH_CLOSE;  // closed clamp
-    }
+    m_hand = HasObjectInCargoSlot(m_object) ? TMH_CLOSE : TMH_OPEN;  // open/closed clamp
 
     InitAngle();
 
@@ -506,7 +486,8 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
         m_camera->StartCentering(m_object, Math::PI*0.8f, 99.9f, 0.0f, 0.5f);
     }
 
-    m_physics->SetFreeze(true);  // it does not move
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+        m_physics->SetFreeze(true);  // it does not move
 
     m_bError = false;  // ok
     return ERR_OK;
@@ -516,8 +497,6 @@ Error CTaskManip::Start(TaskManipOrder order, TaskManipArm arm)
 
 Error CTaskManip::IsEnded()
 {
-    CObject*    cargo;
-    glm::vec3    pos;
     float       angle, dist;
     int         i;
 
@@ -604,8 +583,8 @@ Error CTaskManip::IsEnded()
         if ( m_step == 2 )
         {
             if ( m_bSubm )  m_speed = 1.0f/1.5f;
-            if ( !TransporterTakeObject() &&
-                 m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) == nullptr)
+
+            if ( !TransporterTakeObject() && !GetObjectInCargoSlot(m_object) )
             {
                 m_hand = TMH_OPEN;  // reopens the clamp
                 m_arm = TMA_NEUTRAL;
@@ -614,9 +593,9 @@ Error CTaskManip::IsEnded()
             }
             else
             {
-                if ( (m_arm == TMA_OTHER ||
-                      m_arm == TMA_POWER ) &&
-                     m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING)->Implements(ObjectInterfaceType::PowerContainer) )
+                CObject* cargo = GetObjectInCargoSlot(m_object);
+                if ( (m_arm == TMA_OTHER || m_arm == TMA_POWER ) && cargo != nullptr &&
+                     cargo->Implements(ObjectInterfaceType::PowerContainer) )
                 {
                     m_sound->Play(SOUND_POWEROFF, m_object->GetPosition());
                 }
@@ -633,16 +612,15 @@ Error CTaskManip::IsEnded()
         if ( m_step == 1 )
         {
             if ( m_bSubm )  m_speed = 1.0f/0.7f;
-            cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
-            if (TransporterDeposeObject())
+            CObject* cargo = GetObjectInCargoSlot(m_object);
+            if (TransporterDeposeObject() && cargo != nullptr)
             {
-                if ( (m_arm == TMA_OTHER ||
-                      m_arm == TMA_POWER ) &&
+                if ( (m_arm == TMA_OTHER || m_arm == TMA_POWER ) &&
                      cargo->Implements(ObjectInterfaceType::PowerContainer) )
                 {
                     m_sound->Play(SOUND_POWERON, m_object->GetPosition());
                 }
-                if (cargo != nullptr && m_cargoType == OBJECT_METAL && m_arm == TMA_FFRONT)
+                if ( m_arm == TMA_FFRONT && GetObjectTransportableDetails(cargo).showDropZone )
                 {
                     m_main->ShowDropZone(cargo, m_object);  // shows buildable area
                 }
@@ -670,7 +648,7 @@ Error CTaskManip::IsEnded()
 
 bool CTaskManip::Abort()
 {
-    if (m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING) == nullptr)  // not carrying anything?
+    if (!HasObjectInCargoSlot(m_object))  // not carrying anything?
     {
         m_hand = TMH_OPEN;  // open clamp
         m_arm = TMA_NEUTRAL;
@@ -691,7 +669,10 @@ bool CTaskManip::Abort()
     }
 
     m_camera->StopCentering(m_object, 2.0f);
-    m_physics->SetFreeze(false);  // is moving again
+
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+        m_physics->SetFreeze(false);  // is moving again
+
     return true;
 }
 
@@ -874,18 +855,18 @@ CObject* CTaskManip::SearchOtherObject(bool bAdvance, glm::vec3 &pos,
                                        float &height, int &slotNumOut)
 {
     slotNumOut = INVALID_SLOT;
-
-    glm::mat4   mat;
-    float       iAngle, aLimit, dLimit;
-
     distance = 1000000.0f;
     angle = 0.0f;
+
+    float       iAngle, aLimit, dLimit;
 
     if ( m_bSubm )  return nullptr;  // impossible with the submarine
 
     if (m_object->GetCrashSphereCount() == 0) return nullptr;
 
-    glm::vec3 iPos = m_object->GetFirstCrashSphere().sphere.pos;
+    auto crashSphere = m_object->GetFirstCrashSphere();
+    glm::vec3 iPos = crashSphere.sphere.pos;
+    float iRad = crashSphere.sphere.radius;
 
     iAngle = m_object->GetRotationY();
     iAngle = Math::NormAngle(iAngle);  // 0..2*Math::PI
@@ -904,44 +885,43 @@ CObject* CTaskManip::SearchOtherObject(bool bAdvance, glm::vec3 &pos,
     for (CObject* pObj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         if ( pObj == m_object )  continue;  // yourself?
-
-        if (pObj->Implements(ObjectInterfaceType::Slotted))
+        if (!pObj->Implements(ObjectInterfaceType::Slotted))  continue;
+        if (IsObjectBeingTransported(pObj))  continue;
+ 
+        CSlottedObject *obj = dynamic_cast<CSlottedObject*>(pObj);
+        int slotNum = GetNumSlots(pObj);
+        for (int slot = 0; slot < slotNum; slot++)
         {
-            CSlottedObject &obj = dynamic_cast<CSlottedObject&>(*pObj);
-            int slotNum = obj.GetNumSlots();
-            for (int slot = 0; slot < slotNum; slot++)
+            CObject *objectInSlot = GetObjectInSlot(pObj, slot);
+            if (objectInSlot != nullptr && (objectInSlot->GetLock() || objectInSlot->GetScaleY() != 1.0f))
+                continue;
+
+            float objectAngleOffsetLimit = obj->GetSlotAcceptanceAngle(slot);
+            if (objectAngleOffsetLimit == 0)
+                continue; // slot isn't take-able
+
+            glm::mat4 mat = pObj->GetWorldMatrix(0);
+            glm::vec3 worldSlotPos = Math::Transform(mat, obj->GetSlotPosition(slot));
+
+            // The robot must be in the correct angle relative to the slot (it can't be on the other side of the object)
+            float angleFromObjectToRobot = Math::RotateAngle(iPos.x-worldSlotPos.x, worldSlotPos.z-iPos.z);  // CW !
+            float objectIdealAngle = Math::NormAngle(pObj->GetRotationY() + obj->GetSlotAngle(slot));
+
+            if ( Math::TestAngle(angleFromObjectToRobot, objectIdealAngle - objectAngleOffsetLimit, objectIdealAngle + objectAngleOffsetLimit) )
             {
-                mat = pObj->GetWorldMatrix(0);
-                glm::vec3 worldSlotPos = Math::Transform(mat, obj.GetSlotPosition(slot));
-
-                CObject *objectInSlot = obj.GetSlotContainedObject(slot);
-                if (objectInSlot != nullptr && (objectInSlot->GetLock() || objectInSlot->GetScaleY() != 1.0f))
-                    continue;
-
-                float objectAngleOffsetLimit = obj.GetSlotAcceptanceAngle(slot);
-                if(objectAngleOffsetLimit == 0)
-                    continue; // slot isn't take-able
-
-                // The robot must be in the correct angle relative to the slot (it can't be on the other side of the object)
-                float angleFromObjectToRobot = Math::RotateAngle(iPos.x-worldSlotPos.x, worldSlotPos.z-iPos.z);  // CW !
-                float objectIdealAngle = Math::NormAngle(pObj->GetRotationY() + obj.GetSlotAngle(slot));
-
-                if ( Math::TestAngle(angleFromObjectToRobot, objectIdealAngle - objectAngleOffsetLimit, objectIdealAngle + objectAngleOffsetLimit) )
+                distance = fabs(glm::distance(worldSlotPos, iPos)-TAKE_DIST);
+                // The robot must be close enough to the slot
+                if ( distance <= dLimit )
                 {
-                    distance = fabs(glm::distance(worldSlotPos, iPos)-TAKE_DIST);
-                    // The robot must be close enough to the slot
-                    if ( distance <= dLimit )
+                    // The slot must be in the correct position relative to the robot (the robot must be facing towards the slot, not sideways or away)
+                    angle = Math::RotateAngle(worldSlotPos.x-iPos.x, iPos.z-worldSlotPos.z);  // CW !
+                    if ( Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
                     {
-                        // The slot must be in the correct position relative to the robot (the robot must be facing towards the slot, not sideways or away)
-                        angle = Math::RotateAngle(worldSlotPos.x-iPos.x, iPos.z-worldSlotPos.z);  // CW !
-                        if ( Math::TestAngle(angle, iAngle-aLimit, iAngle+aLimit) )
-                        {
-                            glm::vec3 powerPos = obj.GetSlotPosition(slot);
-                            height = powerPos.y;
-                            pos = worldSlotPos;
-                            slotNumOut = slot;
-                            return pObj;
-                        }
+                        glm::vec3 powerPos = obj->GetSlotPosition(slot);
+                        height = powerPos.y;
+                        pos = worldSlotPos;
+                        slotNumOut = slot;
+                        return pObj;
                     }
                 }
             }
@@ -957,155 +937,44 @@ CObject* CTaskManip::SearchOtherObject(bool bAdvance, glm::vec3 &pos,
 
 bool CTaskManip::TransporterTakeObject()
 {
+    glm::vec3 pos;
+    float dist = 0.0f;
+    float angle = 0.0f;
+
+    CObject *cargo = nullptr;
+
     if (m_arm == TMA_GRAB)  // takes immediately?
     {
-        CObject* cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
-        if (cargo == nullptr)  return false;  // nothing to take?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
-
-        if ( m_object->GetType() == OBJECT_HUMAN ||
-             m_object->GetType() == OBJECT_TECH  )
-        {
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(4);  // takes with the hand
-
-            cargo->SetPosition(glm::vec3(1.7f, -0.5f, 1.1f));
-            cargo->SetRotationY(0.1f);
-            cargo->SetRotationX(0.0f);
-            cargo->SetRotationZ(0.8f);
-        }
-        else if ( m_bSubm )
-        {
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(2);  // takes with the right claw
-
-            glm::vec3 pos = glm::vec3(1.1f, -1.0f, 1.0f);  // relative
-            cargo->SetPosition(pos);
-            cargo->SetRotationX(0.0f);
-            cargo->SetRotationY(0.0f);
-            cargo->SetRotationZ(0.0f);
-        }
-        else
-        {
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(3);  // takes with the hand
-
-            glm::vec3 pos = glm::vec3(4.7f, 0.0f, 0.0f);  // relative to the hand (lem4)
-            cargo->SetPosition(pos);
-            cargo->SetRotationX(0.0f);
-            cargo->SetRotationZ(Math::PI/2.0f);
-            cargo->SetRotationY(0.0f);
-        }
-
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, cargo);  // takes
+        cargo = GetObjectInCargoSlot(m_object);
     }
-
     if (m_arm == TMA_FFRONT)  // takes on the ground in front?
     {
-        glm::vec3 pos;
-        float dist = 0.0f, angle = 0.0f;
-        CObject* cargo = SearchTakeFrontObject(false, pos, dist, angle);
-        if (cargo == nullptr)  return false;  // nothing to take?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
-
-        if ( m_bSubm )
-        {
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(2);  // takes with the right claw
-
-            pos = glm::vec3(1.1f, -1.0f, 1.0f);  // relative
-            cargo->SetPosition(pos);
-            cargo->SetRotationX(0.0f);
-            cargo->SetRotationY(0.0f);
-            cargo->SetRotationZ(0.0f);
-        }
-        else
-        {
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-            dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(3);  // takes with the hand
-
-            pos = glm::vec3(4.7f, 0.0f, 0.0f);  // relative to the hand (lem4)
-            cargo->SetPosition(pos);
-            cargo->SetRotationX(0.0f);
-            cargo->SetRotationZ(Math::PI/2.0f);
-            cargo->SetRotationY(0.0f);
-        }
-
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, cargo);  // takes
+        cargo = SearchTakeFrontObject(false, pos, dist, angle);
     }
-
     if (m_arm == TMA_FBACK)  // takes on the ground behind?
     {
-        glm::vec3 pos;
-        float dist = 0.0f, angle = 0.0f;
-        CObject* cargo = SearchTakeBackObject(false, pos, dist, angle);
-        if (cargo == nullptr) return false;  // nothing to take?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
-
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(3);  // takes with the hand
-
-        pos = glm::vec3(4.7f, 0.0f, 0.0f);  // relative to the hand (lem4)
-        cargo->SetPosition(pos);
-        cargo->SetRotationX(0.0f);
-        cargo->SetRotationZ(Math::PI/2.0f);
-        cargo->SetRotationY(0.0f);
-
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, cargo);  // takes
+        cargo = SearchTakeBackObject(false, pos, dist, angle);
     }
-
     if (m_arm == TMA_POWER)  // takes battery in the back?
     {
-        assert(m_object->Implements(ObjectInterfaceType::Slotted));
-        CObject* cargo = m_object->GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::POWER);
-        if (cargo == nullptr)  return false;  // no battery?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
-
-        glm::vec3 pos = glm::vec3(4.7f, 0.0f, 0.0f);  // relative to the hand (lem4)
-        cargo->SetPosition(pos);
-        cargo->SetRotationX(0.0f);
-        cargo->SetRotationZ(Math::PI/2.0f);
-        cargo->SetRotationY(0.0f);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(3);  // takes with the hand
-
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::POWER, nullptr);
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, cargo);  // takes
+        cargo = GetObjectInPowerCellSlot(m_object);
+        SetObjectInPowerCellSlot(m_object, nullptr);
     }
-
     if (m_arm == TMA_OTHER)  // battery takes from friend?
     {
-        glm::vec3 pos;
-        float dist = 0.0f, angle = 0.0f;
-        int slotNum;
+        int slotNum = INVALID_SLOT;
         CObject* other = SearchOtherObject(false, pos, dist, angle, m_height, slotNum);
         if (other == nullptr)  return false;
         assert(slotNum != INVALID_SLOT);
-        CObject *cargo = dynamic_cast<CSlottedObject&>(*other).GetSlotContainedObject(slotNum);
-        if (cargo == nullptr)  return false;  // the other does not have a battery?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
 
-        m_cargoType = cargo->GetType();
+        cargo = GetObjectInSlot(other, slotNum);
 
-        dynamic_cast<CSlottedObject&>(*other).SetSlotContainedObject(slotNum, nullptr);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(3);  // takes with the hand
-
-        pos = glm::vec3(4.7f, 0.0f, 0.0f);  // relative to the hand (lem4)
-        cargo->SetPosition(pos);
-        cargo->SetRotationX(0.0f);
-        cargo->SetRotationZ(Math::PI/2.0f);
-        cargo->SetRotationY(0.0f);
-
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, cargo);  // takes
+        SetObjectInSlot(other, slotNum, nullptr);
     }
+
+    if (cargo == nullptr)  return false;  // nothing to take ?
+
+    SetObjectInCargoSlot(m_object, cargo);  // takes
 
     return true;
 }
@@ -1114,70 +983,48 @@ bool CTaskManip::TransporterTakeObject()
 
 bool CTaskManip::TransporterDeposeObject()
 {
+    CObject* cargo = GetObjectInCargoSlot(m_object);
+    if (cargo == nullptr)  return false;  // nothing transported?
+    assert(cargo->Implements(ObjectInterfaceType::Transportable));
+
     if (m_arm == TMA_FFRONT)  // deposits on the ground in front?
     {
-        CObject* cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
-        if (cargo == nullptr)  return false;  // nothing transported?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
-
         glm::mat4 mat = cargo->GetWorldMatrix(0);
         glm::vec3 pos = Math::Transform(mat, glm::vec3(0.0f, 1.0f, 0.0f));
         m_terrain->AdjustToFloor(pos);
         cargo->SetPosition(pos);
-        cargo->SetRotationY(m_object->GetRotationY()+Math::PI/2.0f);
+//??    cargo->SetRotationY(m_object->GetRotationY()+Math::PI/2.0f);
+        cargo->SetRotationY(0.0f);
         cargo->SetRotationX(0.0f);
         cargo->SetRotationZ(0.0f);
+        cargo->SetFloorHeight(0.0f);
         cargo->FloorAdjust();  // plate well on the ground
 
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(nullptr);
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, nullptr);  // deposit
+        SetObjectInCargoSlot(m_object, nullptr);  // deposit
     }
 
     if (m_arm == TMA_FBACK)  // deposited on the ground behind?
     {
-        CObject* cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
-        if (cargo == nullptr)  return false;  // nothing transported?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
-        m_cargoType = cargo->GetType();
-
         glm::mat4 mat = cargo->GetWorldMatrix(0);
         glm::vec3 pos = Math::Transform(mat, glm::vec3(0.0f, 1.0f, 0.0f));
         m_terrain->AdjustToFloor(pos);
         cargo->SetPosition(pos);
-        cargo->SetRotationY(m_object->GetRotationY()+Math::PI/2.0f);
+//??    cargo->SetRotationY(m_object->GetRotationY()+Math::PI/2.0f);
+        cargo->SetRotationY(0.0f);
         cargo->SetRotationX(0.0f);
         cargo->SetRotationZ(0.0f);
+        cargo->SetFloorHeight(0.0f);
+        cargo->FloorAdjust();  // plate well on the ground
 
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(nullptr);
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, nullptr);  // deposit
+        SetObjectInCargoSlot(m_object, nullptr);  // deposit
     }
 
     if (m_arm == TMA_POWER)  // deposits battery in the back?
     {
-        assert(m_object->Implements(ObjectInterfaceType::Slotted));
-        CObject* cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
-        if (cargo == nullptr)  return false;  // nothing transported?
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
+        if (HasObjectInPowerCellSlot(m_object))  return false;
 
-        m_cargoType = cargo->GetType();
-
-        int powerSlotIndex = m_object->MapPseudoSlot(CSlottedObject::Pseudoslot::POWER);
-        assert(powerSlotIndex >= 0);
-        if (m_object->GetSlotContainedObject(powerSlotIndex) != nullptr)  return false;
-
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(0);  // carried by the base
-
-        cargo->SetPosition(m_object->GetSlotPosition(powerSlotIndex));
-        cargo->SetRotationY(0.0f);
-        cargo->SetRotationX(0.0f);
-        cargo->SetRotationZ(0.0f);
-
-        m_object->SetSlotContainedObject(powerSlotIndex, cargo);  // uses
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, nullptr);
+        SetObjectInCargoSlot(m_object, nullptr);  // deposit
+        SetObjectInPowerCellSlot(m_object, cargo);  // deposit
     }
 
     if (m_arm == TMA_OTHER)  // deposits battery on friend?
@@ -1185,30 +1032,15 @@ bool CTaskManip::TransporterDeposeObject()
         glm::vec3 pos;
         float angle = 0.0f, dist = 0.0f;
 
-        int slotNum;
+        int slotNum = INVALID_SLOT;
         CObject* other = SearchOtherObject(false, pos, dist, angle, m_height, slotNum);
         if (other == nullptr)  return false;
         assert(slotNum != INVALID_SLOT);
-        CSlottedObject *otherAsSlotted = dynamic_cast<CSlottedObject*>(other);
-        if (otherAsSlotted->GetSlotContainedObject(slotNum) != nullptr)  return false;  // the other already has a battery?
 
-        CObject *cargo = m_object->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
-        if (cargo == nullptr)  return false;
-        assert(cargo->Implements(ObjectInterfaceType::Transportable));
+        if (GetObjectInSlot(other, slotNum) != nullptr)  return false;  // the other already has a battery?
 
-        m_cargoType = cargo->GetType();
-
-        otherAsSlotted->SetSlotContainedObject(slotNum, cargo);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(other);
-
-        // TODO: isn't this wrong? PowerPosition (and SlotContainedPosition) is an object-local position.
-        cargo->SetPosition(otherAsSlotted->GetSlotPosition(slotNum));
-        cargo->SetRotationY(0.0f);
-        cargo->SetRotationX(0.0f);
-        cargo->SetRotationZ(0.0f);
-        dynamic_cast<CTransportableObject&>(*cargo).SetTransporterPart(0);  // carried by the base
-
-        m_object->SetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING, nullptr);  // deposit
+        SetObjectInCargoSlot(m_object, nullptr);  // deposit
+        SetObjectInSlot(other, slotNum, cargo);
     }
 
     return true;

@@ -26,6 +26,7 @@
 
 #include <glm/glm.hpp>
 
+#include <string>
 
 class CObject;
 
@@ -60,11 +61,11 @@ public:
     bool        Abort() override;
 
 protected:
-    Error       FlatFloor();
+    Error       FlatFloor(float reqRadius);
     void        CreateBuilding(glm::vec3 pos, float angle, bool trainer);
     void        CreateLight();
     void        BlackLight();
-    CObject*    SearchMetalObject(float &angle, float dMin, float dMax, float aLimit, Error &err);
+    Error       SearchMetalObject(float &angle, float dMin, float dMax, float aLimit);
     void        DeleteMark(glm::vec3 pos, float radius);
 
 protected:
@@ -75,6 +76,7 @@ protected:
     TaskBuildPhase  m_phase = TBP_STOP;                 // phase of the operation
     bool            m_bError = false;                // true -> operation impossible
     bool            m_bBuild = false;                // true -> building built
+    bool            m_bNeedRecede = false;           // true -> need TBP_RECEDE after building built
     bool            m_bBlack = false;                // true -> lights black -> white
     float           m_time = 0.0f;                  // absolute time
     float           m_lastParticle = 0.0f;          // time of generation last particle
@@ -86,4 +88,5 @@ protected:
     float           m_buildingHeight = 0.0f;        // height of the building
     int             m_lightRank[TBMAXLIGHT] = {}; // lights for the effects
     int             m_soundChannel = 0;
+    std::string     m_onCompleted;
 };

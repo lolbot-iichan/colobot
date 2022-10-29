@@ -27,12 +27,13 @@
 #include "common/error.h"
 #include "common/global.h"
 
-#include "object/drive_type.h"
+#include "level/drive_type.h"
+#include "level/mission_type.h"
+#include "level/tool_type.h"
+
 #include "object/object_type.h"
-#include "object/tool_type.h"
 
-#include <glm/glm.hpp>
-
+#include <glm/fwd.hpp>
 #include <string>
 
 class CLevelParserLine;

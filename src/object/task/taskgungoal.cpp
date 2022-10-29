@@ -22,6 +22,9 @@
 
 #include "graphics/engine/engine.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
 #include "object/task/taskgungoal.h"
 
 #include "object/old_object.h"
@@ -77,13 +80,12 @@ bool CTaskGunGoal::EventProcess(const Event &event)
     return true;
 }
 
+// Counts and sets required m_speed, m_initial* and m_final*
+// Tweaks object state and restores it
 
-// Assigns the goal was achieved.
-
-Error CTaskGunGoal::Start(float dirV, float dirH)
+float CTaskGunGoal::PlanMovement(float dirV, float dirH)
 {
     float   speedV, speedH;
-    int     i;
 
     m_initialDirV = m_object->GetGunGoalV();
     m_object->SetGunGoalV(dirV);
@@ -114,11 +116,23 @@ Error CTaskGunGoal::Start(float dirV, float dirH)
     }
 
     m_speed = Math::Min(speedV, speedH);
+}
+
+// Assigns the goal was achieved.
+
+Error CTaskGunGoal::Start(float dirV, float dirH)
+{
+    auto task = GetObjectTaskExecutorDetails(m_object).aim;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK ) return err;
+
+    PlanMovement(dirV, dirH);
 
     if ( m_finalDirV != m_initialDirV ||
          m_finalDirH != m_initialDirH )
     {
-        i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.3f, 1.5f, true);
+        int i = m_sound->Play(SOUND_MANIP, m_object->GetPosition(), 0.3f, 1.5f, true);
         m_sound->AddEnvelope(i, 0.3f, 1.5f, 1.0f/m_speed, SOPER_STOP);
     }
 

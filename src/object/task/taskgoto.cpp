@@ -33,10 +33,13 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/physical_details.h"
+#include "object/details/task_executor_details.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/helpers/cargo_helpers.h"
+
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -144,8 +147,8 @@ bool CTaskGoto::EventProcess(const Event &event)
     if ( m_engine->GetPause() )  return true;
 
     // Momentarily stationary object (ant on the back)?
-    CBaseAlien* alien = dynamic_cast<CBaseAlien*>(m_object);
-    if ( alien != nullptr && alien->GetFixed() )
+    if (m_object->Implements(ObjectInterfaceType::Thumpable) &&
+        dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
     {
         m_physics->SetMotorSpeedX(0.0f);  // stops the advance
         m_physics->SetMotorSpeedZ(0.0f);  // stops the rotation
@@ -153,11 +156,6 @@ bool CTaskGoto::EventProcess(const Event &event)
     }
 
     if ( m_error != ERR_OK )  return false;
-
-    if ( m_bWorm )
-    {
-        WormFrame(event.rTime);
-    }
 
     if ( m_phase == TGP_BEAMLEAK )  // leak?
     {
@@ -545,154 +543,30 @@ bool CTaskGoto::EventProcess(const Event &event)
     return true;
 }
 
-
-// Sought a target for the worm.
-
-CObject* CTaskGoto::WormSearch(glm::vec3 &impact)
-{
-    glm::vec3 iPos = m_object->GetPosition();
-    float min = 1000000.0f;
-
-    CObject* best = nullptr;
-    for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
-    {
-        ObjectType oType = obj->GetType();
-        if ( oType != OBJECT_MOBILEfa &&
-             oType != OBJECT_MOBILEta &&
-             oType != OBJECT_MOBILEwa &&
-             oType != OBJECT_MOBILEia &&
-             oType != OBJECT_MOBILEfb &&
-             oType != OBJECT_MOBILEtb &&
-             oType != OBJECT_MOBILEwb &&
-             oType != OBJECT_MOBILEib &&
-             oType != OBJECT_MOBILEfc &&
-             oType != OBJECT_MOBILEtc &&
-             oType != OBJECT_MOBILEwc &&
-             oType != OBJECT_MOBILEic &&
-             oType != OBJECT_MOBILEfi &&
-             oType != OBJECT_MOBILEti &&
-             oType != OBJECT_MOBILEwi &&
-             oType != OBJECT_MOBILEii &&
-             oType != OBJECT_MOBILEfs &&
-             oType != OBJECT_MOBILEts &&
-             oType != OBJECT_MOBILEws &&
-             oType != OBJECT_MOBILEis &&
-             oType != OBJECT_MOBILErt &&
-             oType != OBJECT_MOBILErc &&
-             oType != OBJECT_MOBILErr &&
-             oType != OBJECT_MOBILErs &&
-             oType != OBJECT_MOBILEsa &&
-             oType != OBJECT_MOBILEtg &&
-             oType != OBJECT_MOBILEft &&
-             oType != OBJECT_MOBILEtt &&
-             oType != OBJECT_MOBILEwt &&
-             oType != OBJECT_MOBILEit &&
-             oType != OBJECT_MOBILErp &&
-             oType != OBJECT_MOBILEst &&
-             oType != OBJECT_MOBILEdr &&
-             oType != OBJECT_DERRICK  &&
-             oType != OBJECT_STATION  &&
-             oType != OBJECT_FACTORY  &&
-             oType != OBJECT_REPAIR   &&
-             oType != OBJECT_DESTROYER &&
-             oType != OBJECT_CONVERT  &&
-             oType != OBJECT_TOWER    &&
-             oType != OBJECT_RESEARCH &&
-             oType != OBJECT_RADAR    &&
-             oType != OBJECT_INFO     &&
-             oType != OBJECT_ENERGY   &&
-             oType != OBJECT_LABO     &&
-             oType != OBJECT_NUCLEAR  &&
-             oType != OBJECT_PARA     &&
-             oType != OBJECT_SAFE     &&
-             oType != OBJECT_HUSTON   )  continue;
-
-        if ( obj->GetVirusMode() )  continue;  // object infected?
-
-        if (obj->GetCrashSphereCount() == 0) continue;
-
-        glm::vec3 oPos = obj->GetFirstCrashSphere().sphere.pos;
-        float distance = Math::DistanceProjected(oPos, iPos);
-        if (distance < min)
-        {
-            min = distance;
-            best = obj;
-        }
-    }
-    if ( best == nullptr )  return nullptr;
-
-    impact = best->GetPosition();
-    return best;
-}
-
-// Contaminate objects near the worm.
-
-void CTaskGoto::WormFrame(float rTime)
-{
-    CObject*    pObj;
-    glm::vec3    impact, pos;
-    float       dist;
-
-    m_wormLastTime += rTime;
-
-    if ( m_wormLastTime >= 0.5f )
-    {
-        m_wormLastTime = 0.0f;
-
-        pObj = WormSearch(impact);
-        if ( pObj != nullptr )
-        {
-            pos = m_object->GetPosition();
-            dist = glm::distance(pos, impact);
-            if ( dist <= 15.0f )
-            {
-                pObj->SetVirusMode(true);  // bam, infected!
-            }
-        }
-    }
-}
-
-
-
 // Assigns the goal was achieved.
 // "dist" is the distance that needs to go far to make a deposit or object.
 
 Error CTaskGoto::Start(glm::vec3 goal, float altitude,
                        TaskGotoGoal goalMode, TaskGotoCrash crashMode)
 {
-    glm::vec3    pos;
+    auto task = GetObjectTaskExecutorDetails(m_object).GOTO;
+
+    if (!m_object->Implements(ObjectInterfaceType::Movable))
+        return ERR_WRONG_BOT;
+
+    Error err = CanStartTask(&task);
+    if ( err != ERR_OK )  return err;
+
+    glm::vec3   pos;
     CObject*    target;
-    ObjectType  type;
     float       dist;
     int         x, y;
 
-    type = m_object->GetType();
-
-    if ( goalMode == TGG_DEFAULT )
-    {
-        goalMode = TGG_STOP;
-        if ( type == OBJECT_MOTHER ||
-             type == OBJECT_ANT    ||
-             type == OBJECT_SPIDER ||
-             type == OBJECT_WORM   )
-        {
-            goalMode = TGG_EXPRESS;
-        }
-    }
-
-    if ( crashMode == TGC_DEFAULT )
-    {
-//?     crashMode = TGC_RIGHTLEFT;
-        crashMode = TGC_BEAM;
-        if ( type == OBJECT_MOTHER ||
-             type == OBJECT_ANT    ||
-             type == OBJECT_SPIDER ||
-             type == OBJECT_WORM   ||
-             type == OBJECT_BEE    )
-        {
-            crashMode = TGC_HALT;
-        }
-    }
+    if (goalMode == TGG_DEFAULT)
+        goalMode = TaskGotoGoal(task.defaultGoal);
+    if (crashMode == TGC_DEFAULT)
+        crashMode = TaskGotoCrash(task.defaultCrash);
+    m_bApprox    = task.approximate;
 
     m_altitude   = altitude;
     m_goalMode   = goalMode;
@@ -712,30 +586,6 @@ Error CTaskGoto::Start(glm::vec3 goal, float altitude,
     if ( dist < 10.0f && m_crashMode == TGC_BEAM )
     {
         m_crashMode = TGC_RIGHTLEFT;
-    }
-
-    m_bWorm = false;
-    if ( type == OBJECT_WORM )
-    {
-        m_bWorm = true;
-        m_wormLastTime = 0.0f;
-    }
-
-    m_bApprox = false;
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_TECH     ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILErp )
-    {
-        m_bApprox = true;
     }
 
     if ( !m_bApprox && m_crashMode != TGC_BEAM )
@@ -1133,27 +983,16 @@ CObject* CTaskGoto::SearchTarget(glm::vec3 pos, float margin)
 
 bool CTaskGoto::AdjustTarget(CObject* pObj, glm::vec3 &pos, float &distance)
 {
-    ObjectType  type;
     glm::vec3    goal;
     float       dist, suppl;
 
-    type = m_object->GetType();
-    if ( type == OBJECT_BEE  ||
-         type == OBJECT_WORM )
+    if ( GetObjectTaskExecutorDetails(m_object).GOTO.noAdjusting )
     {
         pos = pObj->GetPosition();
         return false;  // single approach
     }
 
-    type = pObj->GetType();
-
-    if ( pObj->Implements(ObjectInterfaceType::Transportable) ||
-         type == OBJECT_RUINmobilew1 || // TODO: CRecoverableObject?
-         type == OBJECT_RUINmobilew2 ||
-         type == OBJECT_RUINmobilet1 ||
-         type == OBJECT_RUINmobilet2 ||
-         type == OBJECT_RUINmobiler1 ||
-         type == OBJECT_RUINmobiler2 )
+    if ( GetObjectPhysicalDetails(pObj).approaching.gotoSmallDistance )
     {
         pos = m_object->GetPosition();
         goal = pObj->GetPosition();
@@ -1162,48 +1001,7 @@ bool CTaskGoto::AdjustTarget(CObject* pObj, glm::vec3 &pos, float &distance)
         return true;  // approach from all sites
     }
 
-    if ( type == OBJECT_BASE )
-    {
-        pos = m_object->GetPosition();
-        goal = pObj->GetPosition();
-        dist = glm::distance(goal, pos);
-        pos = (pos-goal)*(TAKE_DIST+distance)/dist + goal;
-        return true;  // approach from all sites
-    }
-
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr )
+    if ( GetObjectPhysicalDetails(pObj).approaching.gotoPowerCell )
     {
         CSlottedObject *asSlotted = dynamic_cast<CSlottedObject*>(pObj);
         int powerSlotIndex = asSlotted->MapPseudoSlot(CSlottedObject::Pseudoslot::POWER);
@@ -1257,122 +1055,28 @@ bool CTaskGoto::AdjustBuilding(glm::vec3 &pos, float margin, float &distance)
 bool CTaskGoto::GetHotPoint(CObject *pObj, glm::vec3 &pos,
                             bool bTake, float distance, float &suppl)
 {
-    ObjectType  type;
-
-    pos = glm::vec3(0.0f, 0.0f, 0.0f);
+    pos = {0.0f, 0.0f, 0.0f};
     suppl = 0.0f;
-    type = pObj->GetType();
 
-    if ( type == OBJECT_DERRICK )
+    auto hotpoint = GetObjectPhysicalDetails(pObj).hotpoint;
+    if ( hotpoint.enabled )
     {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 8.0f;
-        if ( bTake && distance != 0.0f )  suppl = 4.0f;
-        if ( bTake )  pos.x += TAKE_DIST+distance+suppl;
+        if ( hotpoint.flyingOnly && !m_object->Implements(ObjectInterfaceType::Flying) )
+        {
+            return false;
+        }
+
+        glm::mat4 mat = pObj->GetWorldMatrix(hotpoint.partNum);
+        pos = pos + hotpoint.position;
+        if ( bTake && distance != 0.0f )  suppl = hotpoint.suppl;
+        if ( bTake && hotpoint.dxTake     ) pos.x += TAKE_DIST;
+        if ( bTake && hotpoint.dxOther    ) pos.x += TAKE_DIST_OTHER;
+        if ( bTake && hotpoint.dxDistance ) pos.x += distance;
+        if ( bTake && hotpoint.dxSuppl )    pos.x += suppl;
         pos = Math::Transform(mat, pos);
         return true;
     }
 
-    if ( type == OBJECT_CONVERT )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 0.0f;
-        if ( bTake && distance != 0.0f )  suppl = 4.0f;
-        if ( bTake )  pos.x += TAKE_DIST+distance+suppl;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_RESEARCH )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 10.0f;
-        if ( bTake && distance != 0.0f )  suppl = 2.5f;
-        if ( bTake )  pos.x += TAKE_DIST+TAKE_DIST_OTHER+distance+suppl;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_ENERGY )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 6.0f;
-        if ( bTake && distance != 0.0f )  suppl = 6.0f;
-        if ( bTake )  pos.x += TAKE_DIST+TAKE_DIST_OTHER+distance;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_TOWER )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 5.0f;
-        if ( bTake && distance != 0.0f )  suppl = 4.0f;
-        if ( bTake )  pos.x += TAKE_DIST+TAKE_DIST_OTHER+distance+suppl;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_LABO )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 6.0f;
-        if ( bTake && distance != 0.0f )  suppl = 6.0f;
-        if ( bTake )  pos.x += TAKE_DIST+TAKE_DIST_OTHER+distance;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_NUCLEAR )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 22.0f;
-        if ( bTake && distance != 0.0f )  suppl = 4.0f;
-        if ( bTake )  pos.x += TAKE_DIST+TAKE_DIST_OTHER+distance+suppl;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_FACTORY )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 4.0f;
-        if ( bTake && distance != 0.0f )  suppl = 6.0f;
-        if ( bTake )  pos.x += TAKE_DIST+distance+suppl;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_STATION )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 4.0f;
-        if ( bTake && distance != 0.0f )  suppl = 4.0f;
-        if ( bTake )  pos.x += distance;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_REPAIR )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        pos.x += 4.0f;
-        if ( bTake && distance != 0.0f )  suppl = 4.0f;
-        if ( bTake )  pos.x += distance;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    if ( type == OBJECT_PARA && m_object->Implements(ObjectInterfaceType::Flying) )
-    {
-        glm::mat4 mat = pObj->GetWorldMatrix(0);
-        if ( bTake && distance != 0.0f )  suppl = 20.0f;
-        if ( bTake )  pos.x += distance+suppl;
-        pos = Math::Transform(mat, pos);
-        return true;
-    }
-
-    suppl = 0.0f;
     return false;
 }
 
@@ -1434,12 +1138,14 @@ void CTaskGoto::ComputeRepulse(glm::vec2&dir)
     float       gDist, add, addi, fac, dist;
     bool        bAlien;
 
+    auto task = GetObjectTaskExecutorDetails(m_object).GOTO;
+
     dir.x = 0.0f;
     dir.y = 0.0f;
 
     // The worm goes everywhere and through everything!
     iType = m_object->GetType();
-    if ( iType == OBJECT_WORM || iType == OBJECT_CONTROLLER )  return;
+    if ( task.repulseEnabled )  return;
 
     auto firstCrashSphere = m_object->GetFirstCrashSphere();
     glm::vec3 iPos = firstCrashSphere.sphere.pos;
@@ -1447,71 +1153,11 @@ void CTaskGoto::ComputeRepulse(glm::vec2&dir)
 
     gDist = glm::distance(iPos, m_goal);
 
-    add = m_physics->GetLinStopLength()*1.1f;  // braking distance
-    fac = 2.0f;
-
-    if ( iType == OBJECT_MOBILEwa ||
-         iType == OBJECT_MOBILEwb ||
-         iType == OBJECT_MOBILEwc ||
-         iType == OBJECT_MOBILEwi ||
-         iType == OBJECT_MOBILEws ||
-         iType == OBJECT_MOBILEwt )  // wheels?
-    {
-        add = 5.0f;
-        fac = 1.5f;
-    }
-    if ( iType == OBJECT_MOBILEta ||
-         iType == OBJECT_MOBILEtb ||
-         iType == OBJECT_MOBILEtc ||
-         iType == OBJECT_MOBILEti ||
-         iType == OBJECT_MOBILEts ||
-         iType == OBJECT_MOBILEtt ||
-         iType == OBJECT_MOBILEdr )  // caterpillars?
-    {
-        add = 4.0f;
-        fac = 1.5f;
-    }
-    if ( iType == OBJECT_MOBILEfa ||
-         iType == OBJECT_MOBILEfb ||
-         iType == OBJECT_MOBILEfc ||
-         iType == OBJECT_MOBILEfi ||
-         iType == OBJECT_MOBILEfs ||
-         iType == OBJECT_MOBILEft )  // flying?
-    {
-        if ( m_physics->GetLand() )
-        {
-            add = 5.0f;
-            fac = 1.5f;
-        }
-        else
-        {
-            add = 10.0f;
-            fac = 1.5f;
-        }
-    }
-    if ( iType == OBJECT_MOBILEia ||
-         iType == OBJECT_MOBILEib ||
-         iType == OBJECT_MOBILEic ||
-         iType == OBJECT_MOBILEii ||
-         iType == OBJECT_MOBILEis ||
-         iType == OBJECT_MOBILEit )  // legs?
-    {
-        add = 4.0f;
-        fac = 1.5f;
-    }
-    if ( iType == OBJECT_BEE )  // wasp?
-    {
-        if ( m_physics->GetLand() )
-        {
-            add = 3.0f;
-            fac = 1.5f;
-        }
-        else
-        {
-            add = 5.0f;
-            fac = 1.5f;
-        }
-    }
+    if ( task.repulseCustom )
+        add = m_physics->GetLand() ? task.repulseLand : task.repulseNoLand;
+    else
+        add = m_physics->GetLinStopLength()*1.1f;  // braking distance
+    fac = task.repulseFactor;
 
     bAlien = false;
     if ( iType == OBJECT_MOTHER ||
@@ -1633,9 +1279,7 @@ void CTaskGoto::ComputeFlyingRepulse(float &dir)
 
 int CTaskGoto::PathFindingShortcut()
 {
-    int     i;
-
-    for ( i=m_bmTotal ; i>=m_bmIndex+2 ; i-- )  // tries from the last
+    for ( int i = m_bmTotal ; i >= m_bmIndex+2 ; i-- )  // tries from the last
     {
         if ( BitmapTestLine(m_bmPoints[m_bmIndex], m_bmPoints[i]) )
         {
@@ -1683,9 +1327,7 @@ void CTaskGoto::PathFindingStart()
 
 void CTaskGoto::PathFindingInit()
 {
-    int     i;
-
-    for ( i=0 ; i<MAXPOINTS ; i++ )
+    for ( int i = 0 ; i < MAXPOINTS ; i++ )
     {
         m_bmIter[i] = -1;
     }
@@ -2135,7 +1777,6 @@ void CTaskGoto::BitmapTerrain(const glm::vec3 &min, const glm::vec3 &max)
 
 void CTaskGoto::BitmapTerrain(int minx, int miny, int maxx, int maxy)
 {
-    ObjectType  type;
     glm::vec3    p;
     float       aLimit, angle, h;
     int         x, y;
@@ -2157,72 +1798,10 @@ void CTaskGoto::BitmapTerrain(int minx, int miny, int maxx, int maxy)
     if ( minx >= m_bmMinX && maxx <= m_bmMaxX &&
          miny >= m_bmMinY && maxy <= m_bmMaxY )  return;
 
-    aLimit = 20.0f*Math::PI/180.0f;
-    bAcceptWater = false;
-    bFly = false;
-
-    type = m_object->GetType();
-
-    if ( type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEtg )  // wheels?
-    {
-        aLimit = 20.0f*Math::PI/180.0f;
-    }
-
-    if ( type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEts )  // caterpillars?
-    {
-        aLimit = 35.0f*Math::PI/180.0f;
-    }
-
-    if ( type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILErp )  // large caterpillars?
-    {
-        aLimit = 35.0f*Math::PI/180.0f;
-    }
-
-    if ( type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEst )  // submarine caterpillars?
-    {
-        aLimit = 35.0f*Math::PI/180.0f;
-        bAcceptWater = true;
-    }
-
-    if ( type == OBJECT_MOBILEdr )  // designer caterpillars?
-    {
-        aLimit = 35.0f*Math::PI/180.0f;
-    }
-
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEft )  // flying?
-    {
-        aLimit = 15.0f*Math::PI/180.0f;
-        bFly = true;
-    }
-
-    if ( type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILEii )  // insect legs?
-    {
-        aLimit = 60.0f*Math::PI/180.0f;
-    }
+    auto task = GetObjectTaskExecutorDetails(m_object).GOTO;
+    aLimit = task.angleLimit;
+    bAcceptWater = task.acceptWater;
+    bFly = task.acceptFlying;
 
     for ( y=miny ; y<=maxy ; y++ )
     {

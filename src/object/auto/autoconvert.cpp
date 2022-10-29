@@ -29,10 +29,14 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/transportable_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/modeled_helpers.h"
 
 #include "sound/sound.h"
 
@@ -42,7 +46,7 @@
 
 // Object's constructor.
 
-CAutoConvert::CAutoConvert(COldObject* object) : CAuto(object)
+CAutoConvert::CAutoConvert(CObject* object) : CAuto(object)
 {
     Init();
     m_phase = ACP_STOP;
@@ -62,7 +66,7 @@ void CAutoConvert::DeleteObject(bool all)
 {
     if ( !all )
     {
-        CObject* cargo = SearchStone(OBJECT_STONE);
+        CObject* cargo = SearchStone();
         if ( cargo != nullptr )
         {
             CObjectManager::GetInstancePointer()->DeleteObject(cargo);
@@ -119,12 +123,12 @@ bool CAutoConvert::EventProcess(const Event &event)
             m_timeVirus = 0.1f+Math::Rand()*0.3f;
 
             angle = (Math::Rand()-0.5f)*0.3f;
-            m_object->SetPartRotationY(1, angle);
-            m_object->SetPartRotationY(2, angle);
-            m_object->SetPartRotationY(3, angle+Math::PI);
+            SetPartRotationY(m_object, 1, angle);
+            SetPartRotationY(m_object, 2, angle);
+            SetPartRotationY(m_object, 3, angle+Math::PI);
 
-            m_object->SetPartRotationX(2, -Math::PI*0.35f*(0.8f+Math::Rand()*0.2f));
-            m_object->SetPartRotationX(3, -Math::PI*0.35f*(0.8f+Math::Rand()*0.2f));
+            SetPartRotationX(m_object, 2, -Math::PI*0.35f*(0.8f+Math::Rand()*0.2f));
+            SetPartRotationX(m_object, 3, -Math::PI*0.35f*(0.8f+Math::Rand()*0.2f));
         }
         return true;
     }
@@ -137,7 +141,7 @@ bool CAutoConvert::EventProcess(const Event &event)
     {
         if ( m_progress >= 1.0f )
         {
-            cargo = SearchStone(OBJECT_STONE);  // Has stone transformed?
+            cargo = SearchStone();  // Has stone transformed?
             if ( cargo == nullptr || SearchVehicle() )
             {
                 m_phase    = ACP_WAIT;  // still waiting ...
@@ -172,13 +176,13 @@ bool CAutoConvert::EventProcess(const Event &event)
                 m_sound->Play(SOUND_CLOSE, m_object->GetPosition(), 1.0f, 0.8f);
             }
             angle = -Math::PI*0.35f*(1.0f-Math::Bounce(m_progress, 0.85f, 0.05f));
-            m_object->SetPartRotationX(2, angle);
-            m_object->SetPartRotationX(3, angle);
+            SetPartRotationX(m_object, 2, angle);
+            SetPartRotationX(m_object, 3, angle);
         }
         else
         {
-            m_object->SetPartRotationX(2, 0.0f);
-            m_object->SetPartRotationX(3, 0.0f);
+            SetPartRotationX(m_object, 2, 0.0f);
+            SetPartRotationX(m_object, 3, 0.0f);
 
             m_soundChannel = m_sound->Play(SOUND_CONVERT, m_object->GetPosition(), 0.0f, 0.25f, true);
             m_sound->AddEnvelope(m_soundChannel, 1.0f, 0.25f, 0.5f, SOPER_CONTINUE);
@@ -204,9 +208,9 @@ bool CAutoConvert::EventProcess(const Event &event)
             {
                 angle = -powf((2.0f-m_progress*2.0f)*5.0f, 2.0f);  // slows
             }
-            m_object->SetPartRotationY(1, angle);
-            m_object->SetPartRotationY(2, angle);
-            m_object->SetPartRotationY(3, angle+Math::PI);
+            SetPartRotationY(m_object, 1, angle);
+            SetPartRotationY(m_object, 2, angle);
+            SetPartRotationY(m_object, 3, angle+Math::PI);
 
             if ( m_lastParticle+m_engine->ParticleAdapt(0.05f) <= m_time )
             {
@@ -229,18 +233,28 @@ bool CAutoConvert::EventProcess(const Event &event)
         }
         else
         {
-            m_object->SetPartRotationY(1, 0.0f);
-            m_object->SetPartRotationY(2, 0.0f);
-            m_object->SetPartRotationY(3, Math::PI);
+            SetPartRotationY(m_object, 1, 0.0f);
+            SetPartRotationY(m_object, 2, 0.0f);
+            SetPartRotationY(m_object, 3, Math::PI);
 
-            cargo = SearchStone(OBJECT_STONE);
+            cargo = SearchStone();
             if ( cargo != nullptr )
             {
-                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-            }
+                std::vector<CObjectProductionAutomated> matched;
+                for ( auto it : GetObjectAutomatedDetails(m_object).production.objects )
+                {
+                    if ( cargo->GetType() == it.input )
+                        matched.push_back(it);
+                }
 
-            CreateMetal();  // Create the metal
-            m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
+                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
+                m_sound->Play(SOUND_OPEN, m_object->GetPosition(), 1.0f, 1.5f);
+
+                CObjectProductionAutomated matchedFinal = matched[ std::rand() % matched.size() ];
+                if (matchedFinal.output != OBJECT_NULL)
+                    CreateMetal(matchedFinal.output);  // Create the metal
+                m_main->DisplayText(matchedFinal.message, m_object, Ui::TT_INFO);
+            }
 
             m_phase    = ACP_OPEN;
             m_progress = 0.0f;
@@ -253,8 +267,8 @@ bool CAutoConvert::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = -Math::PI*0.35f*Math::Bounce(m_progress, 0.7f, 0.2f);
-            m_object->SetPartRotationX(2, angle);
-            m_object->SetPartRotationX(3, angle);
+            SetPartRotationX(m_object, 2, angle);
+            SetPartRotationX(m_object, 3, angle);
 
             if ( m_progress < 0.9f &&
                  m_lastParticle+m_engine->ParticleAdapt(0.05f) <= m_time )
@@ -274,8 +288,8 @@ bool CAutoConvert::EventProcess(const Event &event)
         else
         {
             m_soundChannel = -1;
-            m_object->SetPartRotationX(2, -Math::PI*0.35f);
-            m_object->SetPartRotationX(3, -Math::PI*0.35f);
+            SetPartRotationX(m_object, 2, -Math::PI*0.35f);
+            SetPartRotationX(m_object, 3, -Math::PI*0.35f);
 
             SetBusy(false);
             UpdateInterface();
@@ -289,16 +303,15 @@ bool CAutoConvert::EventProcess(const Event &event)
     return true;
 }
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAutoConvert::GetError()
 {
-    if ( m_object->GetVirusMode() )
+    auto production = GetObjectAutomatedDetails(m_object).production;
+    if ( m_phase == ACP_WAIT )
     {
-        return ERR_BAT_VIRUS;
+        m_main->DisplayText(production.noInput, m_object, Ui::TT_WARNING);
     }
-
-    if ( m_phase == ACP_WAIT )  return ERR_CONVERT_EMPTY;
     return ERR_OK;
 }
 
@@ -313,11 +326,11 @@ bool CAutoConvert::Abort()
         m_soundChannel = -1;
     }
 
-    m_object->SetPartRotationY(1, 0.0f);
-    m_object->SetPartRotationY(2, 0.0f);
-    m_object->SetPartRotationY(3, Math::PI);
-    m_object->SetPartRotationX(2, -Math::PI*0.35f);
-    m_object->SetPartRotationX(3, -Math::PI*0.35f);
+    SetPartRotationY(m_object, 1, 0.0f);
+    SetPartRotationY(m_object, 2, 0.0f);
+    SetPartRotationY(m_object, 3, Math::PI);
+    SetPartRotationX(m_object, 2, -Math::PI*0.35f);
+    SetPartRotationX(m_object, 3, -Math::PI*0.35f);
 
     m_phase    = ACP_WAIT;
     m_progress = 0.0f;
@@ -325,36 +338,6 @@ bool CAutoConvert::Abort()
 
     SetBusy(false);
     UpdateInterface();
-
-    return true;
-}
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoConvert::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 103, EVENT_OBJECT_TYPE);
 
     return true;
 }
@@ -395,20 +378,28 @@ bool CAutoConvert::Read(CLevelParserLine* line)
 
 // Searches for the object before or during processing.
 
-CObject* CAutoConvert::SearchStone(ObjectType type)
+CObject* CAutoConvert::SearchStone()
 {
     glm::vec3 cPos = m_object->GetPosition();
 
+    auto production = GetObjectAutomatedDetails(m_object).production;
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType oType = obj->GetType();
-        if ( oType != type )  continue;
         if (IsObjectBeingTransported(obj)) continue;
 
-        glm::vec3 oPos = obj->GetPosition();
-        float dist = glm::distance(oPos, cPos);
-
-        if ( dist <= 5.0f )  return obj;
+        for ( auto it: production.objects )
+        {
+            if ( obj->GetType() != it.input ) continue;
+    
+            glm::vec3 oPos = obj->GetPosition();
+            float dist = glm::distance(oPos, cPos);
+    
+            if ( dist <= 5.0f )
+            {
+                return obj;
+            }
+        }
     }
 
     return nullptr;
@@ -420,12 +411,16 @@ bool CAutoConvert::SearchVehicle()
 {
     glm::vec3 cPos = m_object->GetPosition();
 
+    auto production = GetObjectAutomatedDetails(m_object).production;
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        if (obj == m_object) continue;
-        ObjectType type = obj->GetType();
-        if ( type == OBJECT_STONE ) continue;
+        bool bSkip = false;
+        for ( auto it: production.objects )
+            if (obj->GetType() == it.input) bSkip = true;
 
+        if (bSkip) continue;
+        if (obj == m_object) continue;
         if (obj->GetCrashSphereCount() == 0) continue;
 
         auto crashSphere = obj->GetFirstCrashSphere();
@@ -438,12 +433,12 @@ bool CAutoConvert::SearchVehicle()
 
 // Creates an object metal.
 
-void CAutoConvert::CreateMetal()
+void CAutoConvert::CreateMetal(ObjectType type)
 {
-    glm::vec3 pos = m_object->GetPosition();
-    float angle = m_object->GetRotationY();
-
-    CObjectManager::GetInstancePointer()->CreateObject(pos, angle, OBJECT_METAL);
-
-    m_main->DisplayError(INFO_CONVERT, m_object);
+    ObjectCreateParams params;
+    params.pos = m_object->GetPosition();
+    params.angle = m_object->GetRotationY();
+    params.team = m_object->GetTeam();
+    params.type = type;
+    CObjectManager::GetInstancePointer()->CreateObject(params);
 }

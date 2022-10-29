@@ -20,8 +20,6 @@
 
 #include "object/motion/motionhuman.h"
 
-#include "app/app.h"
-
 #include "graphics/engine/engine.h"
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/terrain.h"
@@ -34,13 +32,13 @@
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
+#include "object/helpers/cargo_helpers.h"
+
 #include "physics/physics.h"
 
 #include "sound/sound.h"
 
-
 #include <stdio.h>
-
 
 
 const int ADJUST_ACTION = (3*3*3*3*MH_SPEC+3*3*3*MHS_SATCOM);
@@ -55,7 +53,6 @@ CMotionHuman::CMotionHuman(COldObject* object)
     : CMotion(object),
       m_armAngles()
 {
-    m_partiReactor   = -1;
     m_armMember      = START_TIME;
     m_armTimeAbs     = START_TIME;
     m_armTimeAction  = START_TIME;
@@ -69,7 +66,6 @@ CMotionHuman::CMotionHuman(COldObject* object)
     m_lastSoundHhh = 0.0f;
     m_time = 0.0f;
     m_tired = 0.0f;
-    m_bDisplayPerso = false;
     m_glassesRank = -1;
 }
 
@@ -78,19 +74,6 @@ CMotionHuman::CMotionHuman(COldObject* object)
 CMotionHuman::~CMotionHuman()
 {
 }
-
-
-// Removes an object.
-
-void CMotionHuman::DeleteObject(bool bAll)
-{
-    if ( m_partiReactor != -1 )
-    {
-        m_particle->DeleteParticle(m_partiReactor);
-        m_partiReactor = -1;
-    }
-}
-
 
 // Starts an action.
 
@@ -104,67 +87,32 @@ Error CMotionHuman::SetAction(int action, float time)
 
 // Creates cosmonaut on the ground.
 
-void CMotionHuman::Create(glm::vec3 pos, float angle, ObjectType type,
-                          float power, Gfx::COldModelManager* modelManager)
+void CMotionHuman::Create()
 {
+    CMotion::Create();
+
     char        filename[100];
     int         rank, option, face, glasses;
 
-    m_object->SetType(type);
     option = m_object->GetOption();
 
+/* TODO TODO TODO TODO TODO TODO TODO
     if ( m_main->GetGamerOnlyHead() )
     {
         rank = m_engine->CreateObject();
         m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
         m_object->SetObjectRank(0, rank);
         face = m_main->GetGamerFace();
-        sprintf(filename, "human2h%d", face+1);
+        sprintf(filename, "human2h%d", face+1); // no option check!
         modelManager->AddModelReference(filename, false, rank);
 
-        glasses = m_main->GetGamerGlasses();
-        if ( glasses != 0 )
-        {
-            rank = m_engine->CreateObject();
-            m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-            m_object->SetObjectRank(1, rank);
-            m_object->SetObjectParent(1, 0);
-            sprintf(filename, "human2g%d", glasses);
-            modelManager->AddModelReference(filename, false, rank);
-        }
-
-        CreatePhysics(type);
+        CreatePhysics();
         m_object->SetFloorHeight(0.0f);
 
         m_engine->LoadAllTextures();
 
         return;
     }
-
-    // Creates the main base.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
-    m_object->SetObjectRank(0, rank);
-
-    if (option == 0)  // head in helmet?
-        modelManager->AddModelReference("human1c", false, rank);
-    else if (option == 1)  // head without helmet?
-        modelManager->AddModelReference("human1h", false, rank);
-    else if (option == 2)  // without a backpack?
-        modelManager->AddModelReference("human1v", false, rank);
-
-    m_object->SetPosition(pos);
-    m_object->SetRotationY(angle);
-
-    // A vehicle must have an obligatory collision with a sphere of center (0, y, 0) (see GetCrashSphere).
-    m_object->AddCrashSphere(CrashSphere(glm::vec3(0.0f, 0.0f, 0.0f), 2.0f, SOUND_AIE, 0.20f));
-    m_object->SetCameraCollisionSphere(Math::Sphere(glm::vec3(0.0f, 1.0f, 0.0f), 4.0f));
-
-    // Creates the head.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(1, rank);
-    m_object->SetObjectParent(1, 0);
 
     if ( type == OBJECT_HUMAN )
     {
@@ -182,164 +130,15 @@ void CMotionHuman::Create(glm::vec3 pos, float angle, ObjectType type,
             modelManager->AddModelReference(filename, false, rank);
         }
     }
-    else if (type == OBJECT_TECH)
-    {
-        modelManager->AddModelReference("human2t", false, rank);
-    }
+*/
 
-    m_object->SetPartPosition(1, glm::vec3(0.0f, 2.7f, 0.0f));
-    if (option == 1 ||  // head without helmet?
-        option == 2)    // without a backpack?
-    {
-        m_object->SetPartScale(1, glm::vec3(1.0f, 1.05f, 1.0f));
-    }
-
-    // Creates the glasses.
-    glasses = m_main->GetGamerGlasses();
-    if ( glasses != 0 && type == OBJECT_HUMAN )
-    {
-        m_glassesRank = m_engine->CreateObject();
-        m_engine->SetObjectType(m_glassesRank, Gfx::ENG_OBJTYPE_DESCENDANT);
-        m_object->SetObjectRank(15, m_glassesRank);
-        m_object->SetObjectParent(15, 1);
-        sprintf(filename, "human2g%d", glasses);
-        modelManager->AddModelReference(filename, false, m_glassesRank);
-    }
-
-    // Creates the right arm.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(2, rank);
-    m_object->SetObjectParent(2, 0);
-    modelManager->AddModelReference("human3", false, rank);
-    m_object->SetPartPosition(2, glm::vec3(0.0f, 2.3f, -1.2f));
-    m_object->SetPartRotation(2, glm::vec3(90.0f*Math::PI/180.0f, 90.0f*Math::PI/180.0f, -50.0f*Math::PI/180.0f));
-
-    // Creates the right forearm.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(3, rank);
-    m_object->SetObjectParent(3, 2);
-    modelManager->AddModelReference("human4r", false, rank);
-    m_object->SetPartPosition(3, glm::vec3(1.3f, 0.0f, 0.0f));
-    m_object->SetPartRotation(3, glm::vec3(0.0f*Math::PI/180.0f, -20.0f*Math::PI/180.0f, 0.0f*Math::PI/180.0f));
-
-    // Creates right hand.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(4, rank);
-    m_object->SetObjectParent(4, 3);
-    modelManager->AddModelReference("human5", false, rank);
-    m_object->SetPartPosition(4, glm::vec3(1.2f, 0.0f, 0.0f));
-
-    // Creates the right thigh.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(5, rank);
-    m_object->SetObjectParent(5, 0);
-    modelManager->AddModelReference("human6", false, rank);
-    m_object->SetPartPosition(5, glm::vec3(0.0f, 0.0f, -0.7f));
-    m_object->SetPartRotation(5, glm::vec3(10.0f*Math::PI/180.0f, 0.0f*Math::PI/180.0f, 5.0f*Math::PI/180.0f));
-
-    // Creates the right leg.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(6, rank);
-    m_object->SetObjectParent(6, 5);
-    modelManager->AddModelReference("human7", false, rank);
-    m_object->SetPartPosition(6, glm::vec3(0.0f, -1.5f, 0.0f));
-    m_object->SetPartRotation(6, glm::vec3(0.0f*Math::PI/180.0f, 0.0f*Math::PI/180.0f, -10.0f*Math::PI/180.0f));
-
-    // Creates the right foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(7, rank);
-    m_object->SetObjectParent(7, 6);
-    modelManager->AddModelReference("human8", false, rank);
-    m_object->SetPartPosition(7, glm::vec3(0.0f, -1.5f, 0.0f));
-    m_object->SetPartRotation(7, glm::vec3(-10.0f*Math::PI/180.0f, 5.0f*Math::PI/180.0f, 5.0f*Math::PI/180.0f));
-
-    // Creates the left arm.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(8, rank);
-    m_object->SetObjectParent(8, 0);
-    modelManager->AddModelReference("human3", true, rank);
-    m_object->SetPartPosition(8, glm::vec3(0.0f, 2.3f, 1.2f));
-    m_object->SetPartRotation(8, glm::vec3(-90.0f*Math::PI/180.0f, -90.0f*Math::PI/180.0f, -50.0f*Math::PI/180.0f));
-
-    // Creates the left forearm.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(9, rank);
-    m_object->SetObjectParent(9, 8);
-    modelManager->AddModelReference("human4l", true, rank);
-    m_object->SetPartPosition(9, glm::vec3(1.3f, 0.0f, 0.0f));
-    m_object->SetPartRotation(9, glm::vec3(0.0f*Math::PI/180.0f, 20.0f*Math::PI/180.0f, 0.0f*Math::PI/180.0f));
-
-    // Creates left hand.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(10, rank);
-    m_object->SetObjectParent(10, 9);
-    modelManager->AddModelReference("human5", true, rank);
-    m_object->SetPartPosition(10, glm::vec3(1.2f, 0.0f, 0.0f));
-
-    // Creates the left thigh.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(11, rank);
-    m_object->SetObjectParent(11, 0);
-    modelManager->AddModelReference("human6", true, rank);
-    m_object->SetPartPosition(11, glm::vec3(0.0f, 0.0f, 0.7f));
-    m_object->SetPartRotation(11, glm::vec3(-10.0f*Math::PI/180.0f, 0.0f*Math::PI/180.0f, 5.0f*Math::PI/180.0f));
-
-    // Creates the left leg.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(12, rank);
-    m_object->SetObjectParent(12, 11);
-    modelManager->AddModelReference("human7", true, rank);
-    m_object->SetPartPosition(12, glm::vec3(0.0f, -1.5f, 0.0f));
-    m_object->SetPartRotation(12, glm::vec3(0.0f*Math::PI/180.0f, 0.0f*Math::PI/180.0f, -10.0f*Math::PI/180.0f));
-
-    // Creates the left foot.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(13, rank);
-    m_object->SetObjectParent(13, 12);
-    modelManager->AddModelReference("human8", true, rank);
-    m_object->SetPartPosition(13, glm::vec3(0.0f, -1.5f, 0.0f));
-    m_object->SetPartRotation(13, glm::vec3(10.0f*Math::PI/180.0f, -5.0f*Math::PI/180.0f, 5.0f*Math::PI/180.0f));
-
-    // Creates the neutron gun.
-    if ( option != 2 && !m_main->GetPlusExplorer())  // with backpack?
-    {
-        rank = m_engine->CreateObject();
-        m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-        m_object->SetObjectRank(14, rank);
-        m_object->SetObjectParent(14, 0);
-        modelManager->AddModelReference("human9", false, rank);
-        m_object->SetPartPosition(14, glm::vec3(-1.5f, 0.3f, -1.35f));
-        m_object->SetPartRotationZ(14, Math::PI);
-    }
-
-    m_object->CreateShadowCircle(2.0f, 0.8f);
-
-    CreatePhysics(type);
-    m_object->SetFloorHeight(0.0f);
-
-    pos = m_object->GetPosition();
-    m_object->SetPosition(pos);  // to display the shadows immediately
-
-    m_engine->LoadAllTextures();
+    CreatePhysics();
 }
 
 // Creates the physical object.
 
-void CMotionHuman::CreatePhysics(ObjectType type)
+void CMotionHuman::CreatePhysics()
 {
-    Character*  character;
     int         i;
 
     int member_march[] =
@@ -506,62 +305,6 @@ void CMotionHuman::CreatePhysics(ObjectType type)
         0,20,0,     -10,5,5,    0,0,0,      // s15: hands/feet/-
     };
 
-    character = m_object->GetCharacter();
-    character->wheelFront = 4.0f;
-    character->wheelBack  = 4.0f;
-    character->wheelLeft  = 4.0f;
-    character->wheelRight = 4.0f;
-    character->height     = 3.5f;
-
-    if ( type == OBJECT_HUMAN )
-    {
-        m_physics->SetLinMotionX(MO_ADVSPEED, 50.0f);
-        m_physics->SetLinMotionX(MO_RECSPEED, 35.0f);
-        m_physics->SetLinMotionX(MO_ADVACCEL, 20.0f);
-        m_physics->SetLinMotionX(MO_RECACCEL, 20.0f);
-        m_physics->SetLinMotionX(MO_STOACCEL, 20.0f);
-        m_physics->SetLinMotionX(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionZ(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionX(MO_TERFORCE, 70.0f);
-        m_physics->SetLinMotionZ(MO_TERFORCE, 40.0f);
-        m_physics->SetLinMotionZ(MO_MOTACCEL, 40.0f);
-        m_physics->SetLinMotionY(MO_ADVSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_RECSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_ADVACCEL, 20.0f);
-        m_physics->SetLinMotionY(MO_RECACCEL, 50.0f);
-        m_physics->SetLinMotionY(MO_STOACCEL, 50.0f);
-
-        m_physics->SetCirMotionY(MO_ADVSPEED,  0.8f*Math::PI);
-        m_physics->SetCirMotionY(MO_RECSPEED,  0.8f*Math::PI);
-        m_physics->SetCirMotionY(MO_ADVACCEL,  6.0f);
-        m_physics->SetCirMotionY(MO_RECACCEL,  6.0f);
-        m_physics->SetCirMotionY(MO_STOACCEL,  4.0f);
-    }
-    else
-    {
-        m_physics->SetLinMotionX(MO_ADVSPEED, 40.0f);
-        m_physics->SetLinMotionX(MO_RECSPEED, 15.0f);
-        m_physics->SetLinMotionX(MO_ADVACCEL,  8.0f);
-        m_physics->SetLinMotionX(MO_RECACCEL,  8.0f);
-        m_physics->SetLinMotionX(MO_STOACCEL,  8.0f);
-        m_physics->SetLinMotionX(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionZ(MO_TERSLIDE,  5.0f);
-        m_physics->SetLinMotionX(MO_TERFORCE, 50.0f);
-        m_physics->SetLinMotionZ(MO_TERFORCE, 50.0f);
-        m_physics->SetLinMotionZ(MO_MOTACCEL, 40.0f);
-        m_physics->SetLinMotionY(MO_ADVSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_RECSPEED, 60.0f);
-        m_physics->SetLinMotionY(MO_ADVACCEL, 20.0f);
-        m_physics->SetLinMotionY(MO_RECACCEL, 50.0f);
-        m_physics->SetLinMotionY(MO_STOACCEL, 50.0f);
-
-        m_physics->SetCirMotionY(MO_ADVSPEED,  0.6f*Math::PI);
-        m_physics->SetCirMotionY(MO_RECSPEED,  0.6f*Math::PI);
-        m_physics->SetCirMotionY(MO_ADVACCEL,  4.0f);
-        m_physics->SetCirMotionY(MO_RECACCEL,  4.0f);
-        m_physics->SetCirMotionY(MO_STOACCEL,  3.0f);
-    }
-
     for ( i=0 ; i<3*3*3*3 ; i++ )
     {
         m_armAngles[3*3*3*3*MH_MARCH+i] = member_march[i];
@@ -611,8 +354,8 @@ bool CMotionHuman::EventProcess(const Event &event)
 
 bool CMotionHuman::EventFrame(const Event &event)
 {
-    glm::vec3    dir, actual, pos, speed, pf;
-    glm::vec2       center, dim, p2;
+    glm::vec3   dir, actual, pos, speed, pf;
+    glm::vec2   dim, p2;
     float       s, a, prog, rTime[2], lTime[2], time, rot, hr, hl;
     float       al, ar, af;
     float       tSt[9], tNd[9];
@@ -645,10 +388,6 @@ bool CMotionHuman::EventFrame(const Event &event)
         m_object->SetLinVibration(glm::vec3(0.0f, -0.55f, 0.0f));
         m_object->SetCirVibration(glm::vec3(0.0f, m_main->GetPersoAngle(), 0.0f));
         return true;
-    }
-    if ( m_bDisplayPerso )
-    {
-        m_object->SetCirVibration(glm::vec3(0.0f, m_main->GetPersoAngle()+0.2f, 0.0f));
     }
 
     if ( m_glassesRank != -1 )
@@ -688,7 +427,7 @@ bool CMotionHuman::EventFrame(const Event &event)
         s = 0.0f;
     }
 
-    if (IsObjectCarryingCargo(m_object))  // carries something?
+    if (HasObjectInCargoSlot(m_object))  // carries something?
     {
         s *= 1.3f;
     }
@@ -752,7 +491,7 @@ bool CMotionHuman::EventFrame(const Event &event)
             else
             {
                 action = MH_MARCH;  // walking
-                if (IsObjectCarryingCargo(m_object))  action = MH_MARCHTAKE;  // take walking
+                if (HasObjectInCargoSlot(m_object))  action = MH_MARCHTAKE;  // take walking
                 rTime[0] = rTime[1] = m_armMember;
                 lTime[0] = lTime[1] = m_armMember+0.5f;
             }
@@ -791,7 +530,7 @@ bool CMotionHuman::EventFrame(const Event &event)
     armAction = action;
     legAction = action;
 
-    if (IsObjectCarryingCargo(m_object))  // carries something?
+    if (HasObjectInCargoSlot(m_object))  // carries something?
     {
         armAction = MH_MARCHTAKE;  // take walking
     }
@@ -905,7 +644,7 @@ bool CMotionHuman::EventFrame(const Event &event)
         aa = 0.5f;
         if ( i%2 == 0 )  // arm?
         {
-            if (! IsObjectCarryingCargo(m_object))
+            if (! HasObjectInCargoSlot(m_object))
             {
                 aa = 2.0f;  // moves a lot
             }
@@ -940,7 +679,9 @@ bool CMotionHuman::EventFrame(const Event &event)
             bb = sinf(m_time*3.1f)*aa;  tSt[8] += bb;  tNd[8] += bb;
         }
 
-        if ( i%2 == 1           &&  // leg?
+        ObjectType type = m_object->GetType();
+        if ( ( type == OBJECT_HUMAN || type == OBJECT_TECH ) &&
+             i%2 == 1           &&  // leg?
              m_actionType == -1 )   // no special action?
         {
             if ( i == 1 )  // right leg?
@@ -1527,7 +1268,7 @@ bool CMotionHuman::EventFrame(const Event &event)
 
         float speedX = m_physics->GetLinMotionX(MO_REASPEED);
 
-        if (IsObjectCarryingCargo(m_object))
+        if (HasObjectInCargoSlot(m_object))
         {
             if ( speedX > 0.0f )  synchro = 0.15f;  // synchro forward
             else                 synchro = 0.35f;  // synchro backward
@@ -1544,7 +1285,7 @@ bool CMotionHuman::EventFrame(const Event &event)
         {
             volume[0] = 0.5f;
             freq[0] = 1.0f;
-            if (IsObjectCarryingCargo(m_object))
+            if (HasObjectInCargoSlot(m_object))
             {
 //?             volume[0] *= 2.0f;
                 freq[0] = 0.7f;
@@ -1626,17 +1367,4 @@ bool CMotionHuman::EventFrame(const Event &event)
     }
 
     return true;
-}
-
-
-// Management of the display mode when customizing the personal.
-
-void CMotionHuman::StartDisplayPerso()
-{
-    m_bDisplayPerso = true;
-}
-
-void CMotionHuman::StopDisplayPerso()
-{
-    m_bDisplayPerso = false;
 }

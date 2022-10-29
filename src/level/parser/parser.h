@@ -24,12 +24,12 @@
 
 #pragma once
 
-#include "level/level_category.h"
-#include "level/robotmain.h"
-
-#include "level/parser/parserexceptions.h"
 #include "level/parser/parserline.h"
-#include "level/parser/parserparam.h"
+
+class CLevelParserLine;
+using CLevelParserLineUPtr = std::unique_ptr<CLevelParserLine>;
+
+enum class LevelCategory;
 
 #include <string>
 #include <vector>
@@ -100,11 +100,3 @@ private:
     std::string m_pathChap;
     std::string m_pathLvl;
 };
-
-inline std::string InjectLevelPathsForCurrentLevel(const std::string& path, const std::string& defaultDir = "")
-{
-    CRobotMain* main = CRobotMain::GetInstancePointer();
-    auto levelParser = std::make_unique<CLevelParser>();
-    levelParser->SetLevelPaths(main->GetLevelCategory(), main->GetLevelChap(), main->GetLevelRank());
-    return levelParser->InjectLevelPaths(path, defaultDir);
-}

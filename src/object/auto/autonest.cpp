@@ -23,16 +23,24 @@
 #include "graphics/engine/engine.h"
 #include "graphics/engine/terrain.h"
 
+#include "level/robotmain.h"
+
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
 
-#include "object/object_manager.h"
-#include "object/old_object.h"
+#include "math/geometry.h"
 
+#include "object/object.h"
+#include "object/object_manager.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
 
 // Object's constructor.
 
-CAutoNest::CAutoNest(COldObject* object) : CAuto(object)
+CAutoNest::CAutoNest(CObject* object) : CAuto(object)
 {
     Init();
 }
@@ -65,8 +73,6 @@ void CAutoNest::DeleteObject(bool all)
 
 void CAutoNest::Init()
 {
-    glm::vec3    pos;
-
     m_phase    = ANP_WAIT;
     m_progress = 0.0f;
     m_speed    = 1.0f/4.0f;
@@ -74,9 +80,7 @@ void CAutoNest::Init()
     m_time     = 0.0f;
     m_lastParticle = 0.0f;
 
-    pos = m_object->GetPosition();
-    m_terrain->AdjustToFloor(pos);
-    m_cargoPos = pos;
+    m_cargoPos = GetCargoPos();
 }
 
 
@@ -84,8 +88,6 @@ void CAutoNest::Init()
 
 bool CAutoNest::EventProcess(const Event &event)
 {
-    CObject*    cargo;
-
     CAuto::EventProcess(event);
 
     if ( m_engine->GetPause() )  return true;
@@ -96,26 +98,12 @@ bool CAutoNest::EventProcess(const Event &event)
     if ( m_phase == ANP_WAIT )
     {
         if ( m_progress >= 1.0f )
-        {
-            if ( !SearchFree(m_cargoPos) )
-            {
-                m_phase    = ANP_WAIT;
-                m_progress = 0.0f;
-                m_speed    = 1.0f/4.0f;
-            }
-            else
-            {
-                CreateCargo(m_cargoPos, 0.0f, OBJECT_BULLET);
-                m_phase    = ANP_BIRTH;
-                m_progress = 0.0f;
-                m_speed    = 1.0f/5.0f;
-            }
-        }
+            FindSomethingToDig();
     }
 
     if ( m_phase == ANP_BIRTH )
     {
-        cargo = SearchCargo();
+        CObject* cargo = SearchCargo();
 
         if ( m_progress < 1.0f )
         {
@@ -131,6 +119,7 @@ bool CAutoNest::EventProcess(const Event &event)
                 cargo->SetScale(1.0f);
                 cargo->SetLock(false);
             }
+            m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
 
             m_phase    = ANP_WAIT;
             m_progress = 0.0f;
@@ -141,15 +130,66 @@ bool CAutoNest::EventProcess(const Event &event)
     return true;
 }
 
+void CAutoNest::FindSomethingToDig()
+{
+    auto digging = GetObjectAutomatedDetails(m_object).digging;
+
+    Gfx::TerrainRes res = m_terrain->GetResource(m_object->GetPosition());
+
+    std::vector<CObjectDiggingAutomated> matched;
+    for ( auto it: digging.objects )
+    {
+        if (it.soil != Gfx::TR_ANY && it.soil != res)    continue;
+        if (it.maxCount != -1)
+        {
+            size_t maxCount = static_cast<size_t>(it.maxCount);
+            size_t count    = CObjectManager::GetInstancePointer()->RadarAll(nullptr, it.output).size();
+            if ( count >= maxCount ) continue;
+        }
+        matched.push_back(it);
+    }
+
+    if ( matched.size() > 0 && SearchFree(GetCargoPos()) )
+    {
+        CObjectDiggingAutomated matchedFinal = matched[ std::rand() % matched.size() ];
+        m_type        = matchedFinal.output;
+        m_onCompleted = matchedFinal.message;
+        m_cargoPos    = GetCargoPos();
+
+        if (matchedFinal.output != OBJECT_NULL)
+            CreateCargo(m_cargoPos, 0.0f);
+
+        m_phase    = ANP_BIRTH;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/matchedFinal.duration;
+    }
+    else
+    {
+        m_phase    = ANP_WAIT;
+        m_progress = 0.0f;
+        m_speed    = 1.0f/4.0f;
+    }
+}
+
+glm::vec3 CAutoNest::GetCargoPos()
+{
+    auto digging = GetObjectAutomatedDetails(m_object).digging;
+    glm::mat4 mat = m_object->GetWorldMatrix(digging.partNum);
+    glm::vec3 pos = Math::Transform(mat, digging.position);
+    m_terrain->AdjustToFloor(pos);
+    return pos;
+}
 
 // Seeks if a site is free.
 
 bool CAutoNest::SearchFree(glm::vec3 pos)
 {
+    if (IsObjectBeingTransported(m_object)) return false;    
+
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
         ObjectType type = obj->GetType();
-        if ( type == OBJECT_NEST )  continue;
+        if ( type == m_object->GetType() )  continue;
 
         for (const auto& crashSphere : obj->GetAllCrashSpheres())
         {
@@ -167,9 +207,11 @@ bool CAutoNest::SearchFree(glm::vec3 pos)
 
 // Create a transportable object.
 
-void CAutoNest::CreateCargo(glm::vec3 pos, float angle, ObjectType type)
+void CAutoNest::CreateCargo(glm::vec3 pos, float angle)
 {
-    CObject* cargo = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type);
+    if (m_type == OBJECT_NULL) return; 
+
+    CObject* cargo = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, m_type);
     cargo->SetLock(true);  // not usable
     cargo->SetScale(0.0f);
 }
@@ -182,28 +224,20 @@ CObject* CAutoNest::SearchCargo()
     {
         if ( !obj->GetLock() )  continue;
 
-        ObjectType type = obj->GetType();
-        if ( type != OBJECT_BULLET )  continue;
-
-        glm::vec3 oPos = obj->GetPosition();
-        if ( oPos.x == m_cargoPos.x &&
-             oPos.z == m_cargoPos.z )
+        for ( auto it: GetObjectAutomatedDetails(m_object).digging.objects )
         {
-            return obj;
+            if ( obj->GetType() != m_type ) continue;
+
+            glm::vec3 oPos = obj->GetPosition();
+            if ( oPos.x == m_cargoPos.x && oPos.z == m_cargoPos.z )
+            {
+                return obj;
+            }
         }
     }
 
     return nullptr;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoNest::GetError()
-{
-    return ERR_OK;
-}
-
 
 // Saves all parameters of the controller.
 

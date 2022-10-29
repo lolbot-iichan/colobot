@@ -24,19 +24,18 @@
 
 #pragma once
 
-#include "object/object_type.h"
-
 #include <glm/glm.hpp>
 
 class CAuto;
 
+enum ObjectType : unsigned int;
 
 struct Character
 {
-    float        wheelFront = 0.0f;     // position X of the front wheels
-    float        wheelBack = 0.0f;      // position X of the back wheels
-    float        wheelLeft = 0.0f;      // position Z of the left wheels
-    float        wheelRight = 0.0f;     // position Z of the right wheels
+    float        wheelFront = 1.0f;     // position X of the front wheels
+    float        wheelBack = 1.0f;      // position X of the back wheels
+    float        wheelLeft = 1.0f;      // position Z of the left wheels
+    float        wheelRight = 1.0f;     // position Z of the right wheels
     float        height = 0.0f;         // normal height on top of ground
 };
 
@@ -55,7 +54,7 @@ public:
 
     virtual void        SetDrawFront(bool bDraw);
 
-
+    virtual void        SetFloorHeight(float height);
     virtual void        FloorAdjust();
 
     virtual void        SetLinVibration(glm::vec3 dir);

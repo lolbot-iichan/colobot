@@ -33,8 +33,15 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
+#include "object/object_type.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/detectable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+
 #include "object/interface/controllable_object.h"
-#include "object/interface/transportable_object.h"
 
 #include <cstring>
 
@@ -378,30 +385,30 @@ void CMap::Draw()
 
     i = MAPMAXOBJECT-1;
     if ( m_map[i].bUsed )  // selection:
-        DrawFocus(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color);
+        DrawFocus(m_map[i].pos, m_map[i].dir, m_map[i].color);
 
     for ( i=0 ; i<m_totalFix ; i++ ) // fixed objects:
     {
         if ( i == m_highlightRank )
             continue;
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, false, false);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, false, false);
     }
 
     for ( i=MAPMAXOBJECT-2 ; i>m_totalMove ; i-- ) // moving objects:
     {
         if ( i == m_highlightRank )
             continue;
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, false, false);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, false, false);
     }
 
     i = MAPMAXOBJECT-1;
     if ( m_map[i].bUsed && i != m_highlightRank )  // selection:
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, true, false);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, true, false);
 
     if ( m_highlightRank != -1 && m_map[m_highlightRank].bUsed )
     {
         i = m_highlightRank;
-        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, false, true);
+        DrawObject(m_map[i].pos, m_map[i].dir, m_map[i].type, m_map[i].color, m_map[i].icon, false, true);
         DrawHighlight(m_map[i].pos);
     }
 }
@@ -453,7 +460,7 @@ glm::vec2 CMap::MapInter(const glm::vec2& pos, float dir)
 
 // Draw the field of vision of the selected object.
 
-void CMap::DrawFocus(const glm::vec2& position, float dir, ObjectType type, MapColor color)
+void CMap::DrawFocus(const glm::vec2& position, float dir, MapColor color)
 {
     glm::vec2 p0, p1, p2, uv1, uv2, rel;
     float   aMin, aMax, aOct, focus, a;
@@ -541,7 +548,7 @@ void CMap::DrawFocus(const glm::vec2& position, float dir, ObjectType type, MapC
 // Draw an object.
 
 void CMap::DrawObject(const glm::vec2& position, float dir, ObjectType type, MapColor color,
-                      bool bSelect, bool bHilite)
+                      int icon, bool bSelect, bool bHilite)
 {
     glm::vec2   p1, p2, p3, p4, p5, dim, uv1, uv2;
     bool        bOut, bUp, bDown, bLeft, bRight;
@@ -712,7 +719,7 @@ void CMap::DrawObject(const glm::vec2& position, float dir, ObjectType type, Map
     if ( color == MAPCOLOR_BASE ||
          color == MAPCOLOR_FIX  )
     {
-        DrawObjectIcon(pos, dim, color, type, bHilite);
+        DrawObjectIcon(pos, dim, color, icon, bHilite);
     }
 
     if ( color == MAPCOLOR_MOVE )
@@ -740,7 +747,7 @@ void CMap::DrawObject(const glm::vec2& position, float dir, ObjectType type, Map
                 DrawTriangle(p1, p2, p3, uv1, uv2);
             }
         }
-        DrawObjectIcon(pos, dim, color, type, bHilite);
+        DrawObjectIcon(pos, dim, color, icon, bHilite);
     }
 
     if ( color == MAPCOLOR_BBOX )
@@ -762,7 +769,7 @@ void CMap::DrawObject(const glm::vec2& position, float dir, ObjectType type, Map
     {
         if ( m_bRadar )
         {
-            DrawObjectIcon(pos, dim, color, type, true);
+            DrawObjectIcon(pos, dim, color, icon, true);
         }
     }
 
@@ -826,11 +833,10 @@ void CMap::DrawObject(const glm::vec2& position, float dir, ObjectType type, Map
 // Draws the icon of an object.
 
 void CMap::DrawObjectIcon(const glm::vec2& pos, const glm::vec2& dim, MapColor color,
-                          ObjectType type, bool bHilite)
+                          int icon, bool bHilite)
 {
-    glm::vec2 ppos, ddim, uv1, uv2;
+    glm::vec2 uv1, uv2;
     float   dp;
-    int     icon;
 
     dp = 0.5f/256.0f;
 
@@ -865,88 +871,16 @@ void CMap::DrawObjectIcon(const glm::vec2& pos, const glm::vec2& dim, MapColor c
 
     if ( bHilite )
     {
-        switch ( type )
-        {
-            case OBJECT_FACTORY:    icon = 32; break;
-            case OBJECT_DERRICK:    icon = 33; break;
-            case OBJECT_CONVERT:    icon = 34; break;
-            case OBJECT_RESEARCH:   icon = 35; break;
-            case OBJECT_STATION:    icon = 36; break;
-            case OBJECT_TOWER:      icon = 37; break;
-            case OBJECT_LABO:       icon = 38; break;
-            case OBJECT_ENERGY:     icon = 39; break;
-            case OBJECT_RADAR:      icon = 40; break;
-            case OBJECT_INFO:       icon = 44; break;
-            case OBJECT_REPAIR:     icon = 41; break;
-            case OBJECT_DESTROYER:  icon = 41; break;
-            case OBJECT_NUCLEAR:    icon = 42; break;
-            case OBJECT_PARA:       icon = 46; break;
-            case OBJECT_SAFE:       icon = 47; break;
-            case OBJECT_HUSTON:     icon = 48; break;
-            case OBJECT_TARGET1:    icon = 45; break;
-            case OBJECT_BASE:       icon = 43; break;
-            case OBJECT_HUMAN:      icon = 8; break;
-            case OBJECT_MOBILEfa:   icon = 11; break;
-            case OBJECT_MOBILEta:   icon = 10; break;
-            case OBJECT_MOBILEwa:   icon = 9; break;
-            case OBJECT_MOBILEia:   icon = 22; break;
-            case OBJECT_MOBILEfb:   icon = 2; break; // button4
-            case OBJECT_MOBILEtb:   icon = 1; break;
-            case OBJECT_MOBILEwb:   icon = 0; break;
-            case OBJECT_MOBILEib:   icon = 3; break;
-            case OBJECT_MOBILEfc:   icon = 17; break;
-            case OBJECT_MOBILEtc:   icon = 16; break;
-            case OBJECT_MOBILEwc:   icon = 15; break;
-            case OBJECT_MOBILEic:   icon = 23; break;
-            case OBJECT_MOBILEfi:   icon = 27; break;
-            case OBJECT_MOBILEti:   icon = 26; break;
-            case OBJECT_MOBILEwi:   icon = 25; break;
-            case OBJECT_MOBILEii:   icon = 28; break;
-            case OBJECT_MOBILEfs:   icon = 14; break;
-            case OBJECT_MOBILEts:   icon = 13; break;
-            case OBJECT_MOBILEws:   icon = 12; break;
-            case OBJECT_MOBILEis:   icon = 24; break;
-            case OBJECT_MOBILErt:   icon = 18; break;
-            case OBJECT_MOBILErc:   icon = 19; break;
-            case OBJECT_MOBILErr:   icon = 20; break;
-            case OBJECT_MOBILErs:   icon = 29; break;
-            case OBJECT_MOBILEsa:   icon = 21; break;
-            case OBJECT_MOBILEft:   icon =  6; break;
-            case OBJECT_MOBILEtt:   icon =  5; break;
-            case OBJECT_MOBILEwt:   icon = 30; break;
-            case OBJECT_MOBILEit:   icon =  7; break;
-            case OBJECT_MOBILErp:   icon =  9; break;
-            case OBJECT_MOBILEst:   icon = 10; break;
-            case OBJECT_MOBILEtg:   icon = 45; break;
-            case OBJECT_MOBILEdr:   icon = 48; break;
-            case OBJECT_APOLLO2:    icon = 49; break;
-            case OBJECT_MOTHER:     icon = 31; break;
-            case OBJECT_ANT:        icon = 31; break;
-            case OBJECT_SPIDER:     icon = 31; break;
-            case OBJECT_BEE:        icon = 31; break;
-            case OBJECT_WORM:       icon = 31; break;
-            case OBJECT_TEEN28:     icon = 48; break;  // bottle
-            case OBJECT_TEEN34:     icon = 48; break;  // stone
-            default:                icon = -1;
-        }
         if ( icon == -1 )  return;
 
-        switch ( type )
+        switch ( icon >> 6 )
         {
-            case OBJECT_MOBILEfb:
-            case OBJECT_MOBILEtb:
-            case OBJECT_MOBILEwb:
-            case OBJECT_MOBILEib:
-            case OBJECT_MOBILEft:
-            case OBJECT_MOBILEtt:
-            case OBJECT_MOBILEit:
-            case OBJECT_MOBILErp:
-            case OBJECT_MOBILEst:
-            {
-                auto texture = m_engine->LoadTexture("textures/interface/button4.png");
-                renderer->SetTexture(texture);
-                break;
-            }
+            case 0:
+                renderer->SetTexture(m_engine->LoadTexture("textures/interface/button1.png")); break;
+            case 1:
+                renderer->SetTexture(m_engine->LoadTexture("textures/interface/button2.png")); break;
+            case 3:
+                renderer->SetTexture(m_engine->LoadTexture("textures/interface/button4.png")); break;
             default: ; // button3.png
         }
 
@@ -1216,9 +1150,11 @@ void CMap::FlushObject()
 
 void CMap::UpdateObject(CObject* pObj)
 {
+    CObjectMapIconDetails mapDetails;
     ObjectType      type;
     MapColor        color;
-    glm::vec3    pos;
+    int             icon;
+    glm::vec3       pos;
     glm::vec2       ppos;
     float           dir;
 
@@ -1227,12 +1163,9 @@ void CMap::UpdateObject(CObject* pObj)
 
     type = pObj->GetType();
     if ( !pObj->GetDetectable() )  return;
-    if ( type != OBJECT_MOTHER   &&
-         type != OBJECT_ANT      &&
-         type != OBJECT_SPIDER   &&
-         type != OBJECT_BEE      &&
-         type != OBJECT_WORM     &&
-         type != OBJECT_MOBILEtg )
+
+    mapDetails = GetObjectDetectableDetails(pObj).map;
+    if ( !mapDetails.isForced )
     {
         if (pObj->Implements(ObjectInterfaceType::Controllable) && !dynamic_cast<CControllableObject&>(*pObj).GetSelectable()) return;
     }
@@ -1250,109 +1183,8 @@ void CMap::UpdateObject(CObject* pObj)
         dir += m_angle;
     }
 
-    color = MAPCOLOR_NULL;
-    if ( type == OBJECT_BASE )
-    {
-        color = MAPCOLOR_BASE;
-    }
-    if ( type == OBJECT_DERRICK  ||
-         type == OBJECT_FACTORY  ||
-         type == OBJECT_STATION  ||
-         type == OBJECT_CONVERT  ||
-         type == OBJECT_REPAIR   ||
-         type == OBJECT_DESTROYER||
-         type == OBJECT_TOWER    ||
-         type == OBJECT_RESEARCH ||
-         type == OBJECT_RADAR    ||
-         type == OBJECT_INFO     ||
-         type == OBJECT_ENERGY   ||
-         type == OBJECT_LABO     ||
-         type == OBJECT_NUCLEAR  ||
-         type == OBJECT_PARA     ||
-         type == OBJECT_SAFE     ||
-         type == OBJECT_HUSTON   ||
-         type == OBJECT_TARGET1  ||
-         type == OBJECT_START    ||
-         type == OBJECT_END      ||  // stationary object?
-         type == OBJECT_TEEN28    ||  // bottle?
-         type == OBJECT_TEEN34    )   // stone?
-    {
-        color = MAPCOLOR_FIX;
-    }
-    if ( type == OBJECT_BBOX ||
-         type == OBJECT_KEYa ||
-         type == OBJECT_KEYb ||
-         type == OBJECT_KEYc ||
-         type == OBJECT_KEYd )
-    {
-        color = MAPCOLOR_BBOX;
-    }
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2  )  // moving vehicle?
-    {
-        color = MAPCOLOR_MOVE;
-    }
-    if ( type == OBJECT_ANT      ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_SPIDER   )  // mobile enemy?
-    {
-        color = MAPCOLOR_ALIEN;
-    }
-    if ( type == OBJECT_WAYPOINT ||
-         type == OBJECT_FLAGb    )
-    {
-        color = MAPCOLOR_WAYPOINTb;
-    }
-    if ( type == OBJECT_FLAGr )
-    {
-        color = MAPCOLOR_WAYPOINTr;
-    }
-    if ( type == OBJECT_FLAGg )
-    {
-        color = MAPCOLOR_WAYPOINTg;
-    }
-    if ( type == OBJECT_FLAGy )
-    {
-        color = MAPCOLOR_WAYPOINTy;
-    }
-    if ( type == OBJECT_FLAGv )
-    {
-        color = MAPCOLOR_WAYPOINTv;
-    }
+    color = static_cast<MapColor>(mapDetails.color);
+    icon = mapDetails.icon;
 
     if ( color == MAPCOLOR_NULL )  return;
 
@@ -1372,6 +1204,7 @@ void CMap::UpdateObject(CObject* pObj)
         m_map[MAPMAXOBJECT-1].type   = type;
         m_map[MAPMAXOBJECT-1].object = pObj;
         m_map[MAPMAXOBJECT-1].color  = color;
+        m_map[MAPMAXOBJECT-1].icon   = icon;
         m_map[MAPMAXOBJECT-1].pos.x  = pos.x;
         m_map[MAPMAXOBJECT-1].pos.y  = pos.z;
         m_map[MAPMAXOBJECT-1].dir    = dir;
@@ -1385,6 +1218,7 @@ void CMap::UpdateObject(CObject* pObj)
             m_map[m_totalFix].type   = type;
             m_map[m_totalFix].object = pObj;
             m_map[m_totalFix].color  = color;
+            m_map[m_totalFix].icon   = icon;
             m_map[m_totalFix].pos.x  = pos.x;
             m_map[m_totalFix].pos.y  = pos.z;
             m_map[m_totalFix].dir    = dir;
@@ -1396,6 +1230,7 @@ void CMap::UpdateObject(CObject* pObj)
             m_map[m_totalMove].type   = type;
             m_map[m_totalMove].object = pObj;
             m_map[m_totalMove].color  = color;
+            m_map[m_totalMove].icon   = icon;
             m_map[m_totalMove].pos.x  = pos.x;
             m_map[m_totalMove].pos.y  = pos.z;
             m_map[m_totalMove].dir    = dir;

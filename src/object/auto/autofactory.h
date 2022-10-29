@@ -42,7 +42,7 @@ enum AutoFactoryPhase
 class CAutoFactory : public CAuto
 {
 public:
-    CAutoFactory(COldObject* object);
+    CAutoFactory(CObject* object);
     ~CAutoFactory();
 
     void        DeleteObject(bool all=false) override;
@@ -60,12 +60,12 @@ public:
 
 protected:
     void        UpdateInterface();
-    void        UpdateButton(Ui::CWindow *pw, EventType event, bool bBusy);
 
     CObject*    SearchCargo();
     bool        NearestVehicle();
     bool        CreateVehicle();
     CObject*    SearchVehicle();
+    Error       CanFactoryError(ObjectType type, int team);
 
     void        SoundManip(float time, float amplitude, float frequency);
 
@@ -78,4 +78,9 @@ protected:
     int                 m_channelSound = 0;
 
     std::string         m_program;
+
+    std::string         m_onCompleted;
+    int                 m_partNum;
+    glm::vec3           m_position;
+    bool                m_rotateTweak;
 };

@@ -23,23 +23,27 @@
 #include "graphics/engine/engine.h"
 #include "graphics/engine/pyro_manager.h"
 
-#include "level/parser/parser.h"
 #include "level/parser/parserline.h"
 #include "level/parser/parserparam.h"
+#include "level/parser/path_inject.h"
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
+
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
 
 #include "object/interface/program_storage_object.h"
 #include "object/interface/programmable_object.h"
-#include "object/interface/transportable_object.h"
 
 
 // Object's constructor.
 
-CAutoEgg::CAutoEgg(COldObject* object) : CAuto(object)
+CAutoEgg::CAutoEgg(CObject* object) : CAuto(object)
 {
     m_type = OBJECT_NULL;
     m_value = 0.0f;
@@ -67,8 +71,6 @@ void CAutoEgg::DeleteObject(bool all)
         CObject* alien = SearchAlien();
         if ( alien != nullptr )
         {
-            // Probably the intended action
-            // Original code: ( alien->GetScale() == 1.0f )
             if ( alien->GetScaleY() == 1.0f )
             {
                 alien->SetLock(false);
@@ -109,16 +111,16 @@ void CAutoEgg::Init()
 
     m_type = alien->GetType();
 
-    if ( m_type == OBJECT_ANT    ||
-         m_type == OBJECT_SPIDER ||
-         m_type == OBJECT_BEE    )
+    for ( auto it: GetObjectAutomatedDetails(m_object).egg.objects )
     {
-        alien->SetScale(0.2f);
+        if (it.input == m_type)
+        {
+            alien->SetScale(it.beginScale);
+            m_speed = 1.0f / it.duration;
+            break;
+        }
     }
-    if ( m_type == OBJECT_WORM )
-    {
-        alien->SetScale(0.01f);  // invisible !
-    }
+
     alien->SetLock(true);
 
     if (alien->Implements(ObjectInterfaceType::Programmable))
@@ -213,11 +215,12 @@ bool CAutoEgg::EventProcess(const Event &event)
 
     if ( m_phase == AEP_ZOOM )
     {
-        if ( m_type == OBJECT_ANT    ||
-             m_type == OBJECT_SPIDER ||
-             m_type == OBJECT_BEE    )
+        for ( auto it: GetObjectAutomatedDetails(m_object).egg.objects )
         {
-            alien->SetScale(0.2f+m_progress*0.8f);  // Others push
+            if (it.input == m_type)
+            {
+                alien->SetScale(it.beginScale + m_progress*(it.endScale-it.beginScale));
+            }
         }
     }
 
@@ -251,6 +254,7 @@ Error CAutoEgg::IsEnded()
     {
         if ( m_progress < 1.0f )  return ERR_CONTINUE;
 
+        // TODO: Should we use DestroyObject instead ?! 
         m_engine->GetPyroManager()->Create(Gfx::PT_EGG, m_object);  // exploding egg
 
         alien->SetScale(1.0f);  // this is a big boy now
@@ -274,15 +278,6 @@ Error CAutoEgg::IsEnded()
     return ERR_STOP;
 }
 
-
-// Returns an error due the state of the automation.
-
-Error CAutoEgg::GetError()
-{
-    return ERR_OK;
-}
-
-
 // Seeking the insect that starts in the egg.
 
 CObject* CAutoEgg::SearchAlien()
@@ -295,17 +290,18 @@ CObject* CAutoEgg::SearchAlien()
         if (IsObjectBeingTransported(obj))  continue;
 
         ObjectType type = obj->GetType();
-        if ( type != OBJECT_ANT    &&
-             type != OBJECT_BEE    &&
-             type != OBJECT_SPIDER &&
-             type != OBJECT_WORM   )  continue;
-
-        glm::vec3 oPos = obj->GetPosition();
-        float dist = Math::DistanceProjected(oPos, cPos);
-        if ( dist < 8.0f && dist < min )
+        for ( auto it: GetObjectAutomatedDetails(m_object).egg.objects )
         {
-            min = dist;
-            best = obj;
+            if (it.input == type)
+            {
+                glm::vec3 oPos = obj->GetPosition();
+                float dist = Math::DistanceProjected(oPos, cPos);
+                if ( dist < 8.0f && dist < min )
+                {
+                    min = dist;
+                    best = obj;
+                }
+            }
         }
     }
     return best;

@@ -37,24 +37,33 @@
 #include "level/robotmain.h"
 
 #include "level/parser/parser.h"
+#include "level/parser/path_inject.h"
 
 #include "math/all.h"
 
 #include "object/object.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
+#include "object/old_object.h"
 
 #include "object/auto/auto.h"
 #include "object/auto/autobase.h"
 #include "object/auto/autofactory.h"
 
-#include "object/interface/destroyable_object.h"
-#include "object/interface/programmable_object.h"
-#include "object/interface/task_executor_object.h"
-#include "object/interface/trace_drawing_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/global_details.h"
+#include "object/details/trace_drawing_details.h"
 
-#include "object/subclass/base_alien.h"
-#include "object/subclass/exchange_post.h"
-#include "object/subclass/shielder.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/programmable_helpers.h"
+
+#include "object/interface/destroyable_object.h"
+#include "object/interface/exchange_post_object.h"
+#include "object/interface/programmable_object.h"
+#include "object/interface/shielder_object.h"
+#include "object/interface/task_executor_object.h"
+#include "object/interface/thumpable_object.h"
+#include "object/interface/trace_drawing_object.h"
 
 #include "object/task/taskinfo.h"
 
@@ -71,42 +80,141 @@
 
 using namespace CBot;
 
-CBotTypResult CScriptFunctions::cClassNull(CBotVar* thisclass, CBotVar* &var)
+template<class T> inline T PopSimple(CBot::CBotVar* &var, T def, T(*getter)(CBot::CBotVar* &var))
 {
-    return cNull(var, nullptr);
+    T result = def;
+    if ( var != nullptr )
+    {
+        result = getter(var);
+        var = var->GetNext();
+    }
+    return result;
 }
 
-CBotTypResult CScriptFunctions::cClassOneFloat(CBotVar* thisclass, CBotVar* &var)
+inline int PopType(CBot::CBotVar* &var, int def=CBot::CBotTypMAX)
 {
-    return cOneFloat(var, nullptr);
+    return PopSimple<int>(var, def, [](CBot::CBotVar* &var){return static_cast<int>(var->GetType());});
+}
+
+inline int PopValInt(CBot::CBotVar* &var, int def=0)
+{
+    return PopSimple<int>(var, def, [](CBot::CBotVar* &var){return var->GetValInt();});
+}
+
+inline float PopValFloat(CBot::CBotVar* &var, float def=0.0f)
+{
+    return PopSimple<float>(var, def, [](CBot::CBotVar* &var){return var->GetValFloat();});
+}
+
+inline std::string PopValString(CBot::CBotVar* &var, std::string def="")
+{
+    return PopSimple<std::string>(var, def, [](CBot::CBotVar* &var){return var->GetValString();});
+}
+
+inline CObject* PopValObject(CBot::CBotVar* &var, CObject* def=nullptr)
+{
+    return PopSimple<CObject*>(var, def, [](CBot::CBotVar* &var){return static_cast<CObject*>(var->GetUserPtr());});
+}
+
+inline glm::vec3 PopValPoint(CBot::CBotVar* &var, glm::vec3 def = {0,0,0})
+{
+    glm::vec3 result = def;
+    if ( var != nullptr )
+    {
+        if ( var->GetType() <= CBot::CBotTypDouble )
+        {
+            result.x = PopValFloat(var)*g_unit;
+            result.y = 0.0f;
+            result.z = PopValFloat(var)*g_unit;
+        }
+        else
+        {
+            CBot::CBotVar *pX = var->GetItem("x");
+            CBot::CBotVar *pY = var->GetItem("y");
+            CBot::CBotVar *pZ = var->GetItem("z");
+            var = var->GetNext();
+
+            result.x = PopValFloat(pX)*g_unit;
+            result.y = PopValFloat(pZ)*g_unit;  // attention y -> z !
+            result.z = PopValFloat(pY)*g_unit;  // attention y -> z !
+        }
+    }
+    return result;
+}
+
+inline std::vector<ObjectType> PopValObjectList(CBot::CBotVar* &var)
+{
+    std::vector<int> tmp;
+    std::vector<ObjectType> result;
+
+    if ( var != nullptr )
+    {
+        if ( var->GetType() == CBot::CBotTypArrayPointer )
+        {
+            CBot::CBotVar* array = var->GetItemList();
+            var = var->GetNext();
+            while ( array != nullptr )
+                tmp.push_back( PopValInt(array) );
+        }
+        else
+            tmp.push_back( PopValInt(var) );
+    }
+
+    for ( int type : tmp )
+    {
+        ObjectType t = static_cast<ObjectType>(type);
+        result.push_back(t);
+        for (auto it: GetObjectScriptingDetails(t).findableByRadar)
+            result.push_back(it.value);
+    }
+
+    return result;
 }
 
 // Compile a parameter of type "point".
 
-static CBotTypResult cPoint(CBotVar* &var, void* user)
+inline CBot::CBotTypResult cPoint(CBot::CBotVar* &var, void* user)
 {
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
+    if ( var == nullptr )  return CBot::CBotTypResult(CBot::CBotErrLowParam);
 
-    if ( var->GetType() <= CBotTypDouble )
+    if ( var->GetType() <= CBot::CBotTypDouble )
     {
-        var = var->GetNext();
-        if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-        if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
-        //?     if ( var == 0 )  return CBotTypResult(CBotErrLowParam);
-        //?     if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        //?     var = var->GetNext();
-        return CBotTypResult(0);
+        if ( PopType(var) > CBot::CBotTypDouble )  return CBot::CBotTypResult(CBot::CBotErrBadNum);
+        if ( var == nullptr )  return CBot::CBotTypResult(CBot::CBotErrLowParam);
+        if ( PopType(var) > CBot::CBotTypDouble )  return CBot::CBotTypResult(CBot::CBotErrBadNum);
+        return CBot::CBotTypResult(0);
     }
 
-    if ( var->GetType() == CBotTypClass )
+    if ( var->GetType() == CBot::CBotTypClass )
     {
-        if ( !var->IsElemOfClass("point") )  return CBotTypResult(CBotErrBadParam);
+        if ( !var->IsElemOfClass("point") )  return CBot::CBotTypResult(CBot::CBotErrBadParam);
         var = var->GetNext();
-        return CBotTypResult(0);
+        return CBot::CBotTypResult(0);
     }
 
-    return CBotTypResult(CBotErrBadParam);
+    return CBot::CBotTypResult(CBot::CBotErrBadParam);
+}
+
+// Compile a parameter of type "object or an array of objects".
+
+inline CBot::CBotTypResult cObjectList(CBot::CBotVar* &var)
+{
+    if ( var == nullptr )  return CBot::CBotTypResult(CBot::CBotErrLowParam);
+
+    if ( var->GetType() <= CBot::CBotTypDouble )
+    {
+        if ( PopType(var) > CBot::CBotTypDouble )  return CBot::CBotTypResult(CBot::CBotErrBadNum);
+        return CBot::CBotTypResult(0);
+    }
+
+    if ( var->GetType() == CBot::CBotTypArrayPointer )
+    {
+        CBot::CBotTypResult type = var->GetTypResult().GetTypElem();
+        if ( type.GetType() > CBot::CBotTypDouble )  return CBot::CBotTypResult(CBot::CBotErrBadParam);  // type
+        return CBot::CBotTypResult(0);
+    }
+
+    return CBot::CBotTypResult(CBot::CBotErrBadNum);
 }
 
 // Compiling a procedure with a single "point".
@@ -115,86 +223,41 @@ CBotTypResult CScriptFunctions::cOnePoint(CBotVar* &var, void* user)
 {
     CBotTypResult   ret;
 
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
-
-// Gives a parameter of type "point".
-
-static bool GetPoint(CBotVar* &var, int& exception, glm::vec3& pos)
-{
-    CBotVar     *pX, *pY, *pZ;
-
-    if ( var->GetType() <= CBotTypDouble )
-    {
-        pos.x = var->GetValFloat()*g_unit;
-        var = var->GetNext();
-
-        pos.z = var->GetValFloat()*g_unit;
-        var = var->GetNext();
-
-        pos.y = 0.0f;
-    }
-    else
-    {
-        pX = var->GetItem("x");
-        if ( pX == nullptr )
-        {
-            exception = CBotErrUndefItem;  return true;
-        }
-        pos.x = pX->GetValFloat()*g_unit;
-
-        pY = var->GetItem("y");
-        if ( pY == nullptr )
-        {
-            exception = CBotErrUndefItem;  return true;
-        }
-        pos.z = pY->GetValFloat()*g_unit;  // attention y -> z !
-
-        pZ = var->GetItem("z");
-        if ( pZ == nullptr )
-        {
-            exception = CBotErrUndefItem;  return true;
-        }
-        pos.y = pZ->GetValFloat()*g_unit;  // attention z -> y !
-
-        var = var->GetNext();
-    }
-    return true;
-}
-
 
 // Compilation of the instruction "endmission(result, delay)"
 
 CBotTypResult CScriptFunctions::cEndMission(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "endmission(result, delay)"
 
 bool CScriptFunctions::rEndMission(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    Error ended;
-    float delay;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    ended = static_cast<Error>(var->GetValInt());
-    var = var->GetNext();
+    if ( IsFunctionAllowed(pThis, FUNCTION_endmission) )
+    {
+        Error ended = static_cast<Error>(PopValInt(var));
+        float delay = PopValFloat(var);
+    
+        script->m_main->SetMissionResultFromScript(ended, delay);
+        err = ERR_OK;
+    }
 
-    delay = var->GetValFloat();
-
-    CRobotMain::GetInstancePointer()->SetMissionResultFromScript(ended, delay);
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of the instruction "playmusic(filename, repeat)"
@@ -202,93 +265,163 @@ bool CScriptFunctions::rEndMission(CBotVar* var, CBotVar* result, int& exception
 CBotTypResult CScriptFunctions::cPlayMusic(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
+    if ( PopType(var) != CBotTypString )  return CBotTypResult(CBotErrBadString);
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "playmusic(filename, repeat)"
 
 bool CScriptFunctions::rPlayMusic(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    std::string filename;
-    std::string cbs;
-    bool repeat;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    cbs = var->GetValString();
-    filename = std::string(cbs);
-    var = var->GetNext();
+    if ( IsFunctionAllowed(pThis, FUNCTION_playmusic) )
+    {
+        std::string filename = PopValString(var);
+        bool repeat = PopValInt(var);
+    
+        CApplication::GetInstancePointer()->GetSound()->StopMusic();
+        CApplication::GetInstancePointer()->GetSound()->PlayMusic(filename, repeat);
+        err = ERR_OK;
+    }
 
-    repeat = var->GetValInt();
-
-    CApplication::GetInstancePointer()->GetSound()->StopMusic();
-    CApplication::GetInstancePointer()->GetSound()->PlayMusic(filename, repeat);
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "stopmusic()"
 
 bool CScriptFunctions::rStopMusic(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CApplication::GetInstancePointer()->GetSound()->StopMusic();
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_stopmusic) )
+    {
+        CApplication::GetInstancePointer()->GetSound()->StopMusic();
+        err = ERR_OK;
+    }
+
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "getbuild()"
 
 bool CScriptFunctions::rGetBuild(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    result->SetValInt(CRobotMain::GetInstancePointer()->GetEnableBuild());
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_getbuild) )
+    {
+        ret = script->m_main->GetEnableBuild();
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
 
 // Instruction "getresearchenable()"
 
 bool CScriptFunctions::rGetResearchEnable(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    result->SetValInt(CRobotMain::GetInstancePointer()->GetEnableResearch());
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_getresearchenable) )
+    {
+        ret = script->m_main->GetEnableResearch();
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
 
 // Instruction "getresearchdone()"
 
 bool CScriptFunctions::rGetResearchDone(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
-    result->SetValInt(CRobotMain::GetInstancePointer()->GetDoneResearch(pThis->GetTeam()));
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_getresearchdone) )
+    {
+        ret = script->m_main->GetDoneResearch(pThis->GetTeam());
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
 
-// Instruction "setbuild()"
+// Instruction "setbuild(mask)"
 
 bool CScriptFunctions::rSetBuild(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CRobotMain::GetInstancePointer()->SetEnableBuild(var->GetValInt());
-    CApplication::GetInstancePointer()->GetEventQueue()->AddEvent(Event(EVENT_UPDINTERFACE));
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_setbuild) )
+    {
+        int mask = PopValInt(var);
+
+        script->m_main->SetEnableBuild(mask);
+        CApplication::GetInstancePointer()->GetEventQueue()->AddEvent(Event(EVENT_UPDINTERFACE));
+        err = ERR_OK;
+    }
+
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "setresearchenable()"
 
 bool CScriptFunctions::rSetResearchEnable(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CRobotMain::GetInstancePointer()->SetEnableResearch(var->GetValInt());
-    CApplication::GetInstancePointer()->GetEventQueue()->AddEvent(Event(EVENT_UPDINTERFACE));
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_setresearchenable) )
+    {
+        int mask = PopValInt(var);
+
+        script->m_main->SetEnableResearch(mask);
+        CApplication::GetInstancePointer()->GetEventQueue()->AddEvent(Event(EVENT_UPDINTERFACE));
+        err = ERR_OK;
+    }
+
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "setresearchdone()"
 
 bool CScriptFunctions::rSetResearchDone(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
-    CRobotMain::GetInstancePointer()->SetDoneResearch(var->GetValInt(), pThis->GetTeam());
-    CApplication::GetInstancePointer()->GetEventQueue()->AddEvent(Event(EVENT_UPDINTERFACE));
-    return true;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_setresearchdone) )
+    {
+        int mask = PopValInt(var);
+
+        script->m_main->SetDoneResearch(mask, pThis->GetTeam());
+        CApplication::GetInstancePointer()->GetEventQueue()->AddEvent(Event(EVENT_UPDINTERFACE));
+        err = ERR_OK;
+    }
+
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of the instruction "retobject(rank)".
@@ -296,54 +429,49 @@ bool CScriptFunctions::rSetResearchDone(CBotVar* var, CBotVar* result, int& exce
 CBotTypResult CScriptFunctions::cGetObject(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypPointer, "object");
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypPointer, "object");
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "retobjectbyid(rank)".
 
 bool CScriptFunctions::rGetObjectById(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject*    pObj;
-    int         rank;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    CObject*    ret = nullptr;
 
-    rank = var->GetValInt();
+    if ( IsFunctionAllowed(pThis, FUNCTION_retobjectbyid) )
+    {
+        int id = PopValInt(var);
 
-    pObj = static_cast<CObject*>(CObjectManager::GetInstancePointer()->GetObjectById(rank));
-    if ( pObj == nullptr )
-    {
-        result->SetPointer(nullptr);
-    }
-    else
-    {
-        result->SetPointer(pObj->GetBotVar());
+        ret = CObjectManager::GetInstancePointer()->GetObjectById(id);
+        err = ERR_OK;
     }
 
-    return true;
+    return ReturnPointer(ret, err, script, result, exception);
 }
 
 // Instruction "retobject(rank)".
 
 bool CScriptFunctions::rGetObject(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject*    pObj;
-    int         rank;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    CObject*    ret = nullptr;
 
-    rank = var->GetValInt();
+    if ( IsFunctionAllowed(pThis, FUNCTION_retobject) )
+    {
+        int rank = PopValInt(var);
 
-    pObj = CObjectManager::GetInstancePointer()->GetObjectByRank(rank);
-    if ( pObj == nullptr )
-    {
-        result->SetPointer(nullptr);
+        ret = CObjectManager::GetInstancePointer()->GetObjectByRank(rank);
+        err = ERR_OK;
     }
-    else
-    {
-        result->SetPointer(pObj->GetBotVar());
-    }
-    return true;
+
+    return ReturnPointer(ret, err, script, result, exception);
 }
 
 // Compilation of instruction "isbusy( object )"
@@ -358,82 +486,56 @@ CBotTypResult CScriptFunctions::cIsBusy(CBot::CBotVar* &var, void* user)
 
 bool CScriptFunctions::rIsBusy(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject*    pThis = static_cast<CScript*>(user)->m_object;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    exception = 0;
-
-    CObject* obj = static_cast<CObject*>(var->GetUserPtr());
-    if (obj == nullptr)
+    if ( IsFunctionAllowed(pThis, FUNCTION_isbusy) )
     {
-        exception = ERR_WRONG_OBJ;
-        result->SetValInt(ERR_WRONG_OBJ);
-        return false;
+        CObject* obj = PopValObject(var);
+
+        if (obj == nullptr || GetObjectAutomatedDetails(obj).autoClass == AUTO_CLASS_NONE || obj->GetAuto() == nullptr ) // TODO: use an interface
+            err = ERR_WRONG_OBJ;
+        else if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
+            err = ERR_ENEMY_OBJECT;
+        else
+        {
+            ret = obj->GetAuto()->GetBusy();
+            err = ERR_OK;
+        }
     }
 
-    CAuto* automat = obj->GetAuto();
-
-    if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
-    {
-        exception = ERR_ENEMY_OBJECT;
-        result->SetValInt(ERR_ENEMY_OBJECT);
-        return false;
-    }
-
-    if ( automat != nullptr )
-        result->SetValInt(automat->GetBusy());
-    else
-        exception = ERR_WRONG_OBJ;
-
-    return true;
+    return ReturnInt(ret, err, script, result, exception);
 }
+
+// Instruction "destroy( object )"
 
 bool CScriptFunctions::rDestroy(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
-    Error err;
-
-    CObject* obj;
-    if (var == nullptr)
-        obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_DESTROYER);
-    else
-        obj = static_cast<CObject*>(var->GetUserPtr());
-
-    if (obj == nullptr)
+    if ( IsFunctionAllowed(pThis, FUNCTION_destroy) )
     {
-        exception = ERR_WRONG_OBJ;
-        result->SetValInt(ERR_WRONG_OBJ);
-        return false;
-    }
+        CObject* obj = PopValObject(var);
 
-    CAuto* automat = obj->GetAuto();
-
-    if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
-    {
-        exception = ERR_ENEMY_OBJECT;
-        result->SetValInt(ERR_ENEMY_OBJECT);
-        return false;
-    }
-
-    if ( obj->GetType() == OBJECT_DESTROYER )
-        err = automat->StartAction(0);
-    else
-        err = ERR_WRONG_OBJ;
-
-    result->SetValInt(err); // indicates the error or ok
-    if ( err != ERR_OK )
-    {
-        if ( script->m_errMode == ERM_STOP )
+        if (obj == nullptr)
         {
-            exception = err;
-            return false;
+            ObjectType  fType = GetObjectGlobalDetails().defaults.destroyPerformer;
+            obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
         }
-        return true;
+
+        if (obj == nullptr || GetObjectAutomatedDetails(obj).autoClass != AUTO_CLASS_DESTROYER || obj->GetAuto() == nullptr )
+            err = ERR_WRONG_OBJ;
+        else if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
+            err = ERR_ENEMY_OBJECT;
+        else
+            err = obj->GetAuto()->StartAction(0);
     }
 
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of instruction "factory(cat[, program , object])"
@@ -441,20 +543,13 @@ bool CScriptFunctions::rDestroy(CBotVar* var, CBotVar* result, int& exception, v
 CBotTypResult CScriptFunctions::cFactory(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )
-    {
-        if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadParam);
-        var = var->GetNext();
-        if ( var != nullptr )
-        {
-            if ( var->GetType() != CBotTypPointer )  return CBotTypResult(CBotErrBadParam);
-            var = var->GetNext();
-            if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-        }
-    }
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) != CBotTypString )  return CBotTypResult(CBotErrBadString);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) != CBotTypPointer )  return CBotTypResult(CBotErrBadParam);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "factory(cat[, program , object])"
@@ -463,82 +558,34 @@ bool CScriptFunctions::rFactory(CBotVar* var, CBotVar* result, int& exception, v
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    Error       err;
-
-    exception = 0;
-
-    ObjectType type = static_cast<ObjectType>(var->GetValInt());
-    var = var->GetNext();
-
-    std::string program;
-    if ( var != nullptr )
+    if ( IsFunctionAllowed(pThis, FUNCTION_factory) )
     {
-        program = var->GetValString();
-        var = var->GetNext();
-    }
-    else
-        program = "";
+        ObjectType  type    = static_cast<ObjectType>(PopValInt(var));
+        std::string program = PopValString(var);
+        CObject*    obj     = PopValObject(var);
 
-    CObject* factory;
-    if (var == nullptr)
-        factory = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_FACTORY);
-    else
-        factory = static_cast<CObject*>(var->GetUserPtr());
-
-    if (factory == nullptr)
-    {
-        exception = ERR_WRONG_OBJ;
-        result->SetValInt(ERR_WRONG_OBJ);
-        return false;
-    }
-
-    if ( pThis->GetTeam() != factory->GetTeam() && factory->GetTeam() != 0 )
-    {
-        exception = ERR_ENEMY_OBJECT;
-        result->SetValInt(ERR_ENEMY_OBJECT);
-        return false;
-    }
-
-    if ( factory->GetType() == OBJECT_FACTORY )
-    {
-        CAutoFactory* automat = static_cast<CAutoFactory*>(factory->GetAuto());
-        if (automat == nullptr)
+        if (obj == nullptr)
         {
-            exception = ERR_UNKNOWN;
-            result->SetValInt(ERR_UNKNOWN);
-            GetLogger()->Error("in factory() - automat is nullptr");
-            return false;
+            ObjectType  fType = GetObjectGlobalDetails().defaults.factoryPerformer;
+            obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
         }
 
-        err = CRobotMain::GetInstancePointer()->CanFactoryError(type, factory->GetTeam());
+        if (obj == nullptr || GetObjectAutomatedDetails(obj).autoClass != AUTO_CLASS_FACTORY || obj->GetAuto() == nullptr )
+            err = ERR_WRONG_OBJ;
+        else if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
+            err = ERR_ENEMY_OBJECT;
+        else
+            err = obj->GetAuto()->StartAction(type);
 
         if ( err == ERR_OK )
         {
-            if ( automat != nullptr )
-            {
-                err = automat->StartAction(type);
-                if ( err == ERR_OK ) automat->SetProgram(program);
-            }
-            else
-                err = ERR_UNKNOWN;
+            static_cast<CAutoFactory*>(obj->GetAuto())->SetProgram(program);
         }
     }
-    else
-        err = ERR_WRONG_OBJ;
 
-    result->SetValInt(err); // indicates the error or ok
-    if ( err != ERR_OK )
-    {
-        if ( script->m_errMode == ERM_STOP )
-        {
-            exception = err;
-            return false;
-        }
-        return true;
-    }
-
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of instruction "research(type[, object])"
@@ -546,15 +593,11 @@ bool CScriptFunctions::rFactory(CBotVar* var, CBotVar* result, int& exception, v
 CBotTypResult CScriptFunctions::cResearch(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )
-    {
-        if ( var->GetType() != CBotTypPointer )  return CBotTypResult(CBotErrBadParam);
-        var = var->GetNext();
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    }
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) != CBotTypPointer )  return CBotTypResult(CBotErrBadParam);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 // Instruction "research(type[, object])"
 
@@ -562,87 +605,29 @@ bool CScriptFunctions::rResearch(CBotVar* var, CBotVar* result, int& exception, 
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    Error       err;
-
-    exception = 0;
-
-    ResearchType type = static_cast<ResearchType>(var->GetValInt());
-    var = var->GetNext();
-
-    CObject* center;
-    if (var == nullptr)
-        center = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_RESEARCH);
-    else
-        center = static_cast<CObject*>(var->GetUserPtr());
-
-    if (center == nullptr)
+    if ( IsFunctionAllowed(pThis, FUNCTION_research) )
     {
-        exception = ERR_WRONG_OBJ;
-        result->SetValInt(ERR_WRONG_OBJ);
-        return false;
-    }
+        ResearchType type = static_cast<ResearchType>(PopValInt(var));
+        CObject* obj = PopValObject(var);
 
-    CAuto* automat = center->GetAuto();
-
-    if ( pThis->GetTeam() != center->GetTeam() && center->GetTeam() != 0 )
-    {
-        exception = ERR_ENEMY_OBJECT;
-        result->SetValInt(ERR_ENEMY_OBJECT);
-        return false;
-    }
-
-    if ( center->GetType() == OBJECT_RESEARCH ||
-         center->GetType() == OBJECT_LABO      )
-    {
-        bool ok = false;
-        if ( type == RESEARCH_iPAW       ||
-             type == RESEARCH_iGUN       ||
-             type == RESEARCH_TARGET      )
+        if (obj == nullptr)
         {
-            if ( center->GetType() != OBJECT_LABO )
-                err = ERR_WRONG_OBJ;
-            else
-                ok = true;
+            ObjectType  fType = GetObjectDetails()->GetFunctionResearchPerformerObject(type);
+            obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
         }
+
+        if (obj == nullptr || ( GetObjectAutomatedDetails(obj).autoClass != AUTO_CLASS_LABO    &&
+                                GetObjectAutomatedDetails(obj).autoClass != AUTO_CLASS_RESEARCH ) || obj->GetAuto() == nullptr )
+            err = ERR_WRONG_OBJ;
+        else if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
+            err = ERR_ENEMY_OBJECT;
         else
-        {
-            if ( center->GetType() != OBJECT_RESEARCH )
-                err = ERR_WRONG_OBJ;
-            else
-                ok = true;
-        }
-        if ( ok )
-        {
-            bool bEnable = CRobotMain::GetInstancePointer()->IsResearchEnabled(type);
-            if ( bEnable )
-            {
-                if ( automat != nullptr )
-                {
-                    err = automat->StartAction(type);
-                }
-                else
-                    err = ERR_UNKNOWN;
-            }
-            else
-                err = ERR_BUILD_DISABLED;
-        }
-    }
-    else
-        err = ERR_WRONG_OBJ;
-
-    result->SetValInt(err); // indicates the error or ok
-    if ( err != ERR_OK )
-    {
-        if( script->m_errMode == ERM_STOP )
-        {
-            exception = err;
-            return false;
-        }
-        return true;
+            err = obj->GetAuto()->StartAction(type);
     }
 
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "takeoff(object)"
@@ -651,49 +636,26 @@ bool CScriptFunctions::rTakeOff(CBotVar* var, CBotVar* result, int& exception, v
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    Error       err;
-
-    exception = 0;
-    CObject* base;
-    if (var == nullptr)
-        base = CObjectManager::GetInstancePointer()->FindNearest(pThis, OBJECT_BASE);
-    else
-        base = static_cast<CObject*>(var->GetUserPtr());
-
-    if (base == nullptr)
+    if ( IsFunctionAllowed(pThis, FUNCTION_takeoff) )
     {
-        exception = ERR_WRONG_OBJ;
-        result->SetValInt(ERR_WRONG_OBJ);
-        return false;
-    }
-
-    CAuto* automat = base->GetAuto();
-
-    if ( pThis->GetTeam() != base->GetTeam() && base->GetTeam() != 0 )
-    {
-        exception = ERR_ENEMY_OBJECT;
-        result->SetValInt(ERR_ENEMY_OBJECT);
-        return false;
-    }
-
-    if ( base->GetType() == OBJECT_BASE )
-        err = (static_cast<CAutoBase*>(automat))->TakeOff(false);
-    else
-        err = ERR_WRONG_OBJ;
-
-    result->SetValInt(err); // indicates the error or ok
-    if ( err != ERR_OK )
-    {
-        if ( script->m_errMode == ERM_STOP )
+        CObject* obj = PopValObject(var);
+        if (obj == nullptr)
         {
-            exception = err;
-            return false;
+            ObjectType  fType = GetObjectGlobalDetails().defaults.takeoffPerformer;
+            obj = CObjectManager::GetInstancePointer()->FindNearest(pThis, fType);
         }
-        return true;
+
+        if (obj == nullptr || GetObjectAutomatedDetails(obj).autoClass != AUTO_CLASS_BASE || obj->GetAuto() == nullptr )
+            err = ERR_WRONG_OBJ;
+        else if ( pThis->GetTeam() != obj->GetTeam() && obj->GetTeam() != 0 )
+            err = ERR_ENEMY_OBJECT;
+        else
+            err = obj->GetAuto()->StartAction(0);
     }
 
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of the instruction "delete(rank[, exploType])".
@@ -701,103 +663,68 @@ bool CScriptFunctions::rTakeOff(CBotVar* var, CBotVar* result, int& exception, v
 CBotTypResult CScriptFunctions::cDelete(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-
-    if ( var->GetType() != CBotTypInt )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )
-    {
-        if ( var->GetType() != CBotTypInt ) return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
-    }
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "delete(rank[, exploType])".
 
 bool CScriptFunctions::rDelete(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    int rank;
-    DestructionType exploType = DestructionType::Explosion;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
 
-    rank = var->GetValInt();
-    var = var->GetNext();
-    if ( var != nullptr )
-    {
-        exploType = static_cast<DestructionType>(var->GetValInt());
-    }
+    if ( !IsFunctionAllowed(pThis, FUNCTION_DELETE) )
+        return ReturnErr(ERR_WRONG_BOT, script, result, exception);
+
+    int rank = PopValInt(var);
+    DestructionType exploType = static_cast<DestructionType>(PopValInt(var, int(DestructionType::Explosion)));
 
     CObject* obj = CObjectManager::GetInstancePointer()->GetObjectById(rank);
     if ( obj == nullptr || (obj->Implements(ObjectInterfaceType::Old) && dynamic_cast<COldObject&>(*obj).IsDying()) )
     {
-        return true;
+        return ReturnErr(ERR_OK, script, result, exception);
+    }
+
+    bool deleteSelf = (obj == pThis);
+
+    if ( exploType != DestructionType::NoEffect && obj->Implements(ObjectInterfaceType::Destroyable) )
+    {
+        dynamic_cast<CDestroyableObject&>(*obj).DestroyObject(static_cast<DestructionType>(exploType));
     }
     else
     {
-        CScript* script = static_cast<CScript*>(user);
-        bool deleteSelf = (obj == script->m_object);
-
-        if ( exploType != DestructionType::NoEffect && obj->Implements(ObjectInterfaceType::Destroyable) )
+        for (int slotNum = GetNumSlots(obj) - 1; slotNum >= 0; slotNum--)
         {
-            dynamic_cast<CDestroyableObject&>(*obj).DestroyObject(static_cast<DestructionType>(exploType));
+            CObjectManager::GetInstancePointer()->DeleteObjectInSlot(obj, slotNum);
         }
-        else
-        {
-            if (obj->Implements(ObjectInterfaceType::Slotted))
-            {
-                CSlottedObject* slotted = dynamic_cast<CSlottedObject*>(obj);
-                for (int slotNum = slotted->GetNumSlots() - 1; slotNum >= 0; slotNum--)
-                {
-                    CObject* sub = slotted->GetSlotContainedObject(slotNum);
-                    if (sub != nullptr)
-                    {
-                        slotted->SetSlotContainedObject(slotNum, nullptr);
-                        CObjectManager::GetInstancePointer()->DeleteObject(sub);
-                    }
-                }
-            }
-            CObjectManager::GetInstancePointer()->DeleteObject(obj);
-        }
-        // Returning "false" here makes sure the program doesn't try to keep executing
-        // if the robot just destroyed itself using delete(this.id)
-        // See issue #925
-        return !deleteSelf;
+        CObjectManager::GetInstancePointer()->DeleteObject(obj);
     }
-
-    return true;
+    // Returning "false" here makes sure the program doesn't try to keep executing
+    // if the robot just destroyed itself using delete(this.id)
+    // See issue #925
+    return !deleteSelf ? ReturnErr(ERR_OK, script, result, exception) : false;
 }
 
 static CBotTypResult compileSearch(CBotVar* &var, void* user, CBotTypResult returnValue)
 {
+    CBotTypResult ret;
+
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() == CBotTypArrayPointer )
-    {
-        CBotTypResult type = var->GetTypResult().GetTypElem();
-        if ( type.GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadParam);  // type
-    }
-    else if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // type
-    var = var->GetNext();
-
+    ret = cObjectList(var);  if ( ret.GetType() != 0 ) return ret;             // type
     if ( var == nullptr )  return returnValue;
-
-    CBotTypResult ret = cPoint(var, user);                                       // pos
-    if ( ret.GetType() != 0 ) return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 ) return ret;             // pos
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
     if ( var == nullptr )  return returnValue;
     return CBotTypResult(CBotErrOverParam);
 }
@@ -814,171 +741,71 @@ CBotTypResult CScriptFunctions::cSearchAll(CBotVar* &var, void* user)
     return compileSearch(var, user, CBotTypResult(CBotTypArrayPointer, CBotTypResult(CBotTypPointer, "object")));
 }
 
-static bool runSearch(CBotVar* var, glm::vec3 pos, int& exception, std::function<bool(std::vector<ObjectType>, glm::vec3, float, float, bool, RadarFilter)> code)
-{
-    CBotVar*    array;
-    RadarFilter filter;
-    float       minDist, maxDist, sens;
-    int         type;
-    bool        bArray = false;
-
-    type    = OBJECT_NULL;
-    array   = nullptr;
-    minDist = 0.0f*g_unit;
-    maxDist = 1000.0f*g_unit;
-    sens    = 1.0f;
-    filter  = FILTER_NONE;
-
-    if ( var != nullptr )
-    {
-        if ( var->GetType() == CBotTypArrayPointer )
-        {
-            array = var->GetItemList();
-            bArray = true;
-        }
-        else
-        {
-            type = var->GetValInt();
-            bArray = false;
-        }
-
-        var = var->GetNext();
-        if ( var != nullptr )
-        {
-            if ( !GetPoint(var, exception, pos) ) return false;
-
-            if ( var != nullptr )
-            {
-                minDist = var->GetValFloat();
-
-                var = var->GetNext();
-                if ( var != nullptr )
-                {
-                    maxDist = var->GetValFloat();
-
-                    var = var->GetNext();
-                    if ( var != nullptr )
-                    {
-                        sens = var->GetValFloat();
-
-                        var = var->GetNext();
-                        if ( var != nullptr )
-                        {
-                            filter = static_cast<RadarFilter>(var->GetValInt());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    std::vector<ObjectType> type_v;
-    if (bArray)
-    {
-        while ( array != nullptr )
-        {
-            if (array->GetValInt() == OBJECT_MOBILEpr)
-            {
-                type_v.push_back(OBJECT_MOBILEwt);
-                type_v.push_back(OBJECT_MOBILEtt);
-                type_v.push_back(OBJECT_MOBILEft);
-                type_v.push_back(OBJECT_MOBILEit);
-                type_v.push_back(OBJECT_MOBILErp);
-                type_v.push_back(OBJECT_MOBILEst);
-            }
-            type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
-            array = array->GetNext();
-        }
-    }
-    else
-    {
-        if (type != OBJECT_NULL && type != OBJECT_MOBILEpr)
-        {
-            type_v.push_back(static_cast<ObjectType>(type));
-        }
-        else if (type == OBJECT_MOBILEpr)
-        {
-           type_v.push_back(OBJECT_MOBILEwt);
-           type_v.push_back(OBJECT_MOBILEtt);
-           type_v.push_back(OBJECT_MOBILEft);
-           type_v.push_back(OBJECT_MOBILEit);
-           type_v.push_back(OBJECT_MOBILErp);
-           type_v.push_back(OBJECT_MOBILEst);
-        }
-    }
-
-    return code(type_v, pos, minDist, maxDist, sens < 0, filter);
-}
-
 bool CScriptFunctions::rSearch(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    CObject*    ret = nullptr;
 
-    return runSearch(var, pThis->GetPosition(), exception, [&result, pThis](std::vector<ObjectType> types, glm::vec3 pos, float minDist, float maxDist, bool furthest, RadarFilter filter)
+    if ( IsFunctionAllowed(pThis, FUNCTION_searchall) )
     {
-        CObject* pBest = CObjectManager::GetInstancePointer()->Radar(pThis, pos, 0.0f, types, 0.0f, Math::PI*2.0f, minDist, maxDist, furthest, filter, true);
+        std::vector<ObjectType> types = PopValObjectList(var);
+        glm::vec3 pos = PopValPoint(var, pThis->GetPosition());
+        float min     = PopValFloat(var, 0.0f*g_unit);
+        float max     = PopValFloat(var, 1000.0f*g_unit);
+        float sens    = PopValFloat(var, 1.0f);
+        RadarFilter filter = static_cast<RadarFilter>(PopValInt(var, FILTER_NONE));
 
-        if ( pBest == nullptr )
-        {
-            result->SetPointer(nullptr);
-        }
-        else
-        {
-            result->SetPointer(pBest->GetBotVar());
-        }
+        ret = CObjectManager::GetInstancePointer()->Radar(pThis, pos, 0.0f, types, 0.0f, Math::PI*2.0f, min, max, sens < 0, filter, true);
+        err = ERR_OK;
+    }
 
-        return true;
-    });
+    return ReturnPointer(ret, err, script, result, exception);
 }
 
 bool CScriptFunctions::rSearchAll(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    std::vector<CObject*> ret;
 
-    return runSearch(var, pThis->GetPosition(), exception, [&result, pThis](std::vector<ObjectType> types, glm::vec3 pos, float minDist, float maxDist, bool furthest, RadarFilter filter)
+    if ( IsFunctionAllowed(pThis, FUNCTION_searchall) )
     {
-        std::vector<CObject*> best = CObjectManager::GetInstancePointer()->RadarAll(pThis, pos, 0.0f, types, 0.0f, Math::PI*2.0f, minDist, maxDist, furthest, filter, true);
+        std::vector<ObjectType> types = PopValObjectList(var);
+        glm::vec3 pos = PopValPoint(var, pThis->GetPosition());
+        float min     = PopValFloat(var, 0.0f*g_unit);
+        float max     = PopValFloat(var, 1000.0f*g_unit);
+        float sens    = PopValFloat(var, 1.0f);
+        RadarFilter filter = static_cast<RadarFilter>(PopValInt(var, FILTER_NONE));
 
-        int i = 0;
-        result->SetInit(CBotVar::InitType::DEF);
-        for (CObject* obj : best)
-        {
-            result->GetItem(i++, true)->SetPointer(obj->GetBotVar());
-        }
+        ret = CObjectManager::GetInstancePointer()->RadarAll(pThis, pos, 0.0f, types, 0.0f, Math::PI*2.0f, min, max, sens < 0, filter, true);
+        err = ERR_OK;
+    }
 
-        return true;
-    });
+    return ReturnPointerList(ret, err, script, result, exception);
 }
 
 
 static CBotTypResult compileRadar(CBotVar* &var, void* user, CBotTypResult returnValue)
 {
+    CBotTypResult   ret;
+
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() == CBotTypArrayPointer )
-    {
-        CBotTypResult type = var->GetTypResult().GetTypElem();
-        if ( type.GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadParam); //type
-    }
-    else if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadParam);  // type
-    var = var->GetNext();
+    ret = cObjectList(var);  if ( ret.GetType() != 0 ) return ret;             // type
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // angle
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // angle
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // focus
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // focus
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // min
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // max
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // sense
     if ( var == nullptr )  return returnValue;
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
-    var = var->GetNext();
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);  // filter
     if ( var == nullptr )  return returnValue;
     return CBotTypResult(CBotErrOverParam);
 }
@@ -995,149 +822,56 @@ CBotTypResult CScriptFunctions::cRadar(CBotVar* &var, void* user)
     return compileRadar(var, user, CBotTypResult(CBotTypPointer, "object"));
 }
 
-static bool runRadar(CBotVar* var, std::function<bool(std::vector<ObjectType>, float, float, float, float, bool, RadarFilter)> code)
-{
-    CBotVar*    array;
-    RadarFilter filter;
-    float       minDist, maxDist, sens, angle, focus;
-    int         type;
-    bool        bArray = false;
-
-    type    = OBJECT_NULL;
-    array   = nullptr;
-    angle   = 0.0f;
-    focus   = Math::PI*2.0f;
-    minDist = 0.0f*g_unit;
-    maxDist = 1000.0f*g_unit;
-    sens    = 1.0f;
-    filter  = FILTER_NONE;
-
-    if ( var != nullptr )
-    {
-        if ( var->GetType() == CBotTypArrayPointer )
-        {
-            array = var->GetItemList();
-            bArray = true;
-        }
-        else
-        {
-            type = var->GetValInt();
-            bArray = false;
-        }
-
-        var = var->GetNext();
-        if ( var != nullptr )
-        {
-            angle = -var->GetValFloat()*Math::PI/180.0f;
-
-            var = var->GetNext();
-            if ( var != nullptr )
-            {
-                focus = var->GetValFloat()*Math::PI/180.0f;
-
-                var = var->GetNext();
-                if ( var != nullptr )
-                {
-                    minDist = var->GetValFloat();
-
-                    var = var->GetNext();
-                    if ( var != nullptr )
-                    {
-                        maxDist = var->GetValFloat();
-
-                        var = var->GetNext();
-                        if ( var != nullptr )
-                        {
-                            sens = var->GetValFloat();
-
-                            var = var->GetNext();
-                            if ( var != nullptr )
-                            {
-                                filter = static_cast<RadarFilter>(var->GetValInt());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    std::vector<ObjectType> type_v;
-    if (bArray)
-    {
-        while ( array != nullptr )
-        {
-            if (array->GetValInt() == OBJECT_MOBILEpr)
-            {
-                type_v.push_back(OBJECT_MOBILEwt);
-                type_v.push_back(OBJECT_MOBILEtt);
-                type_v.push_back(OBJECT_MOBILEft);
-                type_v.push_back(OBJECT_MOBILEit);
-                type_v.push_back(OBJECT_MOBILErp);
-                type_v.push_back(OBJECT_MOBILEst);
-            }
-            type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
-            array = array->GetNext();
-        }
-    }
-    else
-    {
-        if (type != OBJECT_NULL && type != OBJECT_MOBILEpr)
-        {
-            type_v.push_back(static_cast<ObjectType>(type));
-        }
-        else if (type == OBJECT_MOBILEpr)
-        {
-           type_v.push_back(OBJECT_MOBILEwt);
-           type_v.push_back(OBJECT_MOBILEtt);
-           type_v.push_back(OBJECT_MOBILEft);
-           type_v.push_back(OBJECT_MOBILEit);
-           type_v.push_back(OBJECT_MOBILErp);
-           type_v.push_back(OBJECT_MOBILEst);
-        }
-    }
-
-    return code(type_v, angle, focus, minDist, maxDist, sens < 0, filter);
-}
-
 // Instruction "radar(type, angle, focus, min, max, sens, filter)".
 
 bool CScriptFunctions::rRadar(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    return runRadar(var, [&result, user](std::vector<ObjectType> types, float angle, float focus, float minDist, float maxDist, bool furthest, RadarFilter filter)
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    CObject*    ret = nullptr;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_radar) )
     {
-        CObject* pThis = static_cast<CScript*>(user)->m_object;
-        CObject* best = CObjectManager::GetInstancePointer()->Radar(pThis, types, angle, focus, minDist, maxDist, furthest, filter, true);
+        std::vector<ObjectType> types = PopValObjectList(var);
+        float angle = -PopValFloat(var)*Math::PI/180.0f;
+        float focus = PopValFloat(var, Math::PI*2.0f);
+        float min   = PopValFloat(var, 0.0f)*g_unit;
+        float max   = PopValFloat(var, 1000.0f)*g_unit;
+        float sens  = PopValFloat(var, 1.0f);
+        RadarFilter filter = static_cast<RadarFilter>(PopValInt(var, FILTER_NONE));
+    
+        ret = CObjectManager::GetInstancePointer()->Radar(pThis, types, angle, focus, min, max, sens < 0, filter, true);
+        err = ERR_OK;
+    }
 
-        if (best == nullptr)
-        {
-            result->SetPointer(nullptr);
-        }
-        else
-        {
-            result->SetPointer(best->GetBotVar());
-        }
-
-        return true;
-    });
+    return ReturnPointer(ret, err, script, result, exception);
 }
+
+// Instruction "radarall(type, angle, focus, min, max, sens, filter)".
 
 bool CScriptFunctions::rRadarAll(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    return runRadar(var, [&result, user](std::vector<ObjectType> types, float angle, float focus, float minDist, float maxDist, bool furthest, RadarFilter filter)
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    std::vector<CObject*> ret;
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_radarall) )
     {
-        CObject* pThis = static_cast<CScript*>(user)->m_object;
-        std::vector<CObject*> best = CObjectManager::GetInstancePointer()->RadarAll(pThis, types, angle, focus, minDist, maxDist, furthest, filter, true);
+        std::vector<ObjectType> types = PopValObjectList(var);
+        float angle = -PopValFloat(var)*Math::PI/180.0f;
+        float focus = PopValFloat(var, Math::PI*2.0f);
+        float min   = PopValFloat(var, 0.0f)*g_unit;
+        float max   = PopValFloat(var, 1000.0f)*g_unit;
+        float sens  = PopValFloat(var, 1.0f);
+        RadarFilter filter = static_cast<RadarFilter>(PopValInt(var, FILTER_NONE));
+    
+        ret = CObjectManager::GetInstancePointer()->RadarAll(pThis, types, angle, focus, min, max, sens < 0, filter, true);
+        err = ERR_OK;
+    }
 
-        int i = 0;
-        result->SetInit(CBotVar::InitType::DEF);
-        for (CObject* obj : best)
-        {
-            result->GetItem(i++, true)->SetPointer(obj->GetBotVar());
-        }
-
-        return true;
-    });
+    return ReturnPointerList(ret, err, script, result, exception);
 }
 
 
@@ -1212,10 +946,9 @@ bool CScriptFunctions::ShouldTaskStop(Error err, int errMode)
 CBotTypResult CScriptFunctions::cDetect(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypBoolean);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypBoolean);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "detect(type)".
@@ -1224,100 +957,36 @@ bool CScriptFunctions::rDetect(CBotVar* var, CBotVar* result, int& exception, vo
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    CObject     *pBest;
-    CBotVar*    array;
-    int         type;
-    bool        bArray = false;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0;
 
-    exception = 0;
-
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_detect) )
     {
-        type    = OBJECT_NULL;
-        array   = nullptr;
-
-        if ( var != nullptr )
+        if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
         {
-            if ( var->GetType() == CBotTypArrayPointer )
+            std::vector<ObjectType> types = PopValObjectList(var);
+    
+            CObject* pBest = CObjectManager::GetInstancePointer()->Radar(pThis, types, 0.0f, 45.0f*Math::PI/180.0f, 0.0f, 20.0f, false, FILTER_NONE, true);
+    
+            if (pThis->Implements(ObjectInterfaceType::Old))
             {
-                array = var->GetItemList();
-                bArray = true;
+                script->m_main->StartDetectEffect(dynamic_cast<COldObject*>(pThis), pBest);
             }
-            else
+    
+            script->m_returnValue = (pBest != nullptr) ? 1.0f : 0.0f;
+    
+            err = script->m_taskExecutor->StartTaskWait(0.3f);
+            if ( err != ERR_OK )
             {
-                type = var->GetValInt();
-                bArray = false;
-            }
-        }
-
-        std::vector<ObjectType> type_v;
-        if (bArray)
-        {
-            while ( array != nullptr )
-            {
-                if (array->GetValInt() == OBJECT_MOBILEpr)
-                {
-                    type_v.push_back(OBJECT_MOBILEwt);
-                    type_v.push_back(OBJECT_MOBILEtt);
-                    type_v.push_back(OBJECT_MOBILEft);
-                    type_v.push_back(OBJECT_MOBILEit);
-                    type_v.push_back(OBJECT_MOBILErp);
-                    type_v.push_back(OBJECT_MOBILEst);
-                }
-                type_v.push_back(static_cast<ObjectType>(array->GetValInt()));
-                array = array->GetNext();
+                script->m_taskExecutor->StopForegroundTask();
+                return ReturnFloat(ret, err, script, result, exception);
             }
         }
-        else
-        {
-            if (type != OBJECT_NULL && type != OBJECT_MOBILEpr)
-            {
-                type_v.push_back(static_cast<ObjectType>(type));
-            }
-            else if (type == OBJECT_MOBILEpr)
-            {
-                type_v.push_back(OBJECT_MOBILEwt);
-                type_v.push_back(OBJECT_MOBILEtt);
-                type_v.push_back(OBJECT_MOBILEft);
-                type_v.push_back(OBJECT_MOBILEit);
-                type_v.push_back(OBJECT_MOBILErp);
-                type_v.push_back(OBJECT_MOBILEst);
-            }
-        }
-
-        pBest = CObjectManager::GetInstancePointer()->Radar(pThis, type_v, 0.0f, 45.0f*Math::PI/180.0f, 0.0f, 20.0f, false, FILTER_NONE, true);
-
-        if (pThis->Implements(ObjectInterfaceType::Old))
-        {
-            script->m_main->StartDetectEffect(dynamic_cast<COldObject*>(pThis), pBest);
-        }
-
-        if ( pBest == nullptr )
-        {
-            script->m_returnValue = 0.0f;
-        }
-        else
-        {
-            script->m_returnValue = 1.0f;
-        }
-
-        err = script->m_taskExecutor->StartTaskWait(0.3f);
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        if ( !WaitForForegroundTask(script, result, exception) )  return false;  // not finished
+        ret = *script->m_returnValue;
     }
-    if ( !WaitForForegroundTask(script, result, exception) )  return false;  // not finished
-    result->SetValFloat(*script->m_returnValue);
-    return true;
+
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 
@@ -1328,30 +997,33 @@ CBotTypResult CScriptFunctions::cDirection(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "direction(pos)".
 
 bool CScriptFunctions::rDirection(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject*        pThis = static_cast<CScript*>(user)->m_object;
-    glm::vec3    iPos, oPos;
-    float           a, g;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    if ( !GetPoint(var, exception, oPos) )  return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_direction) )
+    {
+        glm::vec3 oPos = PopValPoint(var);
+    
+        glm::vec3 iPos = pThis->GetPosition();
+        float a = pThis->GetRotationY();
+        float g = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
+    
+        ret = -Math::Direction(a, g)*180.0f/Math::PI;
+        err = ERR_OK;
+    }
 
-    iPos = pThis->GetPosition();
-
-    a = pThis->GetRotationY();
-    g = Math::RotateAngle(oPos.x-iPos.x, iPos.z-oPos.z);  // CW !
-
-    result->SetValFloat(-Math::Direction(a, g)*180.0f/Math::PI);
-    return true;
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 // Instruction "canbuild ( category );"
@@ -1359,40 +1031,80 @@ bool CScriptFunctions::rDirection(CBotVar* var, CBotVar* result, int& exception,
 
 bool CScriptFunctions::rCanBuild(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
-    ObjectType category = static_cast<ObjectType>(var->GetValInt());
-    exception = 0;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    result->SetValInt(CRobotMain::GetInstancePointer()->CanBuild(category, pThis->GetTeam()));
-    return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_canbuild) )
+    {
+        ObjectType category = static_cast<ObjectType>(PopValInt(var));
+
+        ret = script->m_main->CanBuild(category, pThis->GetTeam());
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
+
+// Instruction "canresearch ( category );"
 
 bool CScriptFunctions::rCanResearch(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    ResearchType research = static_cast<ResearchType>(var->GetValInt());
-    exception = 0;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    result->SetValInt(CRobotMain::GetInstancePointer()->IsResearchEnabled(research));
-    return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_canresearch) )
+    {
+        ResearchType research = static_cast<ResearchType>(PopValInt(var));
+
+        ret = script->m_main->IsResearchEnabled(research);
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
+
+// Instruction "researched ( category );"
 
 bool CScriptFunctions::rResearched(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
-    ResearchType research = static_cast<ResearchType>(var->GetValInt());
-    exception = 0;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    result->SetValInt(CRobotMain::GetInstancePointer()->IsResearchDone(research, pThis->GetTeam()));
-    return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_researched) )
+    {
+        ResearchType research = static_cast<ResearchType>(PopValInt(var));
+
+        ret = script->m_main->IsResearchDone(research, pThis->GetTeam());
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
+
+// Instruction "buildingenabled ( category );"
 
 bool CScriptFunctions::rBuildingEnabled(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    ObjectType category = static_cast<ObjectType>(var->GetValInt());
-    exception = 0;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    result->SetValInt(CRobotMain::GetInstancePointer()->IsBuildingEnabled(category));
-    return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_buildingenabled) )
+    {
+        ObjectType category = static_cast<ObjectType>(PopValInt(var));
+
+        ret = script->m_main->IsBuildingEnabled(category);
+        err = ERR_OK;
+    }
+
+    return ReturnInt(ret, err, script, result, exception);
 }
 
 // Instruction "build(type)"
@@ -1402,51 +1114,19 @@ bool CScriptFunctions::rBuild(CBotVar* var, CBotVar* result, int& exception, voi
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
-    ObjectType  category;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    oType = pThis->GetType();
-
-    if ( oType != OBJECT_MOBILEfb &&  // allowed only for builder bots && humans
-         oType != OBJECT_MOBILEtb &&
-         oType != OBJECT_MOBILEwb &&
-         oType != OBJECT_MOBILEib &&
-         oType != OBJECT_HUMAN    &&
-         oType != OBJECT_TECH      )
+    if ( IsFunctionAllowed(pThis, FUNCTION_build) )
     {
-        err = ERR_WRONG_BOT; // Wrong object
-    }
-    else
-    {
-        category = static_cast<ObjectType>(var->GetValInt()); // get category parameter
-        err = CRobotMain::GetInstancePointer()->CanBuildError(category, pThis->GetTeam());
+        ObjectType category = static_cast<ObjectType>(PopValInt(var));
 
-        if (err == ERR_OK && !script->m_taskExecutor->IsForegroundTask()) // if we can build
-        {
-            err = script->m_taskExecutor->StartTaskBuild(category);
-
-            if (err != ERR_OK)
-            {
-                script->m_taskExecutor->StopForegroundTask();
-            }
-        }
-    }
-    result->SetValInt(err); // indicates the error or ok
-    if ( err != ERR_OK )
-    {
-        if ( script->m_errMode == ERM_STOP )
-        {
-            exception = err;
-            return false;
-        }
-        return true;
+        err = script->m_taskExecutor->StartTaskBuild(category);
     }
 
-    return WaitForForegroundTask(script, result, exception);
-
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "flag(color)"
@@ -1455,51 +1135,19 @@ bool CScriptFunctions::rFlag(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
-    int         color;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )
+    if ( IsFunctionAllowed(pThis, FUNCTION_flag) )
     {
-        oType = pThis->GetType();
-        if ( oType != OBJECT_MOBILEfs &&  // allowed only for sniffer bots && humans
-             oType != OBJECT_MOBILEts &&
-             oType != OBJECT_MOBILEws &&
-             oType != OBJECT_MOBILEis &&
-             oType != OBJECT_HUMAN    &&
-             oType != OBJECT_TECH      )
-        {
-            err = ERR_WRONG_BOT; // Wrong object
-        }
-        else
-        {
-            if ( var == nullptr )
-            {
-                color = 0;
-            }
-            else
-            {
-                color = var->GetValInt();
-                if ( color < 0 || color > static_cast<int>(TraceColor::Violet) ) color = 0;
-            }
-            err = script->m_taskExecutor->StartTaskFlag(TFL_CREATE, color);
-        }
+        int value = PopValInt(var);
 
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        err = script->m_taskExecutor->StartTaskFlag(value);
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "deflag()"
@@ -1508,41 +1156,17 @@ bool CScriptFunctions::rDeflag(CBotVar* var, CBotVar* result, int& exception, vo
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )
+    if ( IsFunctionAllowed(pThis, FUNCTION_deflag) )
     {
-        oType = pThis->GetType();
-        if ( oType != OBJECT_MOBILEfs &&  // allowed only for sniffer bots && humans
-             oType != OBJECT_MOBILEts &&
-             oType != OBJECT_MOBILEws &&
-             oType != OBJECT_MOBILEis &&
-             oType != OBJECT_HUMAN    &&
-             oType != OBJECT_TECH      )
-        {
-            err = ERR_WRONG_BOT; // Wrong object
-        }
-        else
-        {
-            err = script->m_taskExecutor->StartTaskFlag(TFL_DELETE, 0);
-        }
-
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        err = script->m_taskExecutor->StartTaskDeflag();
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Compilation of the instruction "produce(pos, angle, type[, scriptName[, power[, team]]])"
@@ -1556,48 +1180,28 @@ CBotTypResult CScriptFunctions::cProduce(CBotVar* &var, void* user)
 
     if ( var->GetType() <= CBotTypDouble )
     {
-        var = var->GetNext();
-        if ( var != nullptr )
-        {
-            if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-            var = var->GetNext();
-        }
+        if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        if ( var == nullptr ) return CBotTypResult(CBotTypFloat);
+        if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        return CBotTypResult(CBotErrOverParam);
     }
     else
     {
-        ret = cPoint(var, user);
-        if ( ret.GetType() != 0 )  return ret;
-
+        ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
         if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-        if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
-
+        if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
         if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-        if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-        var = var->GetNext();
-
-        if ( var != nullptr )
-        {
-            if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-            var = var->GetNext();
-
-            if ( var != nullptr )
-            {
-                if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-                var = var->GetNext();
-
-                if ( var != nullptr )
-                {
-                    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-                    var = var->GetNext();
-                }
-            }
-        }
+        if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        if ( PopType(var) != CBotTypString )  return CBotTypResult(CBotErrBadString);
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        return CBotTypResult(CBotErrOverParam);
     }
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
 }
 
 // Instruction "produce(pos, angle, type[, scriptName[, power[, team]]])"
@@ -1606,102 +1210,66 @@ CBotTypResult CScriptFunctions::cProduce(CBotVar* &var, void* user)
 bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    CObject*    me = script->m_object;
+    CObject*    pThis = script->m_object;
+
+    if ( !IsFunctionAllowed(pThis, FUNCTION_produce) )
+        return ReturnErr(ERR_WRONG_BOT, script, result, exception);
+
     std::string name = "";
 
     ObjectCreateParams params;
-    params.angle = 0.0f;
-    params.type = OBJECT_NULL;
-    params.power = 0.0f;
-    params.team = 0;
-
     if ( var->GetType() <= CBotTypDouble )
     {
-        params.type = static_cast<ObjectType>(var->GetValInt());
-        var = var->GetNext();
+        params.type  = static_cast<ObjectType>(PopValInt(var));
+        params.power = PopValFloat(var, -1.0f);
 
-        params.pos = me->GetPosition();
-
-        glm::vec3 rotation = me->GetRotation() + me->GetTilt();
-        params.angle = rotation.y;
-
-        if ( var != nullptr )
-            params.power = var->GetValFloat();
-        else
-            params.power = -1.0f;
+        params.pos   = pThis->GetPosition();
+        params.angle = (pThis->GetRotation() + pThis->GetTilt()).y;
     }
     else
     {
-        if ( !GetPoint(var, exception, params.pos) )  return true;
-
-        params.angle = var->GetValFloat()*Math::PI/180.0f;
-        var = var->GetNext();
-
-        params.type = static_cast<ObjectType>(var->GetValInt());
-        var = var->GetNext();
-
-        if ( var != nullptr )
-        {
-            name = var->GetValString();
-            var = var->GetNext();
-            if ( var != nullptr )
-            {
-                params.power = var->GetValFloat();
-                var = var->GetNext();
-                if ( var != nullptr )
-                {
-                    params.team = var->GetValInt();
-                }
-            }
-            else
-            {
-                params.power = -1.0f;
-            }
-        }
-        else
-        {
-            params.power = -1.0f;
-        }
+        params.pos   = PopValPoint(var);
+        params.angle = PopValFloat(var)*Math::PI/180.0f;
+        params.type  = static_cast<ObjectType>(PopValInt(var));
+        name         = PopValString(var);
+        params.power = PopValFloat(var, -1.0f);
+        params.team  = PopValInt(var);
     }
 
     CObject* object = nullptr;
 
-    if ( params.type == OBJECT_ANT    ||
-        params.type == OBJECT_SPIDER ||
-        params.type == OBJECT_BEE    ||
-        params.type == OBJECT_WORM   )
+    auto produceDetails = GetObjectScriptingDetails(params.type).produce;
+    if (produceDetails.isProducedCharged && params.power == -1.0f)
+    {
+        params.power = 1.0f;
+    }
+
+    if (produceDetails.isProducable)
     {
         object = CObjectManager::GetInstancePointer()->CreateObject(params);
-        params.type = OBJECT_EGG;
+    }
+    if (object == nullptr)
+    {
+        return ReturnErr(ERR_UNKNOWN, script, result, exception);
+    }
+
+    if (produceDetails.container != OBJECT_NULL)
+    {
+        params.type = produceDetails.container;
         CObjectManager::GetInstancePointer()->CreateObject(params);
         if (object->Implements(ObjectInterfaceType::Programmable))
         {
             dynamic_cast<CProgrammableObject&>(*object).SetActivity(false);
         }
     }
-    else
+
+    if (produceDetails.isProducedManual)
     {
-        if ((params.type == OBJECT_POWER || params.type == OBJECT_ATOMIC) && params.power == -1.0f)
-        {
-            params.power = 1.0f;
-        }
-        bool exists = IsValidObjectTypeId(params.type) && params.type != OBJECT_NULL && params.type != OBJECT_MAX && params.type != OBJECT_MOBILEpr;
-        if (exists)
-        {
-            object = CObjectManager::GetInstancePointer()->CreateObject(params);
-        }
-        if (object == nullptr)
-        {
-            result->SetValInt(1);  // error
-            return true;
-        }
-        if (params.type == OBJECT_MOBILEdr)
-        {
-            assert(object->Implements(ObjectInterfaceType::Old)); // TODO: temporary hack
-            dynamic_cast<COldObject&>(*object).SetManual(true);
-        }
-        script->m_main->CreateShortcuts();
+        assert(object->Implements(ObjectInterfaceType::Old)); // TODO: temporary hack
+        dynamic_cast<COldObject&>(*object).SetManual(true);
     }
+
+    script->m_main->CreateShortcuts();
 
     if (!name.empty())
     {
@@ -1717,8 +1285,7 @@ bool CScriptFunctions::rProduce(CBotVar* var, CBotVar* result, int& exception, v
         }
     }
 
-    result->SetValInt(0);  // no error
-    return true;
+    return ReturnErr(ERR_OK, script, result, exception);
 }
 
 
@@ -1729,46 +1296,53 @@ CBotTypResult CScriptFunctions::cDistance(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "distance(p1, p2)".
 
 bool CScriptFunctions::rDistance(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    glm::vec3    p1, p2;
-    float       value;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    if ( !GetPoint(var, exception, p1) )  return true;
-    if ( !GetPoint(var, exception, p2) )  return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_distance) )
+    {
+        glm::vec3 p1 = PopValPoint(var);
+        glm::vec3 p2 = PopValPoint(var);
+    
+        ret = glm::distance(p1, p2)/g_unit;
+        err = ERR_OK;
+    }
 
-    value = glm::distance(p1, p2);
-    result->SetValFloat(value/g_unit);
-    return true;
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 // Instruction "distance2d(p1, p2)".
 
 bool CScriptFunctions::rDistance2d(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    glm::vec3    p1, p2;
-    float       value;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    if ( !GetPoint(var, exception, p1) )  return true;
-    if ( !GetPoint(var, exception, p2) )  return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_distance2d) )
+    {
+        glm::vec3 p1 = PopValPoint(var);
+        glm::vec3 p2 = PopValPoint(var);
+    
+        ret = Math::DistanceProjected(p1, p2)/g_unit;
+        err = ERR_OK;
+    }
 
-    value = Math::DistanceProjected(p1, p2);
-    result->SetValFloat(value/g_unit);
-    return true;
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 
@@ -1779,23 +1353,15 @@ CBotTypResult CScriptFunctions::cSpace(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "space(center, rMin, rMax, dist)".
@@ -1804,67 +1370,24 @@ bool CScriptFunctions::rSpace(CBotVar* var, CBotVar* result, int& exception, voi
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    CBotVar*    pSub;
-    glm::vec3    center;
-    float       rMin, rMax, dist;
+    Error       err = ERR_WRONG_BOT;
+    glm::vec3   ret = {};
 
-    rMin = 10.0f*g_unit;
-    rMax = 50.0f*g_unit;
-    dist =  4.0f*g_unit;
-
-    if ( var == nullptr )
+    if ( IsFunctionAllowed(pThis, FUNCTION_space) )
     {
-        center = pThis->GetPosition();
+        glm::vec3 center = PopValPoint(var, pThis->GetPosition());
+        float     rMin   = PopValFloat(var, 10.0f)*g_unit;
+        float     rMax   = PopValFloat(var, 50.0f)*g_unit;
+        float     dist   = PopValFloat(var, 4.0f)*g_unit;
+
+        bool success = script->m_main->FreeSpace(center, rMin, rMax, dist, pThis);
+        if (success)
+            ret = {center.x/g_unit, center.y/g_unit, center.z/g_unit};
+        else
+            ret = {center.x, center.z, center.y};
+        err = ERR_OK;
     }
-    else
-    {
-        if ( !GetPoint(var, exception, center) )  return true;
-
-        if ( var != nullptr )
-        {
-            rMin = var->GetValFloat()*g_unit;
-            var = var->GetNext();
-
-            if ( var != nullptr )
-            {
-                rMax = var->GetValFloat()*g_unit;
-                var = var->GetNext();
-
-                if ( var != nullptr )
-                {
-                    dist = var->GetValFloat()*g_unit;
-                    var = var->GetNext();
-                }
-            }
-        }
-    }
-
-    bool success = script->m_main->FreeSpace(center, rMin, rMax, dist, pThis);
-
-    if ( result != nullptr )
-    {
-        pSub = result->GetItemList();
-        if ( pSub != nullptr )
-        {
-            if (success)
-            {
-                pSub->SetValFloat(center.x / g_unit);
-                pSub = pSub->GetNext();  // "y"
-                pSub->SetValFloat(center.z / g_unit);
-                pSub = pSub->GetNext();  // "z"
-                pSub->SetValFloat(center.y / g_unit);
-            }
-            else
-            {
-                pSub->SetValFloat(center.x);
-                pSub = pSub->GetNext();  // "y"
-                pSub->SetValFloat(center.y);
-                pSub = pSub->GetNext();  // "z"
-                pSub->SetValFloat(center.z);
-            }
-        }
-    }
-    return true;
+    return ReturnPoint(ret, err, script, result, exception);
 }
 
 CBotTypResult CScriptFunctions::cFlatSpace(CBotVar* &var, void* user)
@@ -1872,79 +1395,42 @@ CBotTypResult CScriptFunctions::cFlatSpace(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypIntrinsic, "point");
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypIntrinsic, "point");
+    return CBotTypResult(CBotErrOverParam);
 }
+
+// Instruction "flatspace(center, flatMin, rMin, rMax, dist)".
 
 bool CScriptFunctions::rFlatSpace(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    CBotVar*    pSub;
-    glm::vec3    center;
-    float       flatMin, rMin, rMax, dist;
+    Error       err = ERR_WRONG_BOT;
+    glm::vec3   ret = {};
 
-    rMin = 10.0f*g_unit;
-    rMax = 50.0f*g_unit;
-    dist =  4.0f*g_unit;
-
-
-    if ( !GetPoint(var, exception, center) )  return true;
-
-    flatMin = var->GetValFloat()*g_unit;
-    var = var->GetNext();
-
-    if ( var != nullptr )
+    if ( IsFunctionAllowed(pThis, FUNCTION_flatspace) )
     {
-        rMin = var->GetValFloat()*g_unit;
-        var = var->GetNext();
+        glm::vec3 center = PopValPoint(var);
+        float flatMin = PopValFloat(var)*g_unit;
+        float rMin = PopValFloat(var, 10.0f)*g_unit;
+        float rMax = PopValFloat(var, 50.0f)*g_unit;
+        float dist = PopValFloat(var, 4.0f)*g_unit;
 
-        if ( var != nullptr )
-        {
-            rMax = var->GetValFloat()*g_unit;
-            var = var->GetNext();
-
-            if ( var != nullptr )
-            {
-                dist = var->GetValFloat()*g_unit;
-                var = var->GetNext();
-            }
-        }
+        script->m_main->FlatFreeSpace(center, flatMin, rMin, rMax, dist, pThis);
+        ret = {center.x/g_unit, center.y/g_unit, center.z/g_unit};
+        err = ERR_OK;
     }
-    script->m_main->FlatFreeSpace(center, flatMin, rMin, rMax, dist, pThis);
 
-    if ( result != nullptr )
-    {
-        pSub = result->GetItemList();
-        if ( pSub != nullptr )
-        {
-            pSub->SetValFloat(center.x/g_unit);
-            pSub = pSub->GetNext();  // "y"
-            pSub->SetValFloat(center.z/g_unit);
-            pSub = pSub->GetNext();  // "z"
-            pSub->SetValFloat(center.y/g_unit);
-        }
-    }
-    return true;
+    return ReturnPoint(ret, err, script, result, exception);
 }
 
 
@@ -1955,16 +1441,11 @@ CBotTypResult CScriptFunctions::cFlatGround(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "flatground(center, rMax)".
@@ -1973,47 +1454,41 @@ bool CScriptFunctions::rFlatGround(CBotVar* var, CBotVar* result, int& exception
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    glm::vec3    center;
-    float       rMax, dist;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0;
 
-    if ( !GetPoint(var, exception, center) )  return true;
-    rMax = var->GetValFloat()*g_unit;
-    var = var->GetNext();
+    if ( IsFunctionAllowed(pThis, FUNCTION_flatground) )
+    {
+        glm::vec3 center = PopValPoint(var);
+        float rMax = PopValFloat(var)*g_unit;
 
-    dist = script->m_main->GetFlatZoneRadius(center, rMax, pThis);
-    result->SetValFloat(dist/g_unit);
+        ret = script->m_main->GetFlatZoneRadius(center, rMax, pThis)/g_unit;
+        err = ERR_OK;
+    }
 
-    return true;
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 
-// Instruction "wait(t)".
+// Instruction "wait(time)".
 
 bool CScriptFunctions::rWait(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    float       value;
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_wait) )
     {
-        value = var->GetValFloat();
+        float value = PopValFloat(var);
+
         err = script->m_taskExecutor->StartTaskWait(value);
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "move(dist)".
@@ -2021,28 +1496,20 @@ bool CScriptFunctions::rWait(CBotVar* var, CBotVar* result, int& exception, void
 bool CScriptFunctions::rMove(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    float       value;
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_move) )
     {
-        value = var->GetValFloat();
-        err = script->m_taskExecutor->StartTaskAdvance(value*g_unit);
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        float value = PopValFloat(var)*g_unit;
+
+        err = script->m_taskExecutor->StartTaskAdvance(value);
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "turn(angle)".
@@ -2050,28 +1517,21 @@ bool CScriptFunctions::rMove(CBotVar* var, CBotVar* result, int& exception, void
 bool CScriptFunctions::rTurn(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    float       value;
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_turn) )
     {
-        value = var->GetValFloat();
-        err = script->m_taskExecutor->StartTaskTurn(-value*Math::PI/180.0f);
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        float value = PopValFloat(var);
+        value = -value*Math::PI/180.0f;
+
+        err = script->m_taskExecutor->StartTaskTurn(value);
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Compilation of the instruction "goto(pos, altitude, crash, goal)".
@@ -2081,21 +1541,13 @@ CBotTypResult CScriptFunctions::cGoto(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
@@ -2104,54 +1556,24 @@ CBotTypResult CScriptFunctions::cGoto(CBotVar* &var, void* user)
 
 bool CScriptFunctions::rGoto(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CScript*        script = static_cast<CScript*>(user);
-    glm::vec3        pos;
-    TaskGotoGoal    goal;
-    TaskGotoCrash   crash;
-    float           altitude;
-    Error           err;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_GOTO) )
     {
-        if ( !GetPoint(var, exception, pos) )  return true;
-
-        goal  = TGG_DEFAULT;
-        crash = TGC_DEFAULT;
-        altitude = 0.0f*g_unit;
-
-        if ( var != nullptr )
-        {
-            altitude = var->GetValFloat()*g_unit;
-
-            var = var->GetNext();
-            if ( var != nullptr )
-            {
-                goal = static_cast<TaskGotoGoal>(var->GetValInt());
-
-                var = var->GetNext();
-                if ( var != nullptr )
-                {
-                    crash = static_cast<TaskGotoCrash>(var->GetValInt());
-                }
-            }
-        }
+        glm::vec3 pos = PopValPoint(var);
+        float altitude = PopValFloat(var)*g_unit;
+        TaskGotoGoal  goal  = static_cast<TaskGotoGoal>(PopValInt(var, TGG_DEFAULT));
+        TaskGotoCrash crash = static_cast<TaskGotoCrash>(PopValInt(var, TGC_DEFAULT));
 
         err = script->m_taskExecutor->StartTaskGoto(pos, altitude, goal, crash);
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Compilation "grab/drop(oper)".
@@ -2159,10 +1581,9 @@ bool CScriptFunctions::rGoto(CBotVar* var, CBotVar* result, int& exception, void
 CBotTypResult CScriptFunctions::cGrabDrop(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "grab(oper)".
@@ -2171,47 +1592,22 @@ bool CScriptFunctions::rGrab(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
-    TaskManipArm type;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_grabNoParam) )
     {
-        if ( var == nullptr )
-        {
-            type = TMA_FFRONT;
-        }
-        else
-        {
-            type = static_cast<TaskManipArm>(var->GetValInt());
-        }
-
-        oType = pThis->GetType();
-        if ( oType == OBJECT_HUMAN ||
-            oType == OBJECT_TECH  )
-        {
-            err = script->m_taskExecutor->StartTaskTake();
-        }
-        else
-        {
-            err = script->m_taskExecutor->StartTaskManip(TMO_GRAB, type);
-        }
-
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        err = script->m_taskExecutor->StartTaskTake();
     }
-    return WaitForForegroundTask(script, result, exception);
+    if ( IsFunctionAllowed(pThis, FUNCTION_grabEnumParam) )
+    {
+        TaskManipArm type = static_cast<TaskManipArm>(PopValInt(var, TMA_FFRONT));
+        err = script->m_taskExecutor->StartTaskManip(TMO_GRAB, type);
+    }
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "drop(oper)".
@@ -2220,41 +1616,22 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    ObjectType  oType;
-    TaskManipArm type;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_dropNoParam) )
     {
-        if ( var == nullptr )  type = TMA_FFRONT;
-        else             type = static_cast<TaskManipArm>(var->GetValInt());
-
-        oType = pThis->GetType();
-        if ( oType == OBJECT_HUMAN ||
-            oType == OBJECT_TECH  )
-        {
-            err = script->m_taskExecutor->StartTaskTake();
-        }
-        else
-        {
-            err = script->m_taskExecutor->StartTaskManip(TMO_DROP, type);
-        }
-
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        err = script->m_taskExecutor->StartTaskTake();
     }
-    return WaitForForegroundTask(script, result, exception);
+    if ( IsFunctionAllowed(pThis, FUNCTION_dropEnumParam) )
+    {
+        TaskManipArm type = static_cast<TaskManipArm>(PopValInt(var, TMA_FFRONT));
+        err = script->m_taskExecutor->StartTaskManip(TMO_DROP, type);
+    }
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "sniff()".
@@ -2262,26 +1639,18 @@ bool CScriptFunctions::rDrop(CBotVar* var, CBotVar* result, int& exception, void
 bool CScriptFunctions::rSniff(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_sniff) )
     {
         err = script->m_taskExecutor->StartTaskSearch();
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Compilation of the instruction "receive(nom, power)".
@@ -2289,15 +1658,11 @@ bool CScriptFunctions::rSniff(CBotVar* var, CBotVar* result, int& exception, voi
 CBotTypResult CScriptFunctions::cReceive(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
-
+    if ( PopType(var) != CBotTypString )  return CBotTypResult(CBotErrBadString);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "receive(nom, power)".
@@ -2305,34 +1670,26 @@ CBotTypResult CScriptFunctions::cReceive(CBotVar* &var, void* user)
 bool CScriptFunctions::rReceive(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    Error       err;
-    std::string p;
-    float       power;
+    CObject*    pThis = script->m_object;
 
-    exception = 0;
+    if ( !IsFunctionAllowed(pThis, FUNCTION_receive) )
+        return ReturnNan(ERR_WRONG_BOT, script, result, exception);
 
     if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
     {
-        p = var->GetValString();
-        var = var->GetNext();
+        std::string infoName = PopValString(var);
+        float power = PopValFloat(var, 10.0f)*g_unit;
 
-        power = 10.0f*g_unit;
-        if ( var != nullptr )
-        {
-            power = var->GetValFloat()*g_unit;
-            var = var->GetNext();
-        }
+        Error err = script->m_taskExecutor->StartTaskInfo(infoName.c_str(), 0.0f, power, false);
 
-        err = script->m_taskExecutor->StartTaskInfo(p.c_str(), 0.0f, power, false);
         if ( err != ERR_OK )
         {
             script->m_taskExecutor->StopForegroundTask();
-            result->SetValFloat(nanf(""));
-            return true;
+            return ReturnNan(err, script, result, exception);
         }
 
-        CExchangePost* exchangePost = dynamic_cast<CTaskInfo&>(*script->m_taskExecutor->GetForegroundTask()).FindExchangePost(power);
-        script->m_returnValue = exchangePost->GetInfoValue(p);
+        CExchangePostObject* exchangePost = FindExchangePost(pThis, power);
+        script->m_returnValue = exchangePost->GetInfoValue(infoName);
     }
     if ( !WaitForForegroundTask(script, result, exception) )  return false;  // not finished
 
@@ -2352,19 +1709,13 @@ bool CScriptFunctions::rReceive(CBotVar* var, CBotVar* result, int& exception, v
 CBotTypResult CScriptFunctions::cSend(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
-
+    if ( PopType(var) != CBotTypString )  return CBotTypResult(CBotErrBadString);
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "send(nom, value, power)".
@@ -2372,140 +1723,89 @@ CBotTypResult CScriptFunctions::cSend(CBotVar* &var, void* user)
 bool CScriptFunctions::rSend(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    Error       err;
-    std::string p;
-    float       value, power;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_send) )
     {
-        p = var->GetValString();
-        var = var->GetNext();
+        std::string infoName = PopValString(var);
+        float value = PopValFloat(var);
+        float power = PopValFloat(var, 10.0f)*g_unit;
 
-        value = var->GetValFloat();
-        var = var->GetNext();
-
-        power = 10.0f*g_unit;
-        if ( var != nullptr )
-        {
-            power = var->GetValFloat()*g_unit;
-            var = var->GetNext();
-        }
-
-        err = script->m_taskExecutor->StartTaskInfo(p.c_str(), value, power, true);
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        err = script->m_taskExecutor->StartTaskInfo(infoName.c_str(), value, power, true);
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Seeks the nearest information terminal.
 
-CExchangePost* CScriptFunctions::FindExchangePost(CObject* object, float power)
+CExchangePostObject* CScriptFunctions::FindExchangePost(CObject* object, float power)
 {
-    CObject* exchangePost = CObjectManager::GetInstancePointer()->FindNearest(object, OBJECT_INFO, power/g_unit);
-    return dynamic_cast<CExchangePost*>(exchangePost);
+    ObjectType  fType = GetObjectGlobalDetails().defaults.receivePerformer;
+    CObject* exchangePost = CObjectManager::GetInstancePointer()->FindNearest(object, fType, power/g_unit);
+    return dynamic_cast<CExchangePostObject*>(exchangePost);
 }
 
-// Compilation of the instruction "deleteinfo(name, power)".
+// Compilation of the instruction "deleteinfo/testinfo(name, power)".
 
-CBotTypResult CScriptFunctions::cDeleteInfo(CBotVar* &var, void* user)
+CBotTypResult CScriptFunctions::cDeleteTestInfo(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
-
+    if ( PopType(var) != CBotTypString )  return CBotTypResult(CBotErrBadString);
     if ( var == nullptr )  return CBotTypResult(CBotTypBoolean);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypBoolean);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypBoolean);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "deleteinfo(name, power)".
 
 bool CScriptFunctions::rDeleteInfo(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    exception = 0;
-
-    std::string infoName = var->GetValString();
-    var = var->GetNext();
-
-    float power = 10.0f*g_unit;
-    if (var != nullptr)
+    if ( IsFunctionAllowed(pThis, FUNCTION_deleteinfo) )
     {
-        power = var->GetValFloat()*g_unit;
+        std::string infoName = PopValString(var);
+        float power = PopValFloat(var, 10.0f)*g_unit;
+    
+        CExchangePostObject* exchangePost = FindExchangePost(pThis, power);
+    
+        ret = (exchangePost != nullptr) ? exchangePost->DeleteInfo(infoName) : false;
+        err = ERR_OK;
     }
 
-    CExchangePost* exchangePost = FindExchangePost(pThis, power);
-    if (exchangePost == nullptr)
-    {
-        result->SetValInt(false);
-        return true;
-    }
-
-    bool infoDeleted = exchangePost->DeleteInfo(infoName);
-    result->SetValInt(infoDeleted);
-
-    return true;
-}
-
-// Compilation of the instruction "testinfo(nom, power)".
-
-CBotTypResult CScriptFunctions::cTestInfo(CBotVar* &var, void* user)
-{
-    if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString )  return CBotTypResult(CBotErrBadString);
-    var = var->GetNext();
-
-    if ( var == nullptr )  return CBotTypResult(CBotTypBoolean);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    return CBotTypResult(CBotTypBoolean);
+    return ReturnInt(ret, err, script, result, exception);
 }
 
 // Instruction "testinfo(name, power)".
 
 bool CScriptFunctions::rTestInfo(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject* pThis = static_cast<CScript*>(user)->m_object;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    int         ret = 0;
 
-    exception = 0;
-
-    std::string infoName = var->GetValString();
-    var = var->GetNext();
-
-    float power = 10.0f*g_unit;
-    if (var != nullptr)
+    if ( IsFunctionAllowed(pThis, FUNCTION_testinfo) )
     {
-        power = var->GetValFloat()*g_unit;
+        std::string infoName = PopValString(var);
+        float power = PopValFloat(var, 10.0f)*g_unit;
+    
+        CExchangePostObject* exchangePost = FindExchangePost(pThis, power);
+    
+        ret = (exchangePost != nullptr) ? exchangePost->HasInfo(infoName) : false;
+        err = ERR_OK;
     }
 
-    CExchangePost* exchangePost = FindExchangePost(pThis, power);
-    if (exchangePost == nullptr)
-    {
-        result->SetValInt(false);
-        return true;
-    }
-
-    bool foundInfo = exchangePost->HasInfo(infoName);
-    result->SetValInt(foundInfo);
-    return true;
+    return ReturnInt(ret, err, script, result, exception);
 }
 
 // Instruction "thump()".
@@ -2513,26 +1813,18 @@ bool CScriptFunctions::rTestInfo(CBotVar* var, CBotVar* result, int& exception, 
 bool CScriptFunctions::rThump(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_thump) )
     {
         err = script->m_taskExecutor->StartTaskTerraform();
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "recycle()".
@@ -2540,26 +1832,18 @@ bool CScriptFunctions::rThump(CBotVar* var, CBotVar* result, int& exception, voi
 bool CScriptFunctions::rRecycle(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_recycle) )
     {
         err = script->m_taskExecutor->StartTaskRecover();
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            result->SetValInt(err);  // shows the error
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
     }
-    return WaitForForegroundTask(script, result, exception);
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Compilation "shield(oper, radius)".
@@ -2567,16 +1851,11 @@ bool CScriptFunctions::rRecycle(CBotVar* var, CBotVar* result, int& exception, v
 CBotTypResult CScriptFunctions::cShield(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "shield(oper, radius)".
@@ -2585,61 +1864,43 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    float       oper, radius;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    // only shielder can use shield()
-    if (pThis->GetType() != OBJECT_MOBILErs)
+    if ( IsFunctionAllowed(pThis, FUNCTION_shield) )
     {
-        result->SetValInt(ERR_WRONG_BOT);  // return error
-        if (script->m_errMode == ERM_STOP)
+        float oper   = PopValFloat(var);  // 0=down, 1=up
+        float radius = PopValFloat(var);
+        if ( radius < 10.0f )  radius = 10.0f;
+        if ( radius > 25.0f )  radius = 25.0f;
+        radius = (radius-10.0f)/15.0f;
+    
+        if ( !script->m_taskExecutor->IsBackgroundTask() )  // shield folds?
         {
-            exception = ERR_WRONG_BOT;
-            return false;
-        }
-        return true;
-    }
-
-    oper = var->GetValFloat();  // 0=down, 1=up
-    var = var->GetNext();
-
-    radius = var->GetValFloat();
-    if ( radius < 10.0f )  radius = 10.0f;
-    if ( radius > 25.0f )  radius = 25.0f;
-    radius = (radius-10.0f)/15.0f;
-
-    if ( !script->m_taskExecutor->IsBackgroundTask() )  // shield folds?
-    {
-        if ( oper == 0.0f )  // down?
-        {
-            result->SetValInt(1);  // shows the error
-        }
-        else    // up ?
-        {
-            dynamic_cast<CShielder&>(*pThis).SetShieldRadius(radius);
-            err = script->m_taskExecutor->StartTaskShield(TSM_UP, 1000.0f);
-            if ( err != ERR_OK )
+            if ( oper == 0.0f ) // down?
             {
-                script->m_taskExecutor->StopBackgroundTask();
-                result->SetValInt(err);  // shows the error
+                err = ERR_OBJ_BUSY;  // shows the error
+            }
+            else if ( pThis->Implements(ObjectInterfaceType::Shielder) )
+            {
+                dynamic_cast<CShielderObject&>(*pThis).SetShieldRadius(radius);
+                err = script->m_taskExecutor->StartTaskShield(TSM_UP, 1000.0f);
+            }
+        }
+        else    // shield deployed?
+        {
+            if ( oper == 0.0f )  // down?
+            {
+                err = script->m_taskExecutor->StartTaskShield(TSM_DOWN, 0.0f);
+            }
+            else if ( pThis->Implements(ObjectInterfaceType::Shielder) )
+            {
+                dynamic_cast<CShielderObject&>(*pThis).SetShieldRadius(radius);
+                err = script->m_taskExecutor->StartTaskShield(TSM_UPDATE, 0.0f);
             }
         }
     }
-    else    // shield deployed?
-    {
-        if ( oper == 0.0f )  // down?
-        {
-            script->m_taskExecutor->StartTaskShield(TSM_DOWN, 0.0f);
-        }
-        else    // up?
-        {
-            //?         result->SetValInt(1);  // shows the error
-            dynamic_cast<CShielder&>(*pThis).SetShieldRadius(radius);
-            script->m_taskExecutor->StartTaskShield(TSM_UPDATE, 0.0f);
-        }
-    }
 
-    return true;
+    return ReturnErrOrBackgroundTask(err, script, result, exception);
 }
 
 // Compilation "fire(delay)".
@@ -2647,31 +1908,35 @@ bool CScriptFunctions::rShield(CBotVar* var, CBotVar* result, int& exception, vo
 CBotTypResult CScriptFunctions::cFire(CBotVar* &var, void* user)
 {
     CObject*    pThis = static_cast<CScript*>(user)->m_object;
-    ObjectType  type;
 
-    type = pThis->GetType();
+    if ( IsFunctionAllowed(pThis, FUNCTION_fireNoParam) )
+    {
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        return CBotTypResult(CBotErrOverParam);
+    }
 
-    if ( type == OBJECT_ANT )
+    if ( IsFunctionAllowed(pThis, FUNCTION_firePointParam) )
     {
-        if ( var == nullptr ) return CBotTypResult(CBotErrLowParam);
-        CBotTypResult ret = cPoint(var, user);
-        if ( ret.GetType() != 0 )  return ret;
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+        CBotTypResult ret;
+
+        if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
+        ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
+        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+        return CBotTypResult(CBotErrOverParam);
     }
-    else if ( type == OBJECT_SPIDER )
-    {
-        if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-    }
-    else
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_fireTimeParam) )
     {
         if ( var != nullptr )
         {
-            if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-            var = var->GetNext();
-            if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
+            if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+            if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+            return CBotTypResult(CBotErrOverParam);
         }
+        return CBotTypResult(CBotTypFloat);
     }
-    return CBotTypResult(CBotTypFloat);
+
+    return CBotTypResult(CBotErrNoFunc);
 }
 
 // Instruction "fire(delay)".
@@ -2680,48 +1945,31 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    float       delay;
-    glm::vec3    impact;
-    Error       err;
-    ObjectType  type;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_fireNoParam) )
     {
-        type = pThis->GetType();
-
-        if ( type == OBJECT_ANT )
-        {
-            if ( !GetPoint(var, exception, impact) )  return true;
-            float waterLevel = Gfx::CEngine::GetInstancePointer()->GetWater()->GetLevel();
-            impact.y += waterLevel;
-            err = script->m_taskExecutor->StartTaskFireAnt(impact);
-        }
-        else if ( type == OBJECT_SPIDER )
-        {
-            err = script->m_taskExecutor->StartTaskSpiderExplo();
-        }
-        else
-        {
-            if ( var == nullptr )  delay = 0.0f;
-            else             delay = var->GetValFloat();
-            if ( delay < 0.0f ) delay = -delay;
-            err = script->m_taskExecutor->StartTaskFire(delay);
-        }
-        result->SetValInt(err); // indicates the error or ok
-        if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopForegroundTask();
-            if ( script->m_errMode == ERM_STOP )
-            {
-                exception = err;
-                return false;
-            }
-            return true;
-        }
+        err = script->m_taskExecutor->StartTaskSpiderExplo();
     }
-    return WaitForForegroundTask(script, result, exception);
+    if ( IsFunctionAllowed(pThis, FUNCTION_firePointParam) )
+    {
+        glm::vec3 impact = PopValPoint(var);
+        float waterLevel = Gfx::CEngine::GetInstancePointer()->GetWater()->GetLevel();
+        impact.y += waterLevel;
+
+        err = script->m_taskExecutor->StartTaskFireAnt(impact);
+    }
+    if ( IsFunctionAllowed(pThis, FUNCTION_fireTimeParam) )
+    {
+        float delay = fabs(PopValFloat(var));
+
+        err = script->m_taskExecutor->StartTaskFire(delay);
+    }
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Compilation of the instruction "aim(x, y)".
@@ -2729,16 +1977,11 @@ bool CScriptFunctions::rFire(CBotVar* var, CBotVar* result, int& exception, void
 CBotTypResult CScriptFunctions::cAim(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "aim(dir)".
@@ -2746,29 +1989,26 @@ CBotTypResult CScriptFunctions::cAim(CBotVar* &var, void* user)
 bool CScriptFunctions::rAim(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    float       x, y;
-    Error       err;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsBackgroundTask() )
+        return WaitForBackgroundTask(script, result, exception);
 
-    if ( !script->m_taskExecutor->IsBackgroundTask() )  // no task in progress?
+    if ( IsFunctionAllowed(pThis, FUNCTION_aim) )
     {
-        x = var->GetValFloat();
-        var = var->GetNext();
-        var == nullptr ? y=0.0f : y=var->GetValFloat();
-        err = script->m_taskExecutor->StartTaskGunGoal(x*Math::PI/180.0f, y*Math::PI/180.0f);
+        float x = PopValFloat(var)*Math::PI/180.0f;
+        float y = PopValFloat(var)*Math::PI/180.0f;
+
+        err = script->m_taskExecutor->StartTaskGunGoal(x, y);
         if ( err == ERR_AIM_IMPOSSIBLE )
         {
             result->SetValInt(err);  // shows the error
-        }
-        else if ( err != ERR_OK )
-        {
-            script->m_taskExecutor->StopBackgroundTask();
-            result->SetValInt(err);  // shows the error
-            return true;
+            err = ERR_OK;
         }
     }
-    return WaitForBackgroundTask(script, result, exception);
+
+    return ReturnErrOrBackgroundTask(err, script, result, exception);
 }
 
 // Compilation of the instruction "motor(left, right)".
@@ -2776,63 +2016,76 @@ bool CScriptFunctions::rAim(CBotVar* var, CBotVar* result, int& exception, void*
 CBotTypResult CScriptFunctions::cMotor(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(CBotTypFloat);
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    return CBotTypResult(CBotErrOverParam);
 }
 
 // Instruction "motor(left, right)".
 
 bool CScriptFunctions::rMotor(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject*    pThis = static_cast<CScript*>(user)->m_object;
-    CPhysics*   physics = (static_cast<CScript*>(user)->m_object)->GetPhysics();
-    float       left, right, speed, turn;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    left = var->GetValFloat();
-    var = var->GetNext();
-    right = var->GetValFloat();
-
-    speed = (left+right)/2.0f;
-    if ( speed < -1.0f )  speed = -1.0f;
-    if ( speed >  1.0f )  speed =  1.0f;
-
-    turn = left-right;
-    if ( turn < -1.0f )  turn = -1.0f;
-    if ( turn >  1.0f )  turn =  1.0f;
-
-    if ( dynamic_cast<CBaseAlien*>(pThis) != nullptr && dynamic_cast<CBaseAlien&>(*pThis).GetFixed() )  // ant on the back?
+    if ( IsFunctionAllowed(pThis, FUNCTION_motor) )
     {
-        speed = 0.0f;
-        turn  = 0.0f;
+        float left = PopValFloat(var);
+        float right = PopValFloat(var);
+
+        float speed = (left+right)/2.0f;
+        if ( speed < -1.0f )  speed = -1.0f;
+        if ( speed >  1.0f )  speed =  1.0f;
+
+        float turn = left-right;
+        if ( turn < -1.0f )  turn = -1.0f;
+        if ( turn >  1.0f )  turn =  1.0f;
+
+        // TODO: Why do we set the speed? Maybe should just return an error?
+        if (pThis->Implements(ObjectInterfaceType::Thumpable) &&
+            dynamic_cast<CThumpableObject*>(pThis)->GetFixed() )
+        {
+            speed = 0.0f;
+            turn  = 0.0f;
+        }
+
+        if (pThis->Implements(ObjectInterfaceType::Movable))
+        {
+            CPhysics* physics = dynamic_cast<CMovableObject*>(pThis)->GetPhysics();
+            physics->SetMotorSpeedX(speed);  // forward/backward
+            physics->SetMotorSpeedZ(turn);  // turns
+            err = ERR_OK;
+        }
     }
 
-    physics->SetMotorSpeedX(speed);  // forward/backward
-    physics->SetMotorSpeedZ(turn);  // turns
-
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "jet(power)".
 
 bool CScriptFunctions::rJet(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CPhysics*   physics = (static_cast<CScript*>(user)->m_object)->GetPhysics();
-    float       value;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    value = var->GetValFloat();
-    if ( value > 1.0f ) value = 1.0f;
+    if ( IsFunctionAllowed(pThis, FUNCTION_jet) )
+    {
+        float value = PopValFloat(var);
+        if ( value > 1.0f ) value = 1.0f;
 
-    physics->SetMotorSpeedY(value);
+        if (pThis->Implements(ObjectInterfaceType::Movable))
+        {
+            CPhysics* physics = dynamic_cast<CMovableObject*>(pThis)->GetPhysics();
+            physics->SetMotorSpeedY(value);
+            err = ERR_OK;
+        }
+    }
 
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of the instruction "topo(pos)".
@@ -2842,9 +2095,7 @@ CBotTypResult CScriptFunctions::cTopo(CBotVar* &var, void* user)
     CBotTypResult   ret;
 
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    ret = cPoint(var, user);
-    if ( ret.GetType() != 0 )  return ret;
-
+    ret = cPoint(var, user); if ( ret.GetType() != 0 )  return ret;
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
@@ -2854,17 +2105,21 @@ CBotTypResult CScriptFunctions::cTopo(CBotVar* &var, void* user)
 bool CScriptFunctions::rTopo(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    glm::vec3    pos;
-    float       level;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    exception = 0;
+    if ( IsFunctionAllowed(pThis, FUNCTION_topo) )
+    {
+        glm::vec3 pos = PopValPoint(var);
 
-    if ( !GetPoint(var, exception, pos) )  return true;
+        float level = script->m_terrain->GetFloorLevel(pos) - script->m_water->GetLevel();
 
-    level = script->m_terrain->GetFloorLevel(pos);
-    level -= script->m_water->GetLevel();
-    result->SetValFloat(level/g_unit);
-    return true;
+        ret = level/g_unit;
+        err = ERR_OK;
+    }
+
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 // Compilation of the instruction "message(string, type)".
@@ -2872,15 +2127,10 @@ bool CScriptFunctions::rTopo(CBotVar* var, CBotVar* result, int& exception, void
 CBotTypResult CScriptFunctions::cMessage(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() != CBotTypString &&
-        var->GetType() != CBotTypBoolean &&
-        var->GetType() >  CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    int varType = PopType(var);
+    if ( varType != CBotTypString && varType != CBotTypBoolean && varType > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
@@ -2890,38 +2140,42 @@ CBotTypResult CScriptFunctions::cMessage(CBotVar* &var, void* user)
 bool CScriptFunctions::rMessage(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    std::string p;
-    Ui::TextType    type;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    p = var->GetValString();
-
-    type = Ui::TT_MESSAGE;
-    var = var->GetNext();
-    if ( var != nullptr )
+    if ( IsFunctionAllowed(pThis, FUNCTION_message) )
     {
-        type = static_cast<Ui::TextType>(var->GetValInt());
+        std::string msg = PopValString(var);
+        Ui::TextType type = static_cast<Ui::TextType>(PopValInt(var, Ui::TT_MESSAGE));
+    
+        script->m_main->GetDisplayText()->DisplayText(msg.c_str(), script->m_object, 10.0f, type);
+        err = ERR_OK;
     }
 
-    script->m_main->GetDisplayText()->DisplayText(p.c_str(), script->m_object, 10.0f, type);
-
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "cmdline(rank)".
 
 bool CScriptFunctions::rCmdline(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
-    CObject*    pThis = static_cast<CScript*>(user)->m_object;
-    float       value;
-    int         rank;
+    CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    assert(pThis->Implements(ObjectInterfaceType::Programmable));
+    if ( IsFunctionAllowed(pThis, FUNCTION_cmdline) )
+    {
+        int rank = PopValInt(var);
+        
+        if ( pThis->Implements(ObjectInterfaceType::Programmable) )
+        {
+            ret = dynamic_cast<CProgrammableObject&>(*pThis).GetCmdLine(rank);
+            err = ERR_OK;
+        }
+    }
 
-    rank = var->GetValInt();
-    value = dynamic_cast<CProgrammableObject&>(*pThis).GetCmdLine(rank);
-    result->SetValFloat(value);
-
-    return true;
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 // Instruction "ismovie()".
@@ -2929,12 +2183,17 @@ bool CScriptFunctions::rCmdline(CBotVar* var, CBotVar* result, int& exception, v
 bool CScriptFunctions::rIsMovie(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    float       value;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    value = script->m_main->GetMovieLock()?1.0f:0.0f;
-    result->SetValFloat(value);
+    if ( IsFunctionAllowed(pThis, FUNCTION_ismovie) )
+    {
+        ret = script->m_main->GetMovieLock() ? 1.0f : 0.0f;
+        err = ERR_OK;
+    }
 
-    return true;
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 // Instruction "errmode(mode)".
@@ -2942,14 +2201,21 @@ bool CScriptFunctions::rIsMovie(CBotVar* var, CBotVar* result, int& exception, v
 bool CScriptFunctions::rErrMode(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    int         value;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    value = var->GetValInt();
-    if ( value < 0 )  value = 0;
-    if ( value > 1 )  value = 1;
-    script->m_errMode = value;
+    if ( IsFunctionAllowed(pThis, FUNCTION_errmode) )
+    {
+        int value = PopValInt(var);
 
-    return true;
+        if ( value < 0 )  value = 0;
+        if ( value > 1 )  value = 1;
+        script->m_errMode = value;
+
+        err = ERR_OK;
+    }
+
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "ipf(num)".
@@ -2957,14 +2223,21 @@ bool CScriptFunctions::rErrMode(CBotVar* var, CBotVar* result, int& exception, v
 bool CScriptFunctions::rIPF(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    int         value;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    value = var->GetValInt();
-    if ( value <     1 )  value =     1;
-    if ( value > 10000 )  value = 10000;
-    script->m_ipf = value;
+    if ( IsFunctionAllowed(pThis, FUNCTION_ipf) )
+    {
+        int value = PopValInt(var);
 
-    return true;
+        if ( value <     1 )  value =     1;
+        if ( value > 10000 )  value = 10000;
+        script->m_ipf = value;
+
+        err = ERR_OK;
+    }
+
+    return ReturnErr(err, script, result, exception);
 }
 
 // Instruction "abstime()".
@@ -2972,11 +2245,17 @@ bool CScriptFunctions::rIPF(CBotVar* var, CBotVar* result, int& exception, void*
 bool CScriptFunctions::rAbsTime(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
-    float       value;
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
+    float       ret = 0.0f;
 
-    value = script->m_main->GetGameTime();
-    result->SetValFloat(value);
-    return true;
+    if ( IsFunctionAllowed(pThis, FUNCTION_abstime) )
+    {
+        ret = script->m_main->GetGameTime();
+        err = ERR_OK;
+    }
+
+    return ReturnFloat(ret, err, script, result, exception);
 }
 
 // Compilation of the instruction "pendown(color, width)".
@@ -2984,13 +2263,9 @@ bool CScriptFunctions::rAbsTime(CBotVar* var, CBotVar* result, int& exception, v
 CBotTypResult CScriptFunctions::cPenDown(CBotVar* &var, void* user)
 {
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
 }
@@ -3001,66 +2276,37 @@ bool CScriptFunctions::rPenDown(CBotVar* var, CBotVar* result, int& exception, v
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    int         color;
-    float       width;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    if (!pThis->Implements(ObjectInterfaceType::TraceDrawing))
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
+
+    if ( IsFunctionAllowed(pThis, FUNCTION_pendown) )
     {
-        result->SetValInt(ERR_WRONG_OBJ);
-        if ( script->m_errMode == ERM_STOP )
+        int color = PopValInt(var);
+        if ( color <  0 )  color = 0;
+        if ( color >= static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max) - 1;
+
+        float width = PopValFloat(var);
+        if ( width < 0.1f )  width = 0.1f;
+        if ( width > 1.0f )  width = 1.0f;
+
+        if (pThis->Implements(ObjectInterfaceType::TraceDrawing))
         {
-            exception = ERR_WRONG_OBJ;
-            return false;
-        }
-        return true;
-    }
+            CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
+            if ( color != -1 )   traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
+            if ( width != 0.0f ) traceDrawing->SetTraceWidth(width);
+            traceDrawing->SetTraceDown(true);
 
-    CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
-
-    exception = 0;
-
-    if ( var != nullptr )
-    {
-        color = var->GetValInt();
-        if ( color <  0 )  color =  0;
-        if ( color > static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max);
-        traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
-
-        var = var->GetNext();
-        if ( var != nullptr )
-        {
-            width = var->GetValFloat();
-            if ( width < 0.1f )  width = 0.1f;
-            if ( width > 1.0f )  width = 1.0f;
-            traceDrawing->SetTraceWidth(width);
-        }
-    }
-    traceDrawing->SetTraceDown(true);
-
-    if ( pThis->GetType() == OBJECT_MOBILEdr )
-    {
-        if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
-        {
-            err = script->m_taskExecutor->StartTaskPen(traceDrawing->GetTraceDown(), traceDrawing->GetTraceColor());
-            if ( err != ERR_OK )
+            err = ERR_OK;
+            if ( GetObjectTraceDrawingDetails(pThis).penAnimated )
             {
-                script->m_taskExecutor->StopForegroundTask();
-                result->SetValInt(err);  // shows the error
-                if ( script->m_errMode == ERM_STOP )
-                {
-                    exception = err;
-                    return false;
-                }
-                return true;
+                err = script->m_taskExecutor->StartTaskPen(true, static_cast<TraceColor>(color));
             }
         }
-        return WaitForForegroundTask(script, result, exception);
     }
-    else
-    {
-        return true;
-    }
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
 // Instruction "penup()".
@@ -3069,147 +2315,94 @@ bool CScriptFunctions::rPenUp(CBotVar* var, CBotVar* result, int& exception, voi
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if (!pThis->Implements(ObjectInterfaceType::TraceDrawing))
+    if ( IsFunctionAllowed(pThis, FUNCTION_penup) )
     {
-        result->SetValInt(ERR_WRONG_OBJ);
-        if ( script->m_errMode == ERM_STOP )
+        if (pThis->Implements(ObjectInterfaceType::TraceDrawing))
         {
-            exception = ERR_WRONG_OBJ;
-            return false;
-        }
-        return true;
-    }
+            CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
+            traceDrawing->SetTraceDown(false);
 
-    CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
-    traceDrawing->SetTraceDown(false);
-
-    if ( pThis->GetType() == OBJECT_MOBILEdr )
-    {
-        if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
-        {
-            err = script->m_taskExecutor->StartTaskPen(traceDrawing->GetTraceDown(), traceDrawing->GetTraceColor());
-            if ( err != ERR_OK )
+            err = ERR_OK;
+            if ( GetObjectTraceDrawingDetails(pThis).penAnimated )
             {
-                script->m_taskExecutor->StopForegroundTask();
-                result->SetValInt(err);  // shows the error
-                if ( script->m_errMode == ERM_STOP )
-                {
-                    exception = err;
-                    return false;
-                }
-                return true;
+                err = script->m_taskExecutor->StartTaskPen(false);
             }
         }
-        return WaitForForegroundTask(script, result, exception);
     }
-    else
-    {
-        return true;
-    }
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
-// Instruction "pencolor()".
+// Instruction "pencolor(color)".
 
 bool CScriptFunctions::rPenColor(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    int         color;
-    Error       err;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
+    if ( script->m_taskExecutor->IsForegroundTask() )
+        return WaitForForegroundTask(script, result, exception);
 
-    if (!pThis->Implements(ObjectInterfaceType::TraceDrawing))
+    if ( IsFunctionAllowed(pThis, FUNCTION_pencolor) )
     {
-        result->SetValInt(ERR_WRONG_OBJ);
-        if ( script->m_errMode == ERM_STOP )
+        int color = PopValInt(var);
+        if ( color <  0 )  color = 0;
+        if ( color >= static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max) - 1;
+
+        if (pThis->Implements(ObjectInterfaceType::TraceDrawing))
         {
-            exception = ERR_WRONG_OBJ;
-            return false;
-        }
-        return true;
-    }
+            CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
+            traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
 
-    CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
-
-    color = var->GetValInt();
-    if ( color <  0 )  color =  0;
-    if ( color > static_cast<int>(TraceColor::Max) )  color = static_cast<int>(TraceColor::Max);
-    traceDrawing->SetTraceColor(static_cast<TraceColor>(color));
-
-    if ( pThis->GetType() == OBJECT_MOBILEdr )
-    {
-        if ( !script->m_taskExecutor->IsForegroundTask() )  // no task in progress?
-        {
-            err = script->m_taskExecutor->StartTaskPen(traceDrawing->GetTraceDown(), traceDrawing->GetTraceColor());
-            if ( err != ERR_OK )
+            err = ERR_OK;
+            if ( GetObjectTraceDrawingDetails(pThis).penAnimated )
             {
-                script->m_taskExecutor->StopForegroundTask();
-                result->SetValInt(err);  // shows the error
-                if ( script->m_errMode == ERM_STOP )
-                {
-                    exception = err;
-                    return false;
-                }
-                return true;
+                err = script->m_taskExecutor->StartTaskPen(traceDrawing->GetTraceDown(), traceDrawing->GetTraceColor());
             }
         }
-        return WaitForForegroundTask(script, result, exception);
     }
-    else
-    {
-        return true;
-    }
+
+    return ReturnErrOrForegroundTask(err, script, result, exception);
 }
 
-// Instruction "penwidth()".
+// Instruction "penwidth( width )".
 
 bool CScriptFunctions::rPenWidth(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
     CObject*    pThis = script->m_object;
-    float       width;
+    Error       err = ERR_WRONG_BOT;
 
-    exception = 0;
-
-    if (!pThis->Implements(ObjectInterfaceType::TraceDrawing))
+    if ( IsFunctionAllowed(pThis, FUNCTION_penwidth) )
     {
-        result->SetValInt(ERR_WRONG_OBJ);
-        if ( script->m_errMode == ERM_STOP )
+        float width = PopValFloat(var);
+        if ( width < 0.1f )  width = 0.1f;
+        if ( width > 1.0f )  width = 1.0f;
+
+        if (pThis->Implements(ObjectInterfaceType::TraceDrawing))
         {
-            exception = ERR_WRONG_OBJ;
-            return false;
+            dynamic_cast<CTraceDrawingObject*>(pThis)->SetTraceWidth(width);
+            err = ERR_OK;
         }
-        return true;
     }
 
-    CTraceDrawingObject* traceDrawing = dynamic_cast<CTraceDrawingObject*>(pThis);
-
-    width = var->GetValFloat();
-    if ( width < 0.1f )  width = 0.1f;
-    if ( width > 1.0f )  width = 1.0f;
-    traceDrawing->SetTraceWidth(width);
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 // Compilation of the instruction with one object parameter
 
 CBotTypResult CScriptFunctions::cOneObject(CBotVar* &var, void* user)
 {
-    if ( var != nullptr )
-    {
-        var = var->GetNext();
-        if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
-    }
-    else
-        return CBotTypResult(CBotTypFloat);
-
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
+    var = var->GetNext();                                      // TODO: huh? no verification?!
+    if ( var == nullptr )  return CBotTypResult(CBotTypFloat);
     return CBotTypResult(CBotErrOverParam);
-
 }
 
 // Instruction "camerafocus(object)".
@@ -3217,18 +2410,18 @@ CBotTypResult CScriptFunctions::cOneObject(CBotVar* &var, void* user)
 bool CScriptFunctions::rCameraFocus(CBotVar* var, CBotVar* result, int& exception, void* user)
 {
     CScript*    script = static_cast<CScript*>(user);
+    CObject*    pThis = script->m_object;
+    Error       err = ERR_WRONG_BOT;
 
-    CObject* object;
-    if (var == nullptr)
-        object = script->m_object;
-    else
-        object = static_cast<CObject*>(var->GetUserPtr());
+    if ( IsFunctionAllowed(pThis, FUNCTION_camerafocus) )
+    {
+        CObject* object = PopValObject(var, pThis);
 
-    script->m_main->SelectObject(object, false);
+        script->m_main->SelectObject(object, false);
+        err = ERR_OK;
+    }
 
-    result->SetValInt(ERR_OK);
-    exception = ERR_OK;
-    return true;
+    return ReturnErr(err, script, result, exception);
 }
 
 
@@ -3239,27 +2432,13 @@ CBotTypResult CScriptFunctions::cPointConstructor(CBotVar* pThis, CBotVar* &var)
     if ( !pThis->IsElemOfClass("point") )  return CBotTypResult(CBotErrBadNum);
 
     if ( var == nullptr )  return CBotTypResult(0);  // ok if no parameter
-
-    // First parameter (x):
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    // Second parameter (y):
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
     if ( var == nullptr )  return CBotTypResult(CBotErrLowParam);
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-
-    // Third parameter (z):
-    if ( var == nullptr )  // only 2 parameters?
-    {
-        return CBotTypResult(0);  // this function returns void
-    }
-
-    if ( var->GetType() > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
-    var = var->GetNext();
-    if ( var != nullptr )  return CBotTypResult(CBotErrOverParam);
-
-    return CBotTypResult(0);  // this function returns void
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(0);  // this function returns void
+    if ( PopType(var) > CBotTypDouble )  return CBotTypResult(CBotErrBadNum);
+    if ( var == nullptr )  return CBotTypResult(0);  // this function returns void
+    return CBotTypResult(CBotErrOverParam);
 }
 
 //Execution of the class "point".
@@ -3270,56 +2449,25 @@ bool CScriptFunctions::rPointConstructor(CBotVar* pThis, CBotVar* var, CBotVar* 
 
     if ( var == nullptr )  return true;  // constructor with no parameters is ok
 
-    if ( var->GetType() > CBotTypDouble )
-    {
-        Exception = CBotErrBadNum;  return false;
-    }
-
     pX = pThis->GetItem("x");
-    if ( pX == nullptr )
-    {
-        Exception = CBotErrUndefItem;  return false;
-    }
-    pX->SetValFloat( var->GetValFloat() );
-    var = var->GetNext();
-
-    if ( var == nullptr )
-    {
-        Exception = CBotErrLowParam;  return false;
-    }
-
-    if ( var->GetType() > CBotTypDouble )
-    {
-        Exception = CBotErrBadNum;  return false;
-    }
+    if ( pX == nullptr ) { Exception = CBotErrUndefItem;  return false; }
+    if ( var->GetType() > CBotTypDouble ) { Exception = CBotErrBadNum;  return false; }
+    pX->SetValFloat( PopValFloat(var) );
+    if ( var == nullptr ) { Exception = CBotErrLowParam;  return false; }
 
     pY = pThis->GetItem("y");
-    if ( pY == nullptr )
-    {
-        Exception = CBotErrUndefItem;  return false;
-    }
-    pY->SetValFloat( var->GetValFloat() );
-    var = var->GetNext();
-
-    if ( var == nullptr )
-    {
-        return true;  // ok with only two parameters
-    }
+    if ( pY == nullptr )  { Exception = CBotErrUndefItem;  return false; }
+    if ( var->GetType() > CBotTypDouble ) { Exception = CBotErrBadNum;  return false; }
+    pY->SetValFloat( PopValFloat(var) );
+    if ( var == nullptr )  return true;  // ok with only two parameters
 
     pZ = pThis->GetItem("z");
-    if ( pZ == nullptr )
-    {
-        Exception = CBotErrUndefItem;  return false;
-    }
-    pZ->SetValFloat( var->GetValFloat() );
-    var = var->GetNext();
+    if ( pZ == nullptr )  { Exception = CBotErrUndefItem;  return false; }
+    if ( var->GetType() > CBotTypDouble ) { Exception = CBotErrBadNum;  return false; }
+    pZ->SetValFloat( PopValFloat(var) );
+    if ( var == nullptr )  return  true;  // no interruption
 
-    if ( var != nullptr )
-    {
-        Exception = CBotErrOverParam;  return false;
-    }
-
-    return  true;  // no interruption
+    { Exception = CBotErrOverParam;  return false; }
 }
 
 class CBotFileColobot : public CBotFile
@@ -3448,12 +2596,12 @@ void CScriptFunctions::Init()
     for (int i = 0; i < OBJECT_MAX; i++)
     {
         ObjectType type = static_cast<ObjectType>(i);
-        const char* token = GetObjectName(type);
-        if (token[0] != 0)
+        std::string token = GetObjectName(type);
+        if (token.size())
             CBotProgram::DefineNum(token, type);
 
         token = GetObjectAlias(type);
-        if (token[0] != 0)
+        if (token.size())
             CBotProgram::DefineNum(token, type);
     }
     CBotProgram::DefineNum("Any", OBJECT_NULL);
@@ -3600,8 +2748,8 @@ void CScriptFunctions::Init()
     CBotProgram::AddFunction("sniff",     rSniff,     cNull);
     CBotProgram::AddFunction("receive",   rReceive,   cReceive);
     CBotProgram::AddFunction("send",      rSend,      cSend);
-    CBotProgram::AddFunction("deleteinfo",rDeleteInfo,cDeleteInfo);
-    CBotProgram::AddFunction("testinfo",  rTestInfo,  cTestInfo);
+    CBotProgram::AddFunction("deleteinfo",rDeleteInfo,cDeleteTestInfo);
+    CBotProgram::AddFunction("testinfo",  rTestInfo,  cDeleteTestInfo);
     CBotProgram::AddFunction("thump",     rThump,     cNull);
     CBotProgram::AddFunction("recycle",   rRecycle,   cNull);
     CBotProgram::AddFunction("shield",    rShield,    cShield);
@@ -3718,10 +2866,9 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
 
     // Updates the type of battery.
     pVar = pVar->GetNext();  // "energyCell"
-    CSlottedObject *asSlotted = object->Implements(ObjectInterfaceType::Slotted) ? dynamic_cast<CSlottedObject*>(object) : nullptr;
-    if (asSlotted != nullptr && asSlotted->MapPseudoSlot(CSlottedObject::Pseudoslot::POWER) >= 0)
+    if (HasPowerCellSlot(object))
     {
-        CObject *power = asSlotted->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::POWER);
+        CObject *power = GetObjectInPowerCellSlot(object);
         if (power == nullptr)
         {
             pVar->SetPointer(nullptr);
@@ -3734,9 +2881,9 @@ void CScriptFunctions::uObject(CBotVar* botThis, void* user)
 
     // Updates the transported object's type.
     pVar = pVar->GetNext();  // "load"
-    if (asSlotted != nullptr && asSlotted->MapPseudoSlot(CSlottedObject::Pseudoslot::CARRYING) >= 0)
+    if (HasCargoSlot(object))
     {
-        CObject* cargo = asSlotted->GetSlotContainedObjectReq(CSlottedObject::Pseudoslot::CARRYING);
+        CObject* cargo = GetObjectInCargoSlot(object);
         if (cargo == nullptr)
         {
             pVar->SetPointer(nullptr);
@@ -3812,4 +2959,96 @@ void CScriptFunctions::DestroyObjectVar(CBotVar* botVar, bool permanent)
 bool CScriptFunctions::CheckOpenFiles()
 {
     return CBotFileColobot::m_numFilesOpen > 0;
+}
+
+bool CScriptFunctions::ReturnInt(int ret, Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetValInt(ret);
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnFloat(float ret, Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetValFloat(ret);
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnPoint(glm::vec3& ret, Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    CBotVar* pSub = result->GetItemList();
+    if ( pSub != nullptr )
+    {
+        pSub->SetValFloat(ret.x);
+        pSub = pSub->GetNext();
+        pSub->SetValFloat(ret.z);
+        pSub = pSub->GetNext();
+        pSub->SetValFloat(ret.y);
+    }
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnPointer(CObject* ret, Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    CBotVar* ptr = (ret != nullptr) ? ret->GetBotVar() : nullptr;
+    result->SetPointer(ptr);
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnPointerList(std::vector<CObject*> ret, Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetInit(CBotVar::InitType::DEF);
+
+    int i = 0;
+    for (CObject* obj : ret)
+        result->GetItem(i++, true)->SetPointer(obj->GetBotVar());
+
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnNan(Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetValFloat(nanf(""));
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnErr(Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetValInt(err);
+    return ExitWithExceptionIfNeeded(err, script, exception);
+}
+
+bool CScriptFunctions::ReturnErrOrForegroundTask(Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetValInt(err);
+    if ( err != ERR_OK )
+    {
+        script->m_taskExecutor->StopForegroundTask();
+        return ExitWithExceptionIfNeeded(err, script, exception);
+    }
+    return WaitForForegroundTask(script, result, exception);
+}
+
+bool CScriptFunctions::ReturnErrOrBackgroundTask(Error err, CScript* script, CBot::CBotVar* result, int &exception)
+{
+    result->SetValInt(err);
+    if ( err != ERR_OK )
+    {
+        script->m_taskExecutor->StopBackgroundTask();
+        return ExitWithExceptionIfNeeded(err, script, exception);
+    }
+    return WaitForBackgroundTask(script, result, exception);
+}
+
+bool CScriptFunctions::ExitWithExceptionIfNeeded(Error err, CScript* script, int &exception)
+{
+    if ( err != 0 && script->m_errMode == ERM_STOP )
+    {
+        exception = err;
+        return false;
+    }
+    else
+    {
+        exception = 0;
+        return true;
+    }
 }

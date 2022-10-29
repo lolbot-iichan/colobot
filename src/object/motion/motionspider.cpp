@@ -20,8 +20,6 @@
 
 #include "object/motion/motionspider.h"
 
-#include "app/app.h"
-
 #include "graphics/engine/engine.h"
 #include "graphics/engine/oldmodelmanager.h"
 #include "graphics/engine/particle.h"
@@ -30,7 +28,7 @@
 
 #include "object/old_object.h"
 
-#include "object/subclass/base_alien.h"
+#include "object/interface/thumpable_object.h"
 
 #include "physics/physics.h"
 
@@ -60,145 +58,11 @@ CMotionSpider::~CMotionSpider()
 {
 }
 
-
-// Removes an object.
-
-void CMotionSpider::DeleteObject(bool bAll)
-{
-}
-
-
 // Creates a vehicle traveling any lands on the ground.
 
-void CMotionSpider::Create(glm::vec3 pos, float angle, ObjectType type,
-                           float power, Gfx::COldModelManager* modelManager)
+void CMotionSpider::Create()
 {
-    int         rank, i, j, parent;
-    char        name[50];
-
-    float           table[] =
-    {
-    //    x       y       z
-         0.6f,   0.0f,   0.0f,  // back leg
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-
-         0.8f,   0.0f,  -0.2f,  // middle-back leg
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-
-         1.0f,   0.0f,  -0.2f,  // middle-front leg
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-
-         1.2f,   0.0f,   0.0f,  // front leg
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-         0.0f,   0.0f,  -2.0f,
-    };
-
-    m_object->SetType(type);
-
-    // Creates the main base.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_VEHICLE);  // this is a moving object
-    m_object->SetObjectRank(0, rank);
-    // This is an "empty" object, without triangles
-    m_object->SetPosition(pos);
-    m_object->SetRotationY(angle);
-
-    // A vehicle must have a obligatory collision
-    // with a sphere of center (0, y, 0) (see GetCrashSphere).
-    m_object->AddCrashSphere(CrashSphere(glm::vec3(0.0f, -2.0f, 0.0f), 4.0f, SOUND_BOUM, 0.20f));
-    m_object->SetCameraCollisionSphere(Math::Sphere(glm::vec3(-0.5f, 1.0f, 0.0f), 4.0f));
-
-    // Creates the abdomen.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(1, rank);
-    m_object->SetObjectParent(1, 0);
-    modelManager->AddModelReference("spider1", false, rank);
-    m_object->SetPartPosition(1, glm::vec3(1.0f, 0.0f, 0.0f));
-
-    // Creates the head.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(2, rank);
-    m_object->SetObjectParent(2, 0);
-    modelManager->AddModelReference("spider2", false, rank);
-    m_object->SetPartPosition(2, glm::vec3(1.0f, 0.0f, 0.0f));
-
-    // Creates legs.
-    for ( i=0 ; i<4 ; i++ )
-    {
-        for ( j=0 ; j<4 ; j++ )
-        {
-            sprintf(name, "spider%d", j+3);  // 3..6
-
-            // Creates the right leg.
-            rank = m_engine->CreateObject();
-            m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-            m_object->SetObjectRank(3+i*4+j, rank);
-            if ( j == 0 )  parent = 0;
-            else           parent = 3+i*4+j-1;
-            m_object->SetObjectParent(3+i*4+j, parent);
-            modelManager->AddModelReference(name, false, rank);
-            pos.x = table[i*12+j*3+0];
-            pos.y = table[i*12+j*3+1];
-            pos.z = table[i*12+j*3+2];
-            m_object->SetPartPosition(3+i*4+j, pos);
-
-            // Creates the left leg.
-            rank = m_engine->CreateObject();
-            m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-            m_object->SetObjectRank(19+i*4+j, rank);
-            if ( j == 0 )  parent = 0;
-            else           parent = 19+i*4+j-1;
-            m_object->SetObjectParent(19+i*4+j, parent);
-            modelManager->AddModelReference(name, true, rank);
-            pos.x =  table[i*12+j*3+0];
-            pos.y =  table[i*12+j*3+1];
-            pos.z = -table[i*12+j*3+2];
-            m_object->SetPartPosition(19+i*4+j, pos);
-        }
-    }
-
-    // Creates the right mandible.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(35, rank);
-    m_object->SetObjectParent(35, 1);
-    modelManager->AddModelReference("spider7", false, rank);
-    m_object->SetPartPosition(35, glm::vec3(0.0f, 0.0f, -0.3f));
-
-    // Creates the left mandible.
-    rank = m_engine->CreateObject();
-    m_engine->SetObjectType(rank, Gfx::ENG_OBJTYPE_DESCENDANT);
-    m_object->SetObjectRank(36, rank);
-    m_object->SetObjectParent(36, 1);
-    modelManager->AddModelReference("spider7", true, rank);
-    m_object->SetPartPosition(36, glm::vec3(0.0f, 0.0f, 0.3f));
-
-    m_object->CreateShadowCircle(4.0f, 0.5f);
-
-    CreatePhysics();
-    m_object->SetFloorHeight(0.0f);
-
-    pos = m_object->GetPosition();
-    m_object->SetPosition(pos);  // to display the shadows immediately
-
-    m_engine->LoadAllTextures();
-}
-
-// Creates the physics of the object.
-
-void CMotionSpider::CreatePhysics()
-{
-    Character*  character;
-    int         i;
+    CMotion::Create();
 
     int member_march[] =
     {
@@ -272,30 +136,7 @@ void CMotionSpider::CreatePhysics()
         -5,0,0,     -5,0,0,     -5,0,0,     -5,0,0,     // s5: fingers 1..4
     };
 
-    character = m_object->GetCharacter();
-    character->wheelFront = 4.0f;
-    character->wheelBack  = 4.0f;
-    character->wheelLeft  = 6.0f;
-    character->wheelRight = 6.0f;
-    character->height     = 0.6f;
-
-    m_physics->SetLinMotionX(MO_ADVSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_RECSPEED,  12.0f);
-    m_physics->SetLinMotionX(MO_ADVACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_RECACCEL,  15.0f);
-    m_physics->SetLinMotionX(MO_STOACCEL,  40.0f);
-    m_physics->SetLinMotionX(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERSLIDE,   5.0f);
-    m_physics->SetLinMotionX(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_TERFORCE,   5.0f);
-    m_physics->SetLinMotionZ(MO_MOTACCEL,  10.0f);
-
-    m_physics->SetCirMotionY(MO_ADVSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_RECSPEED,   1.0f*Math::PI);
-    m_physics->SetCirMotionY(MO_ADVACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_RECACCEL,  20.0f);
-    m_physics->SetCirMotionY(MO_STOACCEL,  40.0f);
-
+    int i;
     for ( i=0 ; i<3*4*4*3 ; i++ )
     {
         m_armAngles[3*4*4*3*MS_MARCH+i] = member_march[i];
@@ -367,7 +208,8 @@ bool CMotionSpider::EventFrame(const Event &event)
     assert(m_object->Implements(ObjectInterfaceType::Destroyable));
     if (dynamic_cast<CDestroyableObject*>(m_object)->GetDying() == DeathType::Burning )  // burning?
     {
-        if ( dynamic_cast<CBaseAlien&>(*m_object).GetFixed() )
+        assert(m_object->Implements(ObjectInterfaceType::Thumpable));
+        if ( dynamic_cast<CThumpableObject*>(m_object)->GetFixed() )
         {
             m_actionType = MSS_BURN;
         }
@@ -651,7 +493,8 @@ bool CMotionSpider::EventFrame(const Event &event)
         if ( m_progress >= 1.0f )
         {
             SetAction(-1);
-            dynamic_cast<CBaseAlien&>(*m_object).SetFixed(false);  // moving again
+            assert(m_object->Implements(ObjectInterfaceType::Thumpable));
+            dynamic_cast<CThumpableObject*>(m_object)->SetFixed(false);  // moving again
         }
     }
     else

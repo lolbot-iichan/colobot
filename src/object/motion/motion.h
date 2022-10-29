@@ -21,8 +21,6 @@
 
 #include "common/error.h"
 
-#include "object/object_type.h"
-
 #include <glm/glm.hpp>
 
 namespace Gfx
@@ -43,6 +41,7 @@ class CSoundInterface;
 class CLevelParserLine;
 struct Event;
 
+enum ObjectType : unsigned int;
 
 class CMotion
 {
@@ -52,8 +51,8 @@ public:
 
     void    SetPhysics(CPhysics* physics);
 
-    virtual void            DeleteObject(bool bAll=false) = 0;
-    virtual void            Create(glm::vec3 pos, float angle, ObjectType type, float power, Gfx::COldModelManager* modelManager) = 0;
+    virtual void            DeleteObject(bool bAll=false);
+    virtual void            Create();
     virtual bool            EventProcess(const Event &event);
     virtual Error           SetAction(int action, float time=0.2f);
     virtual int             GetAction();
@@ -70,6 +69,9 @@ public:
     virtual glm::vec3       GetCirVibration();
     virtual void            SetTilt(glm::vec3 dir);
     virtual glm::vec3       GetTilt();
+
+    void StartDisplayPerso();
+    void StopDisplayPerso();
 
 protected:
     CApplication*       m_app;
@@ -90,4 +92,6 @@ protected:
     glm::vec3           m_linVibration = { 0, 0, 0 };     // linear vibration
     glm::vec3           m_cirVibration = { 0, 0, 0 };     // circular vibration
     glm::vec3           m_inclinaison = { 0, 0, 0 };      // tilt
+
+    bool                m_bDisplayPerso;
 };

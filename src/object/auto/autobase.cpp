@@ -30,10 +30,15 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/transportable_object.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/common_helpers.h"
+#include "object/helpers/modeled_helpers.h"
+
+#include "object/interface/controllable_object.h"
+#include "object/interface/movable_object.h"
 
 #include "physics/physics.h"
 
@@ -58,7 +63,7 @@ const float BASE_TRANSIT_TIME       = 15.0f;    // transit duration
 
 // Object's constructor.
 
-CAutoBase::CAutoBase(COldObject* object) : CAuto(object)
+CAutoBase::CAutoBase(CObject* object) : CAuto(object)
 {
     m_fogStart = m_engine->GetFogStart();
     m_deepView = m_engine->GetDeepView();
@@ -153,11 +158,11 @@ begin:
 
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f);
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f, -11.5f));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f,  11.5f));
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f);
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f, -11.5f));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f,  11.5f));
             }
 
             pObj = m_main->GetSelectObject();
@@ -184,11 +189,11 @@ begin:
 
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f);
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f, -11.5f));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f,  11.5f));
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f);
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f, -11.5f));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f,  11.5f));
             }
         }
 
@@ -311,12 +316,12 @@ begin:
 
     if ( event.type == EVENT_UPDINTERFACE )
     {
-        if ( m_object->GetSelect() )  CreateInterface(true);
+        if ( IsObjectSelected(m_object) )  CreateInterface(true);
     }
 
     if ( event.type == EVENT_OBJECT_BTAKEOFF )
     {
-        return TakeOff(true);
+        return StartAction(true);
     }
 
     if ( event.type != EVENT_FRAME )  return true;
@@ -479,7 +484,7 @@ begin:
             angle = -m_progress*124.0f*Math::PI/180.0f;
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f+angle);
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f+angle);
             }
 
             if ( m_param != PARAM_PORTICO )
@@ -501,7 +506,7 @@ begin:
         {
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
             }
 
             // Clash the doors with the ground.
@@ -538,10 +543,10 @@ begin:
             len = 7.0f-m_progress*(7.0f+11.5f);
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f,  len));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f, -len));
-                m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f*m_progress);
-                m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f*m_progress);
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f,  len));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f, -len));
+                SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f*m_progress);
+                SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f*m_progress);
             }
 
             if ( m_param != PARAM_PORTICO )
@@ -563,10 +568,10 @@ begin:
         {
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f, -11.5f));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f,  11.5f));
-                m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f);
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f, -11.5f));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f,  11.5f));
+                SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f);
             }
 
             m_phase    = ABP_LDWAIT;
@@ -617,20 +622,20 @@ begin:
             len = 7.0f-(1.0f-m_progress)*(7.0f+11.5f);
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f,  len));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f, -len));
-                m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f*(1.0f-m_progress));
-                m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f*(1.0f-m_progress));
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f,  len));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f, -len));
+                SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f*(1.0f-m_progress));
+                SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f*(1.0f-m_progress));
             }
         }
         else
         {
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f,  7.0f));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f, -7.0f));
-                m_object->SetPartRotationX(10+i, 0.0f);
-                m_object->SetPartRotationX(18+i, 0.0f);
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f,  7.0f));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f, -7.0f));
+                SetPartRotationX(m_object, 10+i, 0.0f);
+                SetPartRotationX(m_object, 18+i, 0.0f);
             }
 
             m_soundChannel = m_sound->Play(SOUND_MANIP, m_posSound, 0.0f, 0.3f, true);
@@ -651,14 +656,14 @@ begin:
             angle = -(1.0f-m_progress)*124.0f*Math::PI/180.0f;
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f+angle);
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f+angle);
             }
         }
         else
         {
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f);
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f);
             }
             m_bMotor = true;  // lights the jet engine
 
@@ -1084,11 +1089,11 @@ bool CAutoBase::Abort()
 
         for ( i=0 ; i<8 ; i++ )
         {
-            m_object->SetPartRotationZ(1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
-            m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f);
-            m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f);
-            m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f, -11.5f));
-            m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f,  11.5f));
+            SetPartRotationZ(m_object, 1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
+            SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f);
+            SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f);
+            SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f, -11.5f));
+            SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f,  11.5f));
         }
     }
     else
@@ -1106,11 +1111,11 @@ bool CAutoBase::Abort()
             MoveCargo();  // all cargo moves
             for ( i=0 ; i<8 ; i++ )
             {
-                m_object->SetPartRotationZ(1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(10+i, -10.0f*Math::PI/180.0f);
-                m_object->SetPartRotationX(18+i,  10.0f*Math::PI/180.0f);
-                m_object->SetPartPosition(10+i, glm::vec3(23.5f, 0.0f, -11.5f));
-                m_object->SetPartPosition(18+i, glm::vec3(23.5f, 0.0f,  11.5f));
+                SetPartRotationZ(m_object, 1+i, Math::PI/2.0f-124.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 10+i, -10.0f*Math::PI/180.0f);
+                SetPartRotationX(m_object, 18+i,  10.0f*Math::PI/180.0f);
+                SetPartPosition(m_object, 10+i, glm::vec3(23.5f, 0.0f, -11.5f));
+                SetPartPosition(m_object, 18+i, glm::vec3(23.5f, 0.0f,  11.5f));
             }
 
             m_main->SetMovieLock(false);  // you can play!
@@ -1156,81 +1161,6 @@ bool CAutoBase::Abort()
 
     return true;
 }
-
-
-// Returns an error due the state of the automation.
-
-Error CAutoBase::GetError()
-{
-    return ERR_OK;
-}
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoBase::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, dim, ddim;
-    float       ox, oy, sx, sy;
-    float       sleep, delay, magnetic, progress;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast<Ui::CWindow*>(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    dim.x = 33.0f/640.0f;
-    dim.y = 33.0f/480.0f;
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-    if( !m_object->GetTrainer() )
-    {
-        ddim.x = dim.x*1.5f;
-        ddim.y = dim.y*1.5f;
-
-    //? pos.x = ox+sx*7.25f;
-    //? pos.y = oy+sy*0.25f;
-    //? pw->CreateButton(pos, ddim, 63, EVENT_OBJECT_BHELP);
-
-        pos.x = ox+sx*8.00f;
-        pos.y = oy+sy*0.25f;
-        pw->CreateButton(pos, ddim, 28, EVENT_OBJECT_BTAKEOFF);
-
-        if ( m_lightning->GetStatus(sleep, delay, magnetic, progress) )
-        {
-            pos.x = ox+sx*10.2f;
-            pos.y = oy+sy*0.5f;
-            ddim.x = dim.x*1.0f;
-            ddim.y = dim.y*1.0f;
-            pw->CreateButton(pos, ddim, 41, EVENT_OBJECT_LIMIT);
-        }
-    }
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 100, EVENT_OBJECT_TYPE);
-
-    UpdateInterface();
-
-    return true;
-}
-
-// Updates the status of all interface buttons.
-
-void CAutoBase::UpdateInterface()
-{
-    if ( !m_object->GetSelect() )  return;
-
-    CAuto::UpdateInterface();
-}
-
 
 // Freeze or frees all cargo.
 
@@ -1359,7 +1289,7 @@ void CAutoBase::EndTransit()
     m_main->StartMusic();
 }
 
-Error CAutoBase::TakeOff(bool printMsg)
+Error CAutoBase::StartAction(int printMsg)
 {
     Error err = CheckCloseDoor();
     if (err != ERR_OK)

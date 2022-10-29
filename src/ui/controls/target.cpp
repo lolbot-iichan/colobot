@@ -24,6 +24,7 @@
 
 #include "level/robotmain.h"
 
+#include "object/helpers/cargo_helpers.h"
 #include "object/object_manager.h"
 #include "object/old_object.h"
 
@@ -145,7 +146,7 @@ CObject* CTarget::DetectFriendObject(const glm::vec2& pos)
         CObject* target = obj;
         if ( obj->Implements(ObjectInterfaceType::PowerContainer) && IsObjectBeingTransported(obj) )
         {
-            target = dynamic_cast<CTransportableObject&>(*obj).GetTransporter();
+            target = GetObjectTransporter(obj);
         }
 
         if ( !target->GetDetectable() )  continue;

@@ -36,12 +36,12 @@ CSystemUtils* CSignalHandlers::m_systemUtils = nullptr;
 
 void CSignalHandlers::Init(CSystemUtils* systemUtils)
 {
-    m_systemUtils = systemUtils;
-    signal(SIGSEGV, SignalHandler);
-    signal(SIGABRT, SignalHandler);
-    signal(SIGFPE,  SignalHandler);
-    signal(SIGILL,  SignalHandler);
-    std::set_terminate(UnhandledExceptionHandler);
+//    m_systemUtils = systemUtils;
+//    signal(SIGSEGV, SignalHandler);
+//    signal(SIGABRT, SignalHandler);
+//    signal(SIGFPE,  SignalHandler);
+//    signal(SIGILL,  SignalHandler);
+//    std::set_terminate(UnhandledExceptionHandler);
 }
 
 void CSignalHandlers::SignalHandler(int sig)

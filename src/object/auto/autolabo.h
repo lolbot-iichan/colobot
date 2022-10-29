@@ -42,7 +42,7 @@ enum AutoLaboPhase
 class CAutoLabo : public CAuto
 {
 public:
-    CAutoLabo(COldObject* object);
+    CAutoLabo(CObject* object);
     ~CAutoLabo();
 
     void        DeleteObject(bool bAll=false) override;
@@ -68,6 +68,7 @@ protected:
     float               m_progress = 0.0f;
     float               m_speed = 0.0f;
     float               m_timeVirus = 0.0f;
+    float               m_lastUpdateTime = 0.0f;
     float               m_lastParticle = 0.0f;
     ResearchType        m_research = {};
     int                 m_partiRank[3] = {};

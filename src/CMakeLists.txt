@@ -124,6 +124,8 @@ add_library(colobotbase STATIC
     graphics/engine/terrain.h
     graphics/engine/text.cpp
     graphics/engine/text.h
+    graphics/engine/trace_color.cpp
+    graphics/engine/trace_color.h
     graphics/engine/water.cpp
     graphics/engine/water.h
     graphics/model/model.cpp
@@ -164,10 +166,12 @@ add_library(colobotbase STATIC
     graphics/opengl33/glutil.cpp
     graphics/opengl33/glutil.h
     level/build_type.h
+    level/drive_type.h
     level/level_category.cpp
     level/level_category.h
     level/mainmovie.cpp
     level/mainmovie.h
+    level/mission_type.h
     level/parser/parser.cpp
     level/parser/parser.h
     level/parser/parserexceptions.cpp
@@ -185,6 +189,7 @@ add_library(colobotbase STATIC
     level/scene_conditions.h
     level/scoreboard.cpp
     level/scoreboard.h
+    level/tool_type.h
     math/all.h
     math/const.h
     math/func.h
@@ -196,6 +201,8 @@ add_library(colobotbase STATIC
     object/auto/auto.h
     object/auto/autobase.cpp
     object/auto/autobase.h
+    object/auto/autoboat.cpp
+    object/auto/autoboat.h
     object/auto/autoconvert.cpp
     object/auto/autoconvert.h
     object/auto/autoderrick.cpp
@@ -206,22 +213,28 @@ add_library(colobotbase STATIC
     object/auto/autoegg.h
     object/auto/autofactory.cpp
     object/auto/autofactory.h
+    object/auto/autofan.cpp
+    object/auto/autofan.h
     object/auto/autoflag.cpp
     object/auto/autoflag.h
     object/auto/autohouston.cpp
     object/auto/autohouston.h
+    object/auto/autoinfo.cpp
+    object/auto/autoinfo.h
     object/auto/autojostle.cpp
     object/auto/autojostle.h
-    object/auto/autokid.cpp
-    object/auto/autokid.h
     object/auto/autolabo.cpp
     object/auto/autolabo.h
+    object/auto/autolamp.cpp
+    object/auto/autolamp.h
     object/auto/automush.cpp
     object/auto/automush.h
     object/auto/autonest.cpp
     object/auto/autonest.h
     object/auto/autonuclearplant.cpp
     object/auto/autonuclearplant.h
+    object/auto/autoorgacannon.cpp
+    object/auto/autoorgacannon.h
     object/auto/autoportico.cpp
     object/auto/autoportico.h
     object/auto/autopowercaptor.cpp
@@ -240,11 +253,149 @@ add_library(colobotbase STATIC
     object/auto/autoroot.h
     object/auto/autotower.cpp
     object/auto/autotower.h
+    object/auto/autotrunk.cpp
+    object/auto/autotrunk.h
     object/auto/autovault.cpp
     object/auto/autovault.h
+    object/auto/autoworm.cpp
+    object/auto/autoworm.h
+    object/auto/autoquarz.cpp
+    object/auto/autoquarz.h
     object/crash_sphere.h
-    object/drive_type.cpp
-    object/drive_type.h
+    object/details/assistant_details.cpp
+    object/details/assistant_details.h
+    object/details/automated_details.cpp
+    object/details/automated_details.h
+    object/details/controllable_details.cpp
+    object/details/controllable_details.h
+    object/details/damageable_details.cpp
+    object/details/damageable_details.h
+    object/details/destroyable_details.cpp
+    object/details/destroyable_details.h
+    object/details/details_provider.cpp
+    object/details/details_provider.h
+    object/details/detectable_details.cpp
+    object/details/detectable_details.h
+    object/details/exchange_post_details.cpp
+    object/details/exchange_post_details.h
+    object/details/flying_details.cpp
+    object/details/flying_details.h
+    object/details/fragile_details.cpp
+    object/details/fragile_details.h
+    object/details/global_details.cpp
+    object/details/global_details.h
+    object/details/jet_flying_details.cpp
+    object/details/jet_flying_details.h
+    object/details/jostleable_details.cpp
+    object/details/jostleable_details.h
+    object/details/level_details.cpp
+    object/details/level_details.h
+    object/details/macro.cpp
+    object/details/macro.h
+    object/details/modeled_details.cpp
+    object/details/modeled_details.h
+    object/details/movable_details.cpp
+    object/details/movable_details.h
+    object/details/naming_details.cpp
+    object/details/naming_details.h
+    object/details/physical_details.cpp
+    object/details/physical_details.h
+    object/details/power_container_details.cpp
+    object/details/power_container_details.h
+    object/details/programmable_details.cpp
+    object/details/programmable_details.h
+    object/details/ranged_details.cpp
+    object/details/ranged_details.h
+    object/details/scripting_details.cpp
+    object/details/scripting_details.h
+    object/details/slotted_details.cpp
+    object/details/slotted_details.h
+    object/details/shielded_details.cpp
+    object/details/shielded_details.h
+    object/details/shielded_auto_regen_details.cpp
+    object/details/shielded_auto_regen_details.h
+    object/details/shielder_details.cpp
+    object/details/shielder_details.h
+    object/details/task_executor_details.cpp
+    object/details/task_executor_details.h
+    object/details/thumpable_details.cpp
+    object/details/thumpable_details.h
+    object/details/trace_drawing_details.cpp
+    object/details/trace_drawing_details.h
+    object/details/transportable_details.cpp
+    object/details/transportable_details.h
+    object/hardcode/assistant_hardcode.cpp
+    object/hardcode/assistant_hardcode.h
+    object/hardcode/automated_hardcode.cpp
+    object/hardcode/automated_hardcode.h
+    object/hardcode/controllable_hardcode.cpp
+    object/hardcode/controllable_hardcode.h
+    object/hardcode/damageable_hardcode.cpp
+    object/hardcode/damageable_hardcode.h
+    object/hardcode/destroyable_hardcode.cpp
+    object/hardcode/destroyable_hardcode.h
+    object/hardcode/detectable_hardcode.cpp
+    object/hardcode/detectable_hardcode.h
+    object/hardcode/exchange_post_hardcode.cpp
+    object/hardcode/exchange_post_hardcode.h
+    object/hardcode/flying_hardcode.cpp
+    object/hardcode/flying_hardcode.h
+    object/hardcode/fragile_hardcode.cpp
+    object/hardcode/fragile_hardcode.h
+    object/hardcode/global_hardcode.cpp
+    object/hardcode/global_hardcode.h
+    object/hardcode/jet_flying_hardcode.cpp
+    object/hardcode/jet_flying_hardcode.h
+    object/hardcode/jostleable_hardcode.cpp
+    object/hardcode/jostleable_hardcode.h
+    object/hardcode/modeled_hardcode.cpp
+    object/hardcode/modeled_hardcode.h
+    object/hardcode/movable_hardcode.cpp
+    object/hardcode/movable_hardcode.h
+    object/hardcode/naming_hardcode.cpp
+    object/hardcode/naming_hardcode.h
+    object/hardcode/level_hardcode.cpp
+    object/hardcode/level_hardcode.h
+    object/hardcode/physical_hardcode.cpp
+    object/hardcode/physical_hardcode.h
+    object/hardcode/power_container_hardcode.cpp
+    object/hardcode/power_container_hardcode.h
+    object/hardcode/programmable_hardcode.cpp
+    object/hardcode/programmable_hardcode.h
+    object/hardcode/ranged_hardcode.cpp
+    object/hardcode/ranged_hardcode.h
+    object/hardcode/scripting_hardcode.cpp
+    object/hardcode/scripting_hardcode.h
+    object/hardcode/slotted_hardcode.cpp
+    object/hardcode/slotted_hardcode.h
+    object/hardcode/shielded_hardcode.cpp
+    object/hardcode/shielded_hardcode.h
+    object/hardcode/shielded_auto_regen_hardcode.cpp
+    object/hardcode/shielded_auto_regen_hardcode.h
+    object/hardcode/shielder_hardcode.cpp
+    object/hardcode/shielder_hardcode.h
+    object/hardcode/task_executor_hardcode.cpp
+    object/hardcode/task_executor_hardcode.h
+    object/hardcode/thumpable_hardcode.cpp
+    object/hardcode/thumpable_hardcode.h
+    object/hardcode/trace_drawing_hardcode.cpp
+    object/hardcode/trace_drawing_hardcode.h
+    object/hardcode/transportable_hardcode.cpp
+    object/hardcode/transportable_hardcode.h
+    object/helpers/cargo_helpers.cpp
+    object/helpers/cargo_helpers.h
+    object/helpers/common_helpers.cpp
+    object/helpers/common_helpers.h
+    object/helpers/level_helpers.cpp
+    object/helpers/level_helpers.h
+    object/helpers/modeled_helpers.cpp
+    object/helpers/modeled_helpers.h
+    object/helpers/power_helpers.cpp
+    object/helpers/power_helpers.h
+    object/helpers/programmable_helpers.cpp
+    object/helpers/programmable_helpers.h
+    object/implementation/exchange_post_impl.cpp
+    object/implementation/exchange_post_impl.h
     object/implementation/power_container_impl.cpp
     object/implementation/power_container_impl.h
     object/implementation/program_storage_impl.cpp
@@ -262,18 +413,19 @@ add_library(colobotbase STATIC
     object/interface/jet_flying_object.h
     object/interface/jostleable_object.h
     object/interface/movable_object.h
+    object/interface/modeled_object.h
     object/interface/power_container_object.h
     object/interface/program_storage_object.h
     object/interface/programmable_object.h
     object/interface/ranged_object.h
     object/interface/shielded_auto_regen_object.h
     object/interface/shielded_object.h
+    object/interface/shielder_object.h
     object/interface/slotted_object.h
     object/interface/task_executor_object.h
-    object/interface/trace_drawing_object.cpp
+    object/interface/thumpable_object.h
     object/interface/trace_drawing_object.h
     object/interface/transportable_object.h
-    object/mission_type.h
     object/motion/motion.cpp
     object/motion/motion.h
     object/motion/motionant.cpp
@@ -282,45 +434,41 @@ add_library(colobotbase STATIC
     object/motion/motionbee.h
     object/motion/motionhuman.cpp
     object/motion/motionhuman.h
-    object/motion/motionlevelcontroller.cpp
-    object/motion/motionlevelcontroller.h
+    object/motion/motionlegged.cpp
+    object/motion/motionlegged.h
     object/motion/motionqueen.cpp
     object/motion/motionqueen.h
     object/motion/motionspider.cpp
     object/motion/motionspider.h
     object/motion/motiontoto.cpp
     object/motion/motiontoto.h
-    object/motion/motionvehicle.cpp
-    object/motion/motionvehicle.h
+    object/motion/motiontracked.cpp
+    object/motion/motiontracked.h
+    object/motion/motionwheeled.cpp
+    object/motion/motionwheeled.h
+    object/motion/motionwinged.cpp
+    object/motion/motionwinged.h
     object/motion/motionworm.cpp
     object/motion/motionworm.h
     object/object.cpp
     object/object.h
     object/object_create_exception.h
     object/object_create_params.h
+    object/object_details.cpp
+    object/object_details.h
     object/object_factory.cpp
     object/object_factory.h
     object/object_interface_type.h
     object/object_manager.cpp
     object/object_manager.h
+    object/object_part_filter.cpp
+    object/object_part_filter.h
     object/object_type.cpp
     object/object_type.h
     object/old_object.cpp
     object/old_object.h
     object/old_object_interface.cpp
     object/old_object_interface.h
-    object/subclass/base_alien.cpp
-    object/subclass/base_alien.h
-    object/subclass/base_building.cpp
-    object/subclass/base_building.h
-    object/subclass/base_robot.cpp
-    object/subclass/base_robot.h
-    object/subclass/base_vehicle.cpp
-    object/subclass/base_vehicle.h
-    object/subclass/exchange_post.cpp
-    object/subclass/exchange_post.h
-    object/subclass/shielder.cpp
-    object/subclass/shielder.h
     object/subclass/static_object.cpp
     object/subclass/static_object.h
     object/task/task.cpp
@@ -329,6 +477,8 @@ add_library(colobotbase STATIC
     object/task/taskadvance.h
     object/task/taskbuild.cpp
     object/task/taskbuild.h
+    object/task/taskdeflag.cpp
+    object/task/taskdeflag.h
     object/task/taskdeletemark.cpp
     object/task/taskdeletemark.h
     object/task/taskfire.cpp
@@ -363,8 +513,6 @@ add_library(colobotbase STATIC
     object/task/taskturn.h
     object/task/taskwait.cpp
     object/task/taskwait.h
-    object/tool_type.cpp
-    object/tool_type.h
     physics/physics.cpp
     physics/physics.h
     script/cbottoken.cpp
@@ -405,6 +553,8 @@ add_library(colobotbase STATIC
     ui/controls/label.h
     ui/controls/list.cpp
     ui/controls/list.h
+    ui/controls/logo.cpp
+    ui/controls/logo.h
     ui/controls/map.cpp
     ui/controls/map.h
     ui/controls/scroll.cpp
@@ -475,6 +625,7 @@ add_library(colobotbase STATIC
     ui/screen/screen_welcome.h
     ui/studio.cpp
     ui/studio.h
+    ui/widget.h
 )
 
 target_include_directories(colobotbase PUBLIC

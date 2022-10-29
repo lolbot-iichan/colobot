@@ -47,7 +47,7 @@ enum TaskShieldMode
     TSM_START   = 4,    // start with shield up
 };
 
-class CShielder;
+class CShielderObject;
 
 
 
@@ -73,7 +73,7 @@ protected:
     float       GetRadius();
 
 protected:
-    CShielder*      m_shielder;
+    CShielderObject* m_shielder;
     TaskShieldPhase m_phase = TS_UP1;
     float           m_progress = 0.0f;
     float           m_speed = 0.0f;

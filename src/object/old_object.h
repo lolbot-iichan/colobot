@@ -32,24 +32,29 @@
 #include "object/implementation/program_storage_impl.h"
 #include "object/implementation/programmable_impl.h"
 #include "object/implementation/task_executor_impl.h"
+#include "object/implementation/exchange_post_impl.h"
 
 #include "object/interface/controllable_object.h"
 #include "object/interface/flying_object.h"
 #include "object/interface/interactive_object.h"
 #include "object/interface/jet_flying_object.h"
 #include "object/interface/jostleable_object.h"
+#include "object/interface/modeled_object.h"
 #include "object/interface/movable_object.h"
 #include "object/interface/power_container_object.h"
 #include "object/interface/programmable_object.h"
 #include "object/interface/ranged_object.h"
 #include "object/interface/shielded_auto_regen_object.h"
+#include "object/interface/shielder_object.h"
 #include "object/interface/slotted_object.h"
 #include "object/interface/task_executor_object.h"
+#include "object/interface/thumpable_object.h"
 #include "object/interface/trace_drawing_object.h"
 #include "object/interface/transportable_object.h"
 
 // The father of all parts must always be the part number zero!
 const int OBJECTMAXPART         = 40;
+const int OBJECTMAXSLOT         = 8;
 
 struct ObjectPart
 {
@@ -82,6 +87,7 @@ enum class EngineShadowType : unsigned char;
 
 class COldObject : public CObject,
                    public CInteractiveObject,
+                   public CModeledObject,
                    public CTransportableObject,
                    public CTaskExecutorObjectImpl,
                    public CProgramStorageObjectImpl,
@@ -93,14 +99,17 @@ class COldObject : public CObject,
                    public CPowerContainerObjectImpl,
                    public CRangedObject,
                    public CTraceDrawingObject,
-                   public CShieldedAutoRegenObject
+                   public CShieldedAutoRegenObject,
+                   public CThumpableObject,
+                   public CShielderObject,
+                   public CExchangePostObjectImpl
 {
     friend class CObjectFactory;
     friend class CObjectManager;
+    friend class CRobotMain;
 
 protected:
     void        DeleteObject(bool bAll=false);
-    void        SetProgrammable();
     void        SetMovable(std::unique_ptr<CMotion> motion, std::unique_ptr<CPhysics> physics);
     void        SetAuto(std::unique_ptr<CAuto> automat);
     void        SetOption(int option);
@@ -144,31 +153,32 @@ public:
     void        SetTilt(glm::vec3 dir);
     glm::vec3   GetTilt() override;
 
-    void        SetPartPosition(int part, const glm::vec3 &pos);
-    glm::vec3   GetPartPosition(int part) const;
+    void        SetPartPosition(int part, const glm::vec3 &pos) override;
+    glm::vec3   GetPartPosition(int part) const override;
 
-    void        SetPartRotation(int part, const glm::vec3 &angle);
-    glm::vec3   GetPartRotation(int part) const;
-    void        SetPartRotationY(int part, float angle);
-    void        SetPartRotationX(int part, float angle);
-    void        SetPartRotationZ(int part, float angle);
-    float       GetPartRotationY(int part);
-    float       GetPartRotationX(int part);
-    float       GetPartRotationZ(int part);
+    void        SetPartRotation(int part, const glm::vec3 &angle) override;
+    glm::vec3   GetPartRotation(int part) const override;
+    void        SetPartRotationY(int part, float angle) override;
+    void        SetPartRotationX(int part, float angle) override;
+    void        SetPartRotationZ(int part, float angle) override;
+    float       GetPartRotationY(int part) override;
+    float       GetPartRotationX(int part) override;
+    float       GetPartRotationZ(int part) override;
 
-    void        SetPartScale(int part, float zoom);
-    void        SetPartScale(int part, glm::vec3 zoom);
-    glm::vec3   GetPartScale(int part) const;
-    void        SetPartScaleX(int part, float zoom);
-    float       GetPartScaleX(int part);
-    void        SetPartScaleY(int part, float zoom);
-    float       GetPartScaleY(int part);
-    void        SetPartScaleZ(int part, float zoom);
-    float       GetPartScaleZ(int part);
+    void        SetPartScale(int part, float zoom) override;
+    void        SetPartScale(int part, glm::vec3 zoom) override;
+    glm::vec3   GetPartScale(int part) const override;
+    void        SetPartScaleX(int part, float zoom) override;
+    float       GetPartScaleX(int part) override;
+    void        SetPartScaleY(int part, float zoom) override;
+    float       GetPartScaleY(int part) override;
+    void        SetPartScaleZ(int part, float zoom) override;
+    float       GetPartScaleZ(int part) override;
 
     void        SetTrainer(bool bEnable) override;
     bool        GetTrainer() override;
     bool        GetPlusTrainer();
+    bool        GetPlusExplorer();
 
     void        SetToy(bool bEnable);
     bool        GetToy();
@@ -200,11 +210,12 @@ public:
     void        SetShield(float level) override;
     float       GetShield() override;
 
+    // CJetFlyingObject
     void        SetRange(float delay) override;
     float       GetRange() override;
-
     void        SetReactorRange(float reactorRange) override;
     float       GetReactorRange() override;
+    CJetFlyingCoolingFactors GetCoolingFactors() override;
 
     void        SetGhostMode(bool enabled) override;
 
@@ -300,8 +311,19 @@ public:
     float GetSlotAcceptanceAngle(int slotNum) override;
     CObject *GetSlotContainedObject(int slotNum) override;
     void SetSlotContainedObject(int slotNum, CObject *object) override;
-    // Helper for CSlottedObject initialization
-    void SetPowerPosition(const glm::vec3& powerPosition);
+
+    // CThumpableObject
+    void SetFixed(bool fixed) override;
+    bool GetFixed() override;
+
+    // CShielderObject
+    //! Shielder radius (only while active) [0 or RADIUS_SHIELD_MIN..RADIUS_SHIELD_MAX]
+    float GetActiveShieldRadius() override;
+    //! Shielder radius [0..1]
+    //@{
+    void  SetShieldRadius(float shieldRadius) override;
+    float GetShieldRadius() override;
+    //@}
 
 protected:
     bool        EventFrame(const Event &event);
@@ -314,20 +336,20 @@ protected:
     bool        UpdateTransformObject(int part, bool bForceUpdate);
     bool        UpdateTransformObject();
     void        UpdateSelectParticle();
-    void        TransformCrashSphere(Math::Sphere &crashSphere) override;
+    void        TransformCrashSphere(Math::Sphere &crashSphere, int partNum) override;
     void TransformCameraCollisionSphere(Math::Sphere& collisionSphere) override;
 
     /**
-     * \brief Check if given object type should be selectable by default
+     * \brief Check if set object type should be selectable by default
      * \note This is a default value for the selectable= parameter and can still be overriden in the scene file or using the \a selectinsect cheat
      */
-    static bool IsSelectableByDefault(ObjectType type);
+    bool IsSelectableByDefault();
 
     /**
-     * \brief Check if given object type should have bulletWall enabled by default
+     * \brief Check if set object type should have bulletWall enabled by default
      * \note This is a default value for the bulletWall= parameter and can still be overriden in the scene file
      */
-    static bool IsBulletWallByDefault(ObjectType type);
+    bool IsBulletWallByDefault();
 
 protected:
     Gfx::CEngine*       m_engine;
@@ -343,31 +365,30 @@ protected:
     std::unique_ptr<CAuto> m_auto;
     std::unique_ptr<Ui::CObjectInterface> m_objectInterface;
 
-    std::string  m_name;         // name of the object
-    Character   m_character;            // characteristic
-    int     m_option;           // option
-    int     m_shadowLight;          // number of light from the shadows
-    float       m_shadowHeight;         // height of light from the shadows
-    glm::vec3    m_linVibration;         // linear vibration
-    glm::vec3    m_cirVibration;         // circular vibration
-    glm::vec3    m_tilt;          // tilt
-    CObject*    m_power;            // battery used by the vehicle
-    glm::vec3   m_powerPosition;
-    CObject*    m_cargo;             // object transported
-    CObject*    m_transporter;            // object with the latter
-    int     m_transporterLink;            // part
+    std::string m_name;             // name of the object
+    Character   m_character;        // characteristic
+    int         m_option;           // option
+    int         m_shadowLight;      // number of light from the shadows
+    float       m_shadowHeight;     // height of light from the shadows
+
+    glm::vec3   m_linVibration;     // linear vibration
+    glm::vec3   m_cirVibration;     // circular vibration
+    glm::vec3   m_tilt;             // tilt
+    CObject*    m_slot[OBJECTMAXSLOT]; // all the slots
+    CObject*    m_transporter;      // object with the latter
+    int     m_transporterLink;      // part
     float       m_lastEnergy;
     float       m_shield;           // shield
     float       m_range;            // flight range
     float       m_aTime;
     float       m_shotTime;         // time since last shot
-    bool        m_bVirusMode;           // virus activated/triggered
-    float       m_virusTime;            // lifetime of the virus
+    bool        m_bVirusMode;       // virus activated/triggered
+    float       m_virusTime;        // lifetime of the virus
     float       m_lastVirusParticle;
     bool        m_bSelect;          // object selected
-    bool        m_bSelectable;          // selectable object
-    bool        m_bCheckToken;          // object with audited tokens
-    bool        m_underground;         // object active but undetectable
+    bool        m_bSelectable;      // selectable object
+    bool        m_bCheckToken;      // object with audited tokens
+    bool        m_underground;      // object active but undetectable
     bool        m_damaging;
     float       m_damageTime;
     DeathType   m_dying;
@@ -387,7 +408,7 @@ protected:
     int         m_totalPart;
     ObjectPart  m_objectPart[OBJECTMAXPART];
 
-    int         m_partiSel[4];
+    std::vector<int> m_partiSel;
 
     EventType   m_buttonAxe;
 
@@ -402,6 +423,5 @@ protected:
 
     bool        m_bulletWall = false;
 
-    bool        m_hasCargoSlot;
-    bool        m_hasPowerSlot;
+    bool        m_fixed;
 };

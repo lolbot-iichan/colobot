@@ -29,11 +29,14 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/modeled_helpers.h"
 
 #include "sound/sound.h"
 
@@ -48,12 +51,12 @@ const float NUCLEARPLANT_DELAY = 30.0f;  // duration of the generation
 
 // Object's constructor.
 
-CAutoNuclearPlant::CAutoNuclearPlant(COldObject* object) : CAuto(object)
+CAutoNuclearPlant::CAutoNuclearPlant(CObject* object) : CAuto(object)
 {
     m_channelSound = -1;
     Init();
 
-    assert(m_object->GetNumSlots() == 1);
+    assert(GetNumSlots(m_object) > 0);
 }
 
 // Object's destructor.
@@ -111,8 +114,8 @@ void CAutoNuclearPlant::Init()
 bool CAutoNuclearPlant::EventProcess(const Event &event)
 {
     CObject*    cargo;
-    glm::vec3    pos, goal, speed;
-    glm::vec2     dim, rot;
+    glm::vec3    pos, speed;
+    glm::vec2     dim;
     float       angle;
     int         i, max;
 
@@ -168,11 +171,11 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = (1.0f-m_progress)*(135.0f*Math::PI/180.0f);
-            m_object->SetPartRotationZ(1, angle);
+            SetPartRotationZ(m_object, 1, angle);
         }
         else
         {
-            m_object->SetPartRotationZ(1, 0.0f);
+            SetPartRotationZ(m_object, 1, 0.0f);
 
             glm::mat4 mat = m_object->GetWorldMatrix(0);
             max = static_cast< int >(10.0f*m_engine->GetParticleDensity());
@@ -235,11 +238,20 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
             cargo = SearchUranium();
             if ( cargo != nullptr )
             {
-                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-                m_object->SetSlotContainedObject(0, nullptr);
-            }
+                std::vector<CObjectProductionAutomated> matched;
+                for ( auto it : GetObjectAutomatedDetails(m_object).production.objects )
+                {
+                    if ( cargo->GetType() == it.input )
+                        matched.push_back(it);
+                }
 
-            CreatePower();  // creates the atomic cell
+                CObjectManager::GetInstancePointer()->DeleteObjectInSlot(m_object, 0);
+
+                CObjectProductionAutomated matchedFinal = matched[ std::rand() % matched.size() ];
+                if (matchedFinal.output != OBJECT_NULL)
+                    CreatePower(matchedFinal.output);  // creates the atomic cell
+                m_onCompleted = matchedFinal.message;
+            }
 
             max = static_cast< int >(20.0f*m_engine->GetParticleDensity());
             for ( i=0 ; i<max ; i++ )
@@ -269,16 +281,16 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
         if ( m_progress < 1.0f )
         {
             angle = m_progress*(135.0f*Math::PI/180.0f);
-            m_object->SetPartRotationZ(1, angle);
+            SetPartRotationZ(m_object, 1, angle);
         }
         else
         {
-            m_object->SetPartRotationZ(1, 135.0f*Math::PI/180.0f);
+            SetPartRotationZ(m_object, 1, 135.0f*Math::PI/180.0f);
 
             SetBusy(false);
             UpdateInterface();
 
-            m_main->DisplayError(INFO_NUCLEAR, m_object);
+            m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
 
             m_phase    = ANUP_WAIT;
             m_progress = 0.0f;
@@ -289,44 +301,17 @@ bool CAutoNuclearPlant::EventProcess(const Event &event)
     return true;
 }
 
-
-// Creates all the interface when the object is selected.
-
-bool CAutoNuclearPlant::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 110, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-
 // Seeking the uranium.
 
 CObject* CAutoNuclearPlant::SearchUranium()
 {
-    CObject* obj = m_object->GetSlotContainedObject(0);
+    CObject* obj = GetObjectInSlot(m_object, 0);
     if (obj == nullptr) return nullptr;
-    if (obj->GetType() == OBJECT_URANIUM) return obj;
+
+    for ( auto it : GetObjectAutomatedDetails(m_object).production.objects )
+    {
+        if ( obj->GetType() == it.input )  return obj;
+    }
     return nullptr;
 }
 
@@ -336,46 +321,8 @@ bool CAutoNuclearPlant::SearchVehicle()
 {
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type != OBJECT_HUMAN    &&
-             type != OBJECT_MOBILEfa &&
-             type != OBJECT_MOBILEta &&
-             type != OBJECT_MOBILEwa &&
-             type != OBJECT_MOBILEia &&
-             type != OBJECT_MOBILEfb &&
-             type != OBJECT_MOBILEtb &&
-             type != OBJECT_MOBILEwb &&
-             type != OBJECT_MOBILEib &&
-             type != OBJECT_MOBILEfc &&
-             type != OBJECT_MOBILEtc &&
-             type != OBJECT_MOBILEwc &&
-             type != OBJECT_MOBILEic &&
-             type != OBJECT_MOBILEfi &&
-             type != OBJECT_MOBILEti &&
-             type != OBJECT_MOBILEwi &&
-             type != OBJECT_MOBILEii &&
-             type != OBJECT_MOBILEfs &&
-             type != OBJECT_MOBILEts &&
-             type != OBJECT_MOBILEws &&
-             type != OBJECT_MOBILEis &&
-             type != OBJECT_MOBILErt &&
-             type != OBJECT_MOBILErc &&
-             type != OBJECT_MOBILErr &&
-             type != OBJECT_MOBILErs &&
-             type != OBJECT_MOBILEsa &&
-             type != OBJECT_MOBILEtg &&
-             type != OBJECT_MOBILEft &&
-             type != OBJECT_MOBILEtt &&
-             type != OBJECT_MOBILEwt &&
-             type != OBJECT_MOBILEit &&
-             type != OBJECT_MOBILErp &&
-             type != OBJECT_MOBILEst &&
-             type != OBJECT_MOBILEdr &&
-             type != OBJECT_MOTHER   &&
-             type != OBJECT_ANT      &&
-             type != OBJECT_SPIDER   &&
-             type != OBJECT_BEE      &&
-             type != OBJECT_WORM     )  continue;
+        auto blocking = GetObjectAutomatedDetails(obj).blocking;
+        if (!blocking.blocksNuclearPlant) continue;
 
         if (obj->GetCrashSphereCount() == 0) continue;
 
@@ -389,43 +336,39 @@ bool CAutoNuclearPlant::SearchVehicle()
 
 // Creates an object stack.
 
-void CAutoNuclearPlant::CreatePower()
+void CAutoNuclearPlant::CreatePower(ObjectType type)
 {
     glm::vec3 pos = m_object->GetPosition();
     float angle = m_object->GetRotationY();
 
     float powerLevel = 1.0f;
-    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, OBJECT_ATOMIC, powerLevel);
+    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type, powerLevel);
 
-    dynamic_cast<CTransportableObject&>(*power).SetTransporter(m_object);
-    power->SetPosition(glm::vec3(22.0f, 3.0f, 0.0f));
-    m_object->SetSlotContainedObject(0, power);
+    assert( power != nullptr );
+    SetObjectInSlot(m_object, 0, power);
 }
 
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAutoNuclearPlant::GetError()
 {
-//? TerrainRes  res;
+    auto production = GetObjectAutomatedDetails(m_object).production;
 
-    if ( m_object->GetVirusMode() )
+    CObject* obj = GetObjectInSlot(m_object, 0);
+    if ( obj == nullptr )
     {
-        return ERR_BAT_VIRUS;
+        m_main->DisplayText(production.noInput, m_object, Ui::TT_WARNING);
+        return ERR_OK;
     }
-
-//? res = m_terrain->GetResource(m_object->GetPosition());
-//? if ( res != TR_POWER )  return ERR_NUCLEAR_NULL;
-
-//? if ( m_object->GetEnergy() < ENERGY_POWER )  return ERR_NUCLEAR_LOW;
-
-    CObject* obj = m_object->GetSlotContainedObject(0);
-    if ( obj == nullptr )  return ERR_NUCLEAR_EMPTY;
     if ( obj->GetLock() )  return ERR_OK;
-    ObjectType type = obj->GetType();
-    if ( type == OBJECT_ATOMIC  )  return ERR_OK;
-    if ( type != OBJECT_URANIUM )  return ERR_NUCLEAR_BAD;
 
+    for ( auto it : production.objects )
+    {
+        if ( obj->GetType() == it.input )  return ERR_OK;
+        if ( obj->GetType() == it.output  )  return ERR_OK;
+    }
+    m_main->DisplayText(production.badInput, m_object, Ui::TT_WARNING);
     return ERR_OK;
 }
 

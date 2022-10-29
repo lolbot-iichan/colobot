@@ -33,22 +33,26 @@
 #include "graphics/engine/camera.h"
 #include "graphics/engine/particle.h"
 
+#include "object/object_type.h"
+
 #include "level/build_type.h"
 #include "level/level_category.h"
 #include "level/mainmovie.h"
+#include "level/mission_type.h"
 #include "level/research_type.h"
 
-#include "object/drive_type.h"
-#include "object/mission_type.h"
-#include "object/object_type.h"
-#include "object/tool_type.h"
+#include "ui/displaytext.h"
 
 #include <deque>
 #include <map>
 #include <set>
 #include <stdexcept>
 
-#include <glm/glm.hpp>
+#include <glm/fwd.hpp>
+
+enum class DriveType : unsigned int;
+enum class ToolType : unsigned int;
+enum class LevelCategory;
 
 enum Phase
 {
@@ -90,6 +94,7 @@ class CSoundInterface;
 class CLevelParserLine;
 class CInput;
 class CObjectManager;
+class CObjectDetails;
 class CSceneEndCondition;
 class CAudioChangeCondition;
 class CScoreboard;
@@ -230,7 +235,7 @@ public:
     //! \brief Update the shortcuts at the top of the screen
     //! \see CMainShort::UpdateShortcuts
     void        UpdateShortcuts();
-    //! Find the astronaut (::OBJECT_HUMAN) object
+    //! Find the astronaut object
     CObject*    SearchHuman();
     /**
      * \brief Select an object
@@ -348,6 +353,7 @@ public:
 
     void        DisplayError(Error err, CObject* pObj, float time=10.0f);
     void        DisplayError(Error err, glm::vec3 goal, float height=15.0f, float dist=60.0f, float time=10.0f);
+    void        DisplayText(std::string text, CObject* pObj, Ui::TextType type, float height=15.0f, float dist=60.0f, float time=10.0f);
 
     void        UpdateCustomLevelList();
     std::string GetCustomLevelName(int id);
@@ -437,6 +443,8 @@ public:
     bool        IsResearchEnabled(ResearchType type);
     //! \brief Check if the given research is done
     bool        IsResearchDone(ResearchType type, int team);
+    //! \brief Check if the given researchs are done
+    bool        IsResearchesDone(int mask, int team);
     //! \brief Mark given research as done
     void        MarkResearchDone(ResearchType type, int team);
 
@@ -466,23 +474,6 @@ public:
      * \see CanBuild() for a version which returns a boolean
      */
     Error       CanBuildError(ObjectType type, int team);
-
-    /**
-     * \brief Check if all requirements to build this object in BotFactory are met (DoneResearch)
-     * \return true if the robot can be built, false otherwise
-     * \see CanFactoryError() for a version which returns a specific reason for the build being denied
-     */
-    inline bool CanFactory(ObjectType type, int team)
-    {
-        return CanFactoryError(type, team) == ERR_OK;
-    }
-    /**
-     * \brief Check if all requirements to build this object in BotFactory are met (DoneResearch)
-     * \return One of Error values - ::ERR_OK if the robot can be built, ::ERR_BUILD_DISABLED or ::ERR_BUILD_RESEARCH otherwise
-     * \see CanFactory() for a version which returns a boolean
-     */
-    Error       CanFactoryError(ObjectType type, int team);
-    //@}
 
     void        RemoveFromSelectionHistory(CObject* object);
 
@@ -582,6 +573,7 @@ protected:
     CSoundInterface*    m_sound = nullptr;
     CInput*             m_input = nullptr;
     std::unique_ptr<CObjectManager> m_objMan;
+    std::unique_ptr<CObjectDetails> m_objectDetails;
     std::unique_ptr<CMainMovie> m_movie;
     std::unique_ptr<CPauseManager> m_pause;
     std::unique_ptr<Gfx::CModelManager> m_modelManager;
@@ -617,7 +609,7 @@ protected:
     float           m_winDelay = 0.0f;
     float           m_lostDelay = 0.0f;
     bool            m_fixScene = false;        // scene fixed, no interraction
-    CObject*        m_base = nullptr;        // OBJECT_BASE exists in mission
+    CObject*        m_base = nullptr;        // Base exists in mission
     CObject*        m_selectObject = nullptr;
 
     Phase           m_phase = PHASE_WELCOME1;

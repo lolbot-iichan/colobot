@@ -38,6 +38,7 @@ class CColor;
 class CCheck;
 class CKey;
 class CGroup;
+class CLogo;
 class CImage;
 class CLabel;
 class CEdit;
@@ -64,6 +65,7 @@ public:
     CCheck*     CreateCheck(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CKey*       CreateKey(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CGroup*     CreateGroup(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
+    CLogo*      CreateLogo(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CImage*     CreateImage(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);
     CLabel*     CreateLabel(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg, std::string name);
     CEdit*      CreateEdit(const glm::vec2& pos, const glm::vec2& dim, int icon, EventType eventMsg);

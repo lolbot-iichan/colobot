@@ -21,8 +21,6 @@
 
 #include "common/event.h"
 
-#include "object/object_type.h"
-
 #include <glm/glm.hpp>
 
 #include <vector>
@@ -55,7 +53,7 @@ public:
     void        SetHighlight(CObject* pObj);
 
 protected:
-    int         GetShortcutIcon(ObjectType type);
+    int         GetShortcutIcon(CObject* pObj);
 
 protected:
     CEventQueue*      m_event;

@@ -121,10 +121,15 @@ public:
     float GetRotationZ();
     //!@}
 
+protected:
     //! Returns object's scale
     virtual glm::vec3 GetScale() const;
     //! Sets objects's scale
     virtual void SetScale(const glm::vec3& scale);
+
+public:
+    //! Sets objects's scale factor (usually SetScale is used with scale from 0.0f to 1.0f)
+    void SetScaleFactor(float factor);
     //! Sets objects's scale (uniform value)
     void SetScale(float scale);
 
@@ -213,7 +218,7 @@ public:
 
 protected:
     //! Transform crash sphere by object's world matrix
-    virtual void TransformCrashSphere(Math::Sphere& crashSphere) = 0;
+    virtual void TransformCrashSphere(Math::Sphere& crashSphere, int partNum) = 0;
     //! Transform crash sphere by object's world matrix
     virtual void TransformCameraCollisionSphere(Math::Sphere& collisionSphere) = 0;
 
@@ -224,6 +229,7 @@ protected:
     glm::vec3 m_position{ 0, 0, 0 };
     glm::vec3 m_rotation{ 0, 0, 0 };
     glm::vec3 m_scale{ 0, 0, 0 };
+    float m_scaleFactor;
     std::vector<CrashSphere> m_crashSpheres; //!< crash spheres
     Math::Sphere m_cameraCollisionSphere;
     bool m_animateOnReset;

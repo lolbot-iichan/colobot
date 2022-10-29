@@ -37,6 +37,8 @@ public:
     bool        Abort() override;
 
 protected:
+    float       PlanMovement(float dirV, float dirH);
+
     float       m_progress = 0.0f;
     float       m_speed = 0.0f;
     float       m_initialDirV = 0.0f;  // initial direction

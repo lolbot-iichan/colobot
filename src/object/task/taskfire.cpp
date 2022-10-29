@@ -27,17 +27,14 @@
 
 #include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/task_executor_details.h"
+
+#include "object/helpers/power_helpers.h"
 
 #include "physics/physics.h"
 
 #include "sound/sound.h"
-
-
-const float ENERGY_FIRE     = (0.25f/2.5f); // energy consumed/shot
-const float ENERGY_FIREr    = (0.25f/1.5f); // energy consumed/ray
-const float ENERGY_FIREi    = (0.10f/2.5f); // energy consumed/organic
-
 
 // Object's constructor.
 
@@ -45,7 +42,14 @@ CTaskFire::CTaskFire(COldObject* object) : CForegroundTask(object)
 {
     m_soundChannel = -1;
 
-    assert(HasPowerCellSlot(m_object));
+    auto task = GetObjectTaskExecutorDetails(m_object).fire;
+    m_bRay         = task.fireType == FIRE_PHAZER;
+    m_bOrganic     = task.fireType == FIRE_ORGA;
+    m_particleType = task.particle;
+    m_delay        = task.duration;
+    m_energyPerSec = task.energyPerSec;
+    m_partNum      = task.partNum;
+    m_position     = task.position;
 }
 
 // Object's destructor.
@@ -66,10 +70,8 @@ CTaskFire::~CTaskFire()
 bool CTaskFire::EventProcess(const Event &event)
 {
     CPhysics*   physics;
-    glm::vec3    pos, speed, dir, vib;
-    ObjectType  type;
+    glm::vec3   pos, speed, dir, vib;
     glm::vec2   dim;
-    float       energy, fire;
     int         i, channel;
 
     if ( m_engine->GetPause() )  return true;
@@ -80,27 +82,20 @@ bool CTaskFire::EventProcess(const Event &event)
     m_lastSound -= event.rTime;
     m_progress += event.rTime*m_speed;
 
-    if (CPowerContainerObject* power = GetObjectPowerCell(m_object))
-    {
-        energy = power->GetEnergy();
-             if ( m_bOrganic )  fire = ENERGY_FIREi;
-        else if ( m_bRay     )  fire = ENERGY_FIREr;
-        else                    fire = ENERGY_FIRE;
-        energy -= event.rTime*fire;
-        power->SetEnergy(energy);
-    }
+    float energy = event.rTime*m_energyPerSec;
+    DecreaseObjectEnergy(m_object, energy);
 
     if ( m_lastParticle+0.05f <= m_time )
     {
         m_lastParticle = m_time;
 
+        glm::mat4 mat = m_object->GetWorldMatrix(m_partNum);
+
         if ( m_bOrganic )
         {
-            glm::mat4 mat = m_object->GetWorldMatrix(1);  // insect-cannon
-
             for ( i=0 ; i<6 ; i++ )
             {
-                pos = glm::vec3(0.0f, 2.5f, 0.0f);
+                pos = m_position;
                 pos = Math::Transform(mat, pos);
 
                 speed = glm::vec3(200.0f, 0.0f, 0.0f);
@@ -120,17 +115,15 @@ bool CTaskFire::EventProcess(const Event &event)
                 dim.x = Math::Rand()*0.5f+0.5f;
                 dim.y = dim.x;
 
-                channel = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIGUN4, 0.8f, 0.0f, 0.0f);
+                channel = m_particle->CreateParticle(pos, speed, dim, m_particleType, 0.8f, 0.0f, 0.0f);
                 m_particle->SetObjectFather(channel, m_object);
             }
         }
         else if ( m_bRay )
         {
-            glm::mat4 mat = m_object->GetWorldMatrix(2);  // cannon
-
             for ( i=0 ; i<4 ; i++ )
             {
-                pos = glm::vec3(4.0f, 0.0f, 0.0f);
+                pos = m_position;
                 pos.y += (rand()%3-1)*1.5f;
                 pos.z += (rand()%3-1)*1.5f;
                 pos = Math::Transform(mat, pos);
@@ -144,8 +137,7 @@ bool CTaskFire::EventProcess(const Event &event)
 
                 dim.x = 1.0f;
                 dim.y = dim.x;
-                channel = m_particle->CreateTrack(pos, speed, dim, Gfx::PARTITRACK11,
-                                                   2.0f, 200.0f, 0.5f, 1.0f);
+                channel = m_particle->CreateTrack(pos, speed, dim, m_particleType, 2.0f, 200.0f, 0.5f, 1.0f);
                 m_particle->SetObjectFather(channel, m_object);
 
                 speed = glm::vec3(5.0f, 0.0f, 0.0f);
@@ -163,29 +155,9 @@ bool CTaskFire::EventProcess(const Event &event)
         }
         else
         {
-            type = m_object->GetType();
-
-            glm::mat4 mat = glm::mat4(1.0f);
-
-            if ( type == OBJECT_MOBILErc )
-            {
-                mat = m_object->GetWorldMatrix(2);  // cannon
-            }
-            else
-            {
-                mat = m_object->GetWorldMatrix(1);  // cannon
-            }
-
             for ( i=0 ; i<3 ; i++ )
             {
-                if ( type == OBJECT_MOBILErc )
-                {
-                    pos = glm::vec3(0.0f, 0.0f, 0.0f);
-                }
-                else
-                {
-                    pos = glm::vec3(3.0f, 1.0f, 0.0f);
-                }
+                pos = m_position;
                 pos.y += (Math::Rand()-0.5f)*1.0f;
                 pos.z += (Math::Rand()-0.5f)*1.0f;
                 pos = Math::Transform(mat, pos);
@@ -207,12 +179,11 @@ bool CTaskFire::EventProcess(const Event &event)
                 dim.x = Math::Rand()*0.7f+0.7f;
                 dim.y = dim.x;
 
-                channel = m_particle->CreateParticle(pos, speed, dim, Gfx::PARTIGUN1, 0.8f, 0.0f, 0.0f);
+                channel = m_particle->CreateParticle(pos, speed, dim, m_particleType, 0.8f, 0.0f, 0.0f);
                 m_particle->SetObjectFather(channel, m_object);
             }
 
-            if ( type != OBJECT_MOBILErc &&
-                 m_progress > 0.3f )
+            if ( m_progress > 0.3f )
             {
                 pos = glm::vec3(-1.0f, 1.0f, 0.0f);
                 pos.y += (Math::Rand()-0.5f)*0.4f;
@@ -274,62 +245,24 @@ bool CTaskFire::EventProcess(const Event &event)
 
 Error CTaskFire::Start(float delay)
 {
-    glm::vec3    pos, goal, speed;
-    float       energy, fire;
-    ObjectType  type;
+    auto task = GetObjectTaskExecutorDetails(m_object).fire;
 
     m_bError = true;  // operation impossible
-
-    type = m_object->GetType();
-    if ( type != OBJECT_MOBILEfc &&
-         type != OBJECT_MOBILEtc &&
-         type != OBJECT_MOBILEwc &&
-         type != OBJECT_MOBILEic &&
-         type != OBJECT_MOBILEfi &&
-         type != OBJECT_MOBILEti &&
-         type != OBJECT_MOBILEwi &&
-         type != OBJECT_MOBILEii &&
-         type != OBJECT_MOBILErc )  return ERR_WRONG_BOT;
-
-//? if ( !m_physics->GetLand() )  return ERR_FIRE_FLY;
-
-    speed = m_physics->GetMotorSpeed();
-//? if ( speed.x != 0.0f ||
-//?      speed.z != 0.0f )  return ERR_FIRE_MOTOR;
-
-    m_bRay = (type == OBJECT_MOBILErc);
-
-    m_bOrganic = false;
-    if ( type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii )
     {
-        m_bOrganic = true;
+        if ( delay != 0.0f ) m_delay = delay;
+
+        float energy = m_delay*m_energyPerSec;
+        if ( energy > 0 ) energy += 0.05f;
+    
+        Error err = CanStartTask(&task, energy);
+        if ( err != ERR_OK )  return err;
+
+        m_speed = 1.0f/m_delay;
+        m_progress = 0.0f;
+        m_time = 0.0f;
+        m_lastParticle = 0.0f;
+        m_lastSound = 0.0f;
     }
-
-    if ( delay == 0.0f )
-    {
-        if ( m_bRay )  delay = 1.2f;
-        else           delay = 2.0f;
-    }
-    m_delay = delay;
-
-    assert(HasPowerCellSlot(m_object));
-    CPowerContainerObject *power = GetObjectPowerCell(m_object);
-    if (power == nullptr)  return ERR_FIRE_ENERGY;
-
-    energy = power->GetEnergy();
-         if ( m_bOrganic )  fire = m_delay*ENERGY_FIREi;
-    else if ( m_bRay     )  fire = m_delay*ENERGY_FIREr;
-    else                    fire = m_delay*ENERGY_FIRE;
-    if ( energy < fire+0.05f )  return ERR_FIRE_ENERGY;
-
-    m_speed = 1.0f/m_delay;
-    m_progress = 0.0f;
-    m_time = 0.0f;
-    m_lastParticle = 0.0f;
-    m_lastSound = 0.0f;
     m_bError = false;  // ok
 
 //? m_camera->StartCentering(m_object, Math::PI*0.15f, 99.9f, 0.0f, 1.0f);

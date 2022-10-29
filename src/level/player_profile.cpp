@@ -30,7 +30,7 @@
 #include "level/robotmain.h"
 
 #include "level/parser/parser.h"
-
+#include "level/parser/parserexceptions.h"
 
 void PlayerAppearance::DefPerso()
 {

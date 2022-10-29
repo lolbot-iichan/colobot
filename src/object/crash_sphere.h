@@ -34,10 +34,12 @@ struct CrashSphere
     CrashSphere(const glm::vec3& pos = { 0, 0, 0 },
                 float radius = 0.0f,
                 SoundType _sound = SOUND_NONE,
-                float _hardness = 0.45f)
+                float _hardness = 0.45f,
+                int _partNum = 0)
      : sphere(pos, radius)
      , sound(_sound)
      , hardness(_hardness)
+     , partNum(_partNum)
     {
         if (sound == SOUND_CLICK)
         {
@@ -54,4 +56,6 @@ struct CrashSphere
     SoundType sound;
     //! "Hardness" of the sphere
     float hardness;
+    //! Part number of the model to take world coordinates matrix
+    int partNum;
 };

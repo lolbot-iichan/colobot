@@ -43,18 +43,11 @@ const int HUSTONMAXLENS = 20;
 class CAutoHouston : public CAuto
 {
 public:
-    CAutoHouston(COldObject* object);
+    CAutoHouston(CObject* object);
     ~CAutoHouston();
 
-    void        DeleteObject(bool bAll=false) override;
-
     void        Init() override;
-    void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
-    bool        Abort() override;
-    Error       GetError() override;
-
-    bool        CreateInterface(bool bSelect) override;
 
 protected:
     float       m_progress = 0.0f;

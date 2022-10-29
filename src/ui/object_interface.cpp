@@ -34,16 +34,20 @@
 
 #include "math/geometry.h"
 
+#include "object/object_part_filter.h"
 #include "object/old_object.h"
 
+#include "object/details/details_provider.h"
+#include "object/details/controllable_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
+
 #include "object/interface/programmable_object.h"
-#include "object/interface/slotted_object.h"
+#include "object/interface/shielder_object.h"
 #include "object/interface/task_executor_object.h"
 
 #include "object/motion/motion.h"
-#include "object/motion/motionvehicle.h"
-
-#include "object/subclass/shielder.h"
 
 #include "physics/physics.h"
 
@@ -60,10 +64,12 @@
 #include "ui/controls/interface.h"
 #include "ui/controls/label.h"
 #include "ui/controls/list.h"
+#include "ui/controls/logo.h"
 #include "ui/controls/slider.h"
 #include "ui/controls/target.h"
 #include "ui/controls/window.h"
 
+#include <libintl.h>
 
 namespace Ui
 {
@@ -94,10 +100,10 @@ CObjectInterface::CObjectInterface(COldObject* object)
     m_lastUpdateTime = 0.0f;
     m_lastAlarmTime = 0.0f;
     m_soundChannelAlarm = -1;
-    m_flagColor = 0;
+
+    m_uiParam = 0;
 
     m_defaultEnter = EVENT_NULL;
-    m_manipStyle   = EVENT_OBJECT_MFRONT;
 
     m_selScript = 0;
 
@@ -454,91 +460,28 @@ bool CObjectInterface::EventProcess(const Event &event)
              action == EVENT_OBJECT_MBACK  ||
              action == EVENT_OBJECT_MPOWER )
         {
-            m_manipStyle = action;
+            m_uiParam = action - EVENT_OBJECT_MFRONT;
             UpdateInterface();
         }
 
         if ( action == EVENT_OBJECT_MTAKE )
         {
-            if ( m_manipStyle == EVENT_OBJECT_MFRONT )
+            assert(m_uiParam >= 0 && m_uiParam < 3);
+            TaskManipArm param = TaskManipArm(TMA_FFRONT + m_uiParam);
+            err = m_taskExecutor->StartTaskManip(TMO_AUTO, param);
+            if ( err == ERR_OK )
             {
-                err = m_taskExecutor->StartTaskManip(TMO_AUTO, TMA_FFRONT);
-            }
-            if ( m_manipStyle == EVENT_OBJECT_MBACK )
-            {
-                err = m_taskExecutor->StartTaskManip(TMO_AUTO, TMA_FBACK);
-                if ( err == ERR_OK )
-                {
-                    m_manipStyle = EVENT_OBJECT_MFRONT;
-                    UpdateInterface();
-                }
-            }
-            if ( m_manipStyle == EVENT_OBJECT_MPOWER )
-            {
-                err = m_taskExecutor->StartTaskManip(TMO_AUTO, TMA_POWER);
-                if ( err == ERR_OK )
-                {
-                    m_manipStyle = EVENT_OBJECT_MFRONT;
-                    UpdateInterface();
-                }
+                m_uiParam = 0;
+                UpdateInterface();
             }
         }
 
-        if ( action == EVENT_OBJECT_BDERRICK )
+        if ( action >= EVENT_OBJECT_BUILD_01 && action <= EVENT_OBJECT_BUILD_MAX )
         {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_DERRICK);
-        }
-        if ( action == EVENT_OBJECT_BSTATION )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_STATION);
-        }
-        if ( action == EVENT_OBJECT_BFACTORY )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_FACTORY);
-        }
-        if ( action == EVENT_OBJECT_BREPAIR )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_REPAIR);
-        }
-        if ( action == EVENT_OBJECT_BCONVERT )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_CONVERT);
-        }
-        if ( action == EVENT_OBJECT_BTOWER )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_TOWER);
-        }
-        if ( action == EVENT_OBJECT_BRESEARCH )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_RESEARCH);
-        }
-        if ( action == EVENT_OBJECT_BRADAR )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_RADAR);
-        }
-        if ( action == EVENT_OBJECT_BENERGY )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_ENERGY);
-        }
-        if ( action == EVENT_OBJECT_BLABO )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_LABO);
-        }
-        if ( action == EVENT_OBJECT_BNUCLEAR )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_NUCLEAR);
-        }
-        if ( action == EVENT_OBJECT_BPARA )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_PARA);
-        }
-        if ( action == EVENT_OBJECT_BINFO )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_INFO);
-        }
-        if ( action == EVENT_OBJECT_BSAFE )
-        {
-            err = m_taskExecutor->StartTaskBuild(OBJECT_SAFE);
+            auto buildObjects = GetObjectControllableDetails(m_object).controls.build;
+            size_t index = action - EVENT_OBJECT_BUILD_01;
+            assert(index < buildObjects.size());
+            err = m_taskExecutor->StartTaskBuild(buildObjects[index].output);
         }
 
         if ( action == EVENT_OBJECT_GFLAT )
@@ -547,11 +490,12 @@ bool CObjectInterface::EventProcess(const Event &event)
         }
         if ( action == EVENT_OBJECT_FCREATE )
         {
-            err = m_taskExecutor->StartTaskFlag(TFL_CREATE, m_flagColor);
+            assert(m_uiParam >= 0 && m_uiParam < 5);
+            err = m_taskExecutor->StartTaskFlag(m_uiParam);
         }
         if ( action == EVENT_OBJECT_FDELETE )
         {
-            err = m_taskExecutor->StartTaskFlag(TFL_DELETE, m_flagColor);
+            err = m_taskExecutor->StartTaskDeflag();
         }
         if ( action == EVENT_OBJECT_FCOLORb ||
              action == EVENT_OBJECT_FCOLORr ||
@@ -559,7 +503,8 @@ bool CObjectInterface::EventProcess(const Event &event)
              action == EVENT_OBJECT_FCOLORy ||
              action == EVENT_OBJECT_FCOLORv )
         {
-            ColorFlag(action - EVENT_OBJECT_FCOLORb);
+            m_uiParam = action - EVENT_OBJECT_FCOLORb;
+            UpdateInterface();
         }
 
         if ( action == EVENT_OBJECT_SEARCH )
@@ -595,7 +540,8 @@ bool CObjectInterface::EventProcess(const Event &event)
                 ps = static_cast< CSlider* >(pw->SearchControl(EVENT_OBJECT_DIMSHIELD));
                 if ( ps != nullptr )
                 {
-                    dynamic_cast<CShielder&>(*m_object).SetShieldRadius((ps->GetVisibleValue()-(RADIUS_SHIELD_MIN/g_unit))/((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
+                    assert(m_object->Implements(ObjectInterfaceType::Shielder));
+                    dynamic_cast<CShielderObject&>(*m_object).SetShieldRadius((ps->GetVisibleValue()-(RADIUS_SHIELD_MIN/g_unit))/((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
                 }
             }
         }
@@ -768,9 +714,9 @@ void CObjectInterface::GroundFlat()
 
     if ( !m_physics->GetLand() )
     {
-        err = ERR_FLAG_FLY;
+        err = ERR_MANIP_FLY;
         pos = m_object->GetPosition();
-        if ( pos.y < m_water->GetLevel() )  err = ERR_FLAG_WATER;
+        if ( pos.y < m_water->GetLevel() )  err = ERR_MANIP_WATER;
         m_main->DisplayError(err, m_object);
         return;
     }
@@ -788,21 +734,11 @@ void CObjectInterface::GroundFlat()
 }
 
 
-// Not below the soil.
-
-void CObjectInterface::ColorFlag(int color)
-{
-    m_flagColor = color;
-    UpdateInterface();
-}
-
 // Creates all the interface when the object is selected.
 
 bool CObjectInterface::CreateInterface(bool bSelect)
 {
-    ObjectType       type;
     CWindow*     pw;
-    CButton*     pb;
     CSlider*     ps;
     CColor*      pc;
     CTarget*     pt;
@@ -843,47 +779,10 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     sx = 33.0f/640.0f;
     sy = 33.0f/480.0f;
 
-    type = m_object->GetType();
+    auto controlsDetails = GetObjectControllableDetails(m_object).controls;
+    auto onboardCameraDetails = GetObjectControllableDetails(m_object).camera.onboard;
 
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_CONTROLLER)  // vehicle?
+    if ( controlsDetails.hasProgramUI )
     {
         if (m_main->GetMissionType() != MISSION_RETRO)
         {
@@ -922,17 +821,15 @@ bool CObjectInterface::CreateInterface(bool bSelect)
     {
         pos.x = ox+sx*6.4f;
         pos.y = oy+sy*0;
-        pb = pw->CreateButton(pos, dim, 29, EVENT_OBJECT_GASDOWN);
-        pb->SetImmediat(true);
+        pw->CreateButton(pos, dim, 29, EVENT_OBJECT_GASDOWN)->SetImmediat(true);
 
         pos.x = ox+sx*6.4f;
         pos.y = oy+sy*1;
-        pb = pw->CreateButton(pos, dim, 28, EVENT_OBJECT_GASUP);
-        pb->SetImmediat(true);
+        pw->CreateButton(pos, dim, 28, EVENT_OBJECT_GASUP)->SetImmediat(true);
 
         if ( m_object->Implements(ObjectInterfaceType::JetFlying) )
         {
-            if ( type != OBJECT_HUMAN || m_object->GetOption() != 2 ) // if not Me without a jetpack, display reactor temperature
+            if ( m_object->GetType() != OBJECT_HUMAN || m_object->GetOption() != 2 ) // if not Me without a jetpack, display reactor temperature
             {
                 pos.x = ox+sx*15.3f;
                 pos.y = oy+sy*0;
@@ -943,51 +840,32 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         }
     }
 
-    if ( (type == OBJECT_HUMAN ||
-          type == OBJECT_TECH  ) &&
-         !m_main->GetPlusExplorer() )
+    for ( auto it : controlsDetails.widgets )
     {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 31, EVENT_OBJECT_HTAKE);
-        DefaultEnter(pw, EVENT_OBJECT_HTAKE);
+        if ( !MatchObjectPartFilter(m_object, it.filter) ) continue;
+
+        if ( it.onBuildingEnabled && 
+            !m_main->IsBuildingEnabled(static_cast<BuildType>(it.onBuildingEnabled)) ) continue;
+        if ( it.onResearchDone && 
+            !m_main->IsResearchesDone(it.onResearchDone, m_object->GetTeam()) ) continue;
+
+        pos.x  = ox + sx * it.position.x;
+        pos.y  = oy + sy * it.position.y;
+        ddim.x = dim.x * it.size.x;
+        ddim.y = dim.y * it.size.y;
+        
+        if ( it.widgetType == Ui::WIDGET_ICON_BUTTON )
+            pw->CreateButton(pos, ddim, it.params.icon, it.event)->SetImmediat(it.isImmediat);
+        else if ( it.widgetType == Ui::WIDGET_COLOR_BUTTON )
+            pw->CreateColor(pos, ddim, -1, it.event)->SetColor(it.params.color);
+        else if ( it.widgetType == Ui::WIDGET_ICON_LOGO )
+            pw->CreateLogo(pos, ddim, it.params.icon, it.event);
+
+        if ( it.isDefault )
+            DefaultEnter(pw, it.event);
     }
 
-    if ( (type == OBJECT_MOBILEfa ||
-          type == OBJECT_MOBILEta ||
-          type == OBJECT_MOBILEwa ||
-          type == OBJECT_MOBILEia ) &&  // arm?
-         !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 32, EVENT_OBJECT_MTAKE);
-        DefaultEnter(pw, EVENT_OBJECT_MTAKE);
-
-        pos.x = ox+sx*8.9f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 34, EVENT_OBJECT_MBACK);
-
-        pos.x = ox+sx*9.9f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 35, EVENT_OBJECT_MPOWER);
-
-        pos.x = ox+sx*10.9f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 33, EVENT_OBJECT_MFRONT);
-    }
-
-    if ( ( type == OBJECT_MOBILEsa &&  // underwater?
-         !m_object->GetTrainer() ) ||
-         type == OBJECT_BEE )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 32, EVENT_OBJECT_MTAKE);
-        DefaultEnter(pw, EVENT_OBJECT_MTAKE);
-    }
-
-    if ( type == OBJECT_HUMAN && !m_main->GetPlusExplorer())  // builder?
+    if ( controlsDetails.hasBuilderUIHuman && !m_main->GetPlusExplorer() )
     {
         pos.x  =   1.0f/640.0f;
         pos.y  =   4.0f/480.0f;
@@ -998,184 +876,23 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ddim.x = dim.x*0.9f;
         ddim.y = dim.y*0.9f;
 
-        pos.x = ox+sx*0.0f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+35, EVENT_OBJECT_BRESEARCH);
-        DeadInterface(pw, EVENT_OBJECT_BRESEARCH, m_main->CanBuild(OBJECT_RESEARCH, m_object->GetTeam()));
-
-        pos.x = ox+sx*0.9f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+32, EVENT_OBJECT_BFACTORY);
-        DeadInterface(pw, EVENT_OBJECT_BFACTORY, m_main->CanBuild(OBJECT_FACTORY, m_object->GetTeam()));
-
-        pos.x = ox+sx*1.8f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+34, EVENT_OBJECT_BCONVERT);
-        DeadInterface(pw, EVENT_OBJECT_BCONVERT, m_main->CanBuild(OBJECT_CONVERT, m_object->GetTeam()));
-
-        pos.x = ox+sx*2.7f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+36, EVENT_OBJECT_BSTATION);
-        DeadInterface(pw, EVENT_OBJECT_BSTATION, m_main->CanBuild(OBJECT_STATION, m_object->GetTeam()));
-
-        pos.x = ox+sx*3.6f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+40, EVENT_OBJECT_BRADAR);
-        DeadInterface(pw, EVENT_OBJECT_BRADAR, m_main->CanBuild(OBJECT_RADAR, m_object->GetTeam()));
-
-        pos.x = ox+sx*4.5f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+41, EVENT_OBJECT_BREPAIR);
-        DeadInterface(pw, EVENT_OBJECT_BREPAIR, m_main->CanBuild(OBJECT_REPAIR, m_object->GetTeam()));
-
-        pos.x = ox+sx*5.4f;
-        pos.y = oy+sy*1.0f;
-        pw->CreateButton(pos, ddim, 128+44, EVENT_OBJECT_BINFO);
-        DeadInterface(pw, EVENT_OBJECT_BINFO, m_main->CanBuild(OBJECT_INFO, m_object->GetTeam()));
-
-        pos.x = ox+sx*0.0f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+37, EVENT_OBJECT_BTOWER);
-        DeadInterface(pw, EVENT_OBJECT_BTOWER, m_main->CanBuild(OBJECT_TOWER, m_object->GetTeam()));
-
-        pos.x = ox+sx*0.9f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+39, EVENT_OBJECT_BENERGY);
-        DeadInterface(pw, EVENT_OBJECT_BENERGY, m_main->CanBuild(OBJECT_ENERGY, m_object->GetTeam()));
-
-        pos.x = ox+sx*1.8f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+33, EVENT_OBJECT_BDERRICK);
-        DeadInterface(pw, EVENT_OBJECT_BDERRICK, m_main->CanBuild(OBJECT_DERRICK, m_object->GetTeam()));
-
-        pos.x = ox+sx*2.7f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+42, EVENT_OBJECT_BNUCLEAR);
-        DeadInterface(pw, EVENT_OBJECT_BNUCLEAR, m_main->CanBuild(OBJECT_NUCLEAR, m_object->GetTeam()));
-
-        pos.x = ox+sx*3.6f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+38, EVENT_OBJECT_BLABO);
-        DeadInterface(pw, EVENT_OBJECT_BLABO, m_main->CanBuild(OBJECT_LABO, m_object->GetTeam()));
-
-        pos.x = ox+sx*4.5f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+46, EVENT_OBJECT_BPARA);
-        DeadInterface(pw, EVENT_OBJECT_BPARA, m_main->CanBuild(OBJECT_PARA, m_object->GetTeam()));
-
-        pos.x = ox+sx*5.4f;
-        pos.y = oy+sy*0.1f;
-        pw->CreateButton(pos, ddim, 128+47, EVENT_OBJECT_BSAFE);
-        DeadInterface(pw, EVENT_OBJECT_BSAFE, m_main->CanBuild(OBJECT_SAFE, m_object->GetTeam()));
-
-        if ( m_main->IsBuildingEnabled(BUILD_GFLAT) )
+        size_t len = EVENT_OBJECT_BUILD_MAX - EVENT_OBJECT_BUILD_01 + 1;
+        auto buildObjects = controlsDetails.build;
+        len = buildObjects.size() > len ? len : buildObjects.size();
+        for (size_t i = 0; i < len; i++)
         {
-            pos.x = ox+sx*9.0f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+47, EVENT_OBJECT_GFLAT);
-        }
+            pos.x = ox + (i%7)*sx*0.9f;
+            pos.y = oy + sy*1.0f - (i/7)*sy*0.9f;
+            EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_01 + i);
 
-        if ( m_main->IsBuildingEnabled(BUILD_FLAG) )
-        {
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+54, EVENT_OBJECT_FCREATE);
-
-            pos.x = ox+sx*11.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+55, EVENT_OBJECT_FDELETE);
-
-            ddim.x = dim.x*0.4f;
-            ddim.y = dim.y*0.4f;
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*2.0f-ddim.y;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORb);
-            pc->SetColor(Gfx::Color(0.28f, 0.56f, 1.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORr);
-            pc->SetColor(Gfx::Color(1.0f, 0.0f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORg);
-            pc->SetColor(Gfx::Color(0.0f, 0.8f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORy);
-            pc->SetColor(Gfx::Color(1.0f, 0.93f, 0.0f, 0.0f)); //0x00ffec00
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORv);
-            pc->SetColor(Gfx::Color(0.82f, 0.004f, 0.99f, 0.0f)); //0x00d101fe
+            CButton* pb = pw->CreateButton(pos, ddim, buildObjects[i].icon, e);
+            if ( buildObjects[i].text.size() )
+                pb->SetTooltip(gettext(buildObjects[i].text.c_str())); // TODO: gettext in separate file
+            DeadInterface(pw, e, m_main->CanBuild(buildObjects[i].output, m_object->GetTeam()));
         }
     }
 
-    if ( (type == OBJECT_MOBILEfs ||
-          type == OBJECT_MOBILEts ||
-          type == OBJECT_MOBILEws ||
-          type == OBJECT_MOBILEis ) &&  // Investigator?
-         !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 40, EVENT_OBJECT_SEARCH);
-        DefaultEnter(pw, EVENT_OBJECT_SEARCH);
-
-        pos.x = ox+sx*9.0f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 11, EVENT_OBJECT_DELSEARCH);
-
-        if ( m_main->IsBuildingEnabled(BUILD_FLAG) )
-        {
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+54, EVENT_OBJECT_FCREATE);
-
-            pos.x = ox+sx*11.1f;
-            pos.y = oy+sy*0.5f;
-            pw->CreateButton(pos, dim, 64+55, EVENT_OBJECT_FDELETE);
-
-            ddim.x = dim.x*0.4f;
-            ddim.y = dim.y*0.4f;
-            pos.x = ox+sx*10.1f;
-            pos.y = oy+sy*2.0f-ddim.y;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORb);
-            pc->SetColor(Gfx::Color(0.28f, 0.56f, 1.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORr);
-            pc->SetColor(Gfx::Color(1.0f, 0.0f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORg);
-            pc->SetColor(Gfx::Color(0.0f, 0.8f, 0.0f, 0.0f));
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORy);
-            pc->SetColor(Gfx::Color(1.0f, 0.93f, 0.0f, 0.0f)); //0x00ffec00
-            pos.x += ddim.x;
-            pc = pw->CreateColor(pos, ddim, -1, EVENT_OBJECT_FCOLORv);
-            pc->SetColor(Gfx::Color(0.82f, 0.004f, 0.99f, 0.0f)); //0x00d101fe
-        }
-    }
-
-    if ( type == OBJECT_MOBILErt &&  // Terraformer?
-         !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 128+18, EVENT_OBJECT_TERRAFORM);
-        DefaultEnter(pw, EVENT_OBJECT_TERRAFORM);
-
-        pos.x = ox+sx*10.2f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 41, EVENT_OBJECT_LIMIT);
-    }
-
-    if ( type == OBJECT_MOBILErr &&  // recoverer?
-         !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pw->CreateButton(pos, dim, 128+20, EVENT_OBJECT_RECOVER);
-        DefaultEnter(pw, EVENT_OBJECT_RECOVER);
-    }
-
-    if ( type == OBJECT_MOBILErs &&  // shield?
-         !m_object->GetTrainer() )
+    if ( controlsDetails.hasShielderUIRobot && !m_object->GetTrainer() )
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
@@ -1200,39 +917,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         ps->SetArrowStep(1.0f);
     }
 
-    if ( (type == OBJECT_MOBILEfc ||
-          type == OBJECT_MOBILEtc ||
-          type == OBJECT_MOBILEwc ||
-          type == OBJECT_MOBILEic ||
-          type == OBJECT_MOBILEfi ||
-          type == OBJECT_MOBILEti ||
-          type == OBJECT_MOBILEwi ||
-          type == OBJECT_MOBILEii ||
-          type == OBJECT_MOBILErc ) &&  // cannon?
-         !m_object->GetTrainer() )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pb = pw->CreateButton(pos, dim, 42, EVENT_OBJECT_FIRE);
-        pb->SetImmediat(true);
-        DefaultEnter(pw, EVENT_OBJECT_FIRE);
-
-//?     pos.x = ox+sx*10.2f;
-//?     pos.y = oy+sy*0.5f;
-//?     pw->CreateButton(pos, dim, 41, EVENT_OBJECT_LIMIT);
-    }
-
-    if ( type == OBJECT_SPIDER )
-    {
-        pos.x = ox+sx*7.7f;
-        pos.y = oy+sy*0.5f;
-        pb = pw->CreateButton(pos, dim, 42, EVENT_OBJECT_SPIDEREXPLO);
-        pb->SetImmediat(true);
-        DefaultEnter(pw, EVENT_OBJECT_SPIDEREXPLO);
-    }
-
-    if ( type == OBJECT_MOBILEdr &&
-         m_object->GetManual() )  // scribbler in manual mode?
+    if ( controlsDetails.hasScribblerUIRobot && m_object->GetManual() )
     {
         pos.x = ox+sx*6.9f;
         pos.y = oy+sy*0.0f;
@@ -1340,10 +1025,36 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pw->CreateButton(pos, ddim, 19, EVENT_OBJECT_HELP);
     }
 
-//camera button no more disabled for humans
-    if ( //type != OBJECT_HUMAN       &&
-         //type != OBJECT_TECH        &&
-         !m_object->GetCameraLock() )
+    pos.x = ox+sx*13.4f;
+    pos.y = oy+sy*0;
+    if ( m_object->GetTrainer() )  // Training?
+    {
+        pw->CreateButton(pos, dim, 9, EVENT_OBJECT_RESET);
+    }
+    else
+    {
+        pw->CreateButton(pos, dim, 10, EVENT_OBJECT_DESELECT);
+    }
+
+    if ( m_object->Implements(ObjectInterfaceType::PowerContainer) || HasPowerCellSlot(m_object) )
+    {
+        pos.x = ox+sx*14.5f;
+        pos.y = oy+sy*0;
+        ddim.x = 14.0f/640.0f;
+        ddim.y = 66.0f/480.0f;
+        pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
+    }
+
+    if ( m_object->Implements(ObjectInterfaceType::Shielded) )
+    {
+        pos.x = ox+sx*14.9f;
+        pos.y = oy+sy*0;
+        ddim.x = 14.0f/640.0f;
+        ddim.y = 66.0f/480.0f;
+        pw->CreateGauge(pos, ddim, 3, EVENT_OBJECT_GSHIELD);
+    }
+
+    if ( !m_object->GetCameraLock() )
     {
 //?     if ( m_main->GetShowMap() )
         if ( true )
@@ -1362,44 +1073,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         }
     }
 
-    pos.x = ox+sx*13.4f;
-    pos.y = oy+sy*0;
-    if ( m_object->GetTrainer() )  // Training?
-    {
-        pw->CreateButton(pos, dim, 9, EVENT_OBJECT_RESET);
-    }
-    else
-    {
-        pw->CreateButton(pos, dim, 10, EVENT_OBJECT_DESELECT);
-    }
-
-    if ( HasPowerCellSlot(m_object) )  // vehicle?
-    {
-        pos.x = ox+sx*14.5f;
-        pos.y = oy+sy*0;
-        ddim.x = 14.0f/640.0f;
-        ddim.y = 66.0f/480.0f;
-        pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
-    }
-
-    if ( m_object->Implements(ObjectInterfaceType::Shielded) )  // vehicle?
-    {
-        pos.x = ox+sx*14.9f;
-        pos.y = oy+sy*0;
-        ddim.x = 14.0f/640.0f;
-        ddim.y = 66.0f/480.0f;
-        pw->CreateGauge(pos, ddim, 3, EVENT_OBJECT_GSHIELD);
-    }
-
-    if ( type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILErc )  // cannon?
+    if ( onboardCameraDetails.hasCrosshair )
     {
         ddim.x = 64.0f/640.0f;
         ddim.y = 64.0f/480.0f;
@@ -1415,8 +1089,7 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pt->ClearState(STATE_GLINT);
     }
 
-    if (type != OBJECT_HUMAN &&
-        type != OBJECT_TECH)
+    if ( !onboardCameraDetails.disableCorners )
     {
         ddim.x = 64.0f / 640.0f;
         ddim.y = 64.0f / 480.0f;
@@ -1443,16 +1116,11 @@ bool CObjectInterface::CreateInterface(bool bSelect)
         pw->CreateGroup(pos, ddim, 16, EVENT_OBJECT_CORNERdr);
     }
 
-    if ( (type == OBJECT_MOBILEfb ||
-          type == OBJECT_MOBILEtb ||
-          type == OBJECT_MOBILEwb ||
-          type == OBJECT_MOBILEib) &&  // builder?
-         !m_object->GetTrainer() )
+    if ( controlsDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
     {
         pos.x = ox+sx*7.7f;
         pos.y = oy+sy*0.5f;
-        pb = pw->CreateButton(pos, dim, 192+4, EVENT_OBJECT_BUILD);
-        pb->SetImmediat(true);
+        pw->CreateButton(pos, dim, 192+4, EVENT_OBJECT_BUILD)->SetImmediat(true);
         DefaultEnter(pw, EVENT_OBJECT_BUILD);
 
         pos.x = 0.0f;
@@ -1463,65 +1131,22 @@ bool CObjectInterface::CreateInterface(bool bSelect)
 
         ddim.x = dim.x*0.9f;
         ddim.y = dim.y*0.9f;
-        pos.y = oy+sy*3.6f;
 
-        pos.x = ox+sx*0.0f;
-        pw->CreateButton(pos, ddim, 128+35, EVENT_OBJECT_BRESEARCH);
-        DeadInterface(pw, EVENT_OBJECT_BRESEARCH, m_main->CanBuild(OBJECT_RESEARCH, m_object->GetTeam()));
+        size_t len = EVENT_OBJECT_BUILD_MAX - EVENT_OBJECT_BUILD_01 + 1;
+        auto buildObjects = controlsDetails.build;
+        len = buildObjects.size() > len ? len : buildObjects.size();
+        for (size_t i = 0; i < len; i++)
+        {
+            pos.x = ox + (i%7)*sx*0.9f;
+            pos.y = oy + sy*3.6f - (i/7)*sy*0.9f;
+            EventType e = static_cast<EventType>(EVENT_OBJECT_BUILD_01 + i);
+            
+            CButton* pb = pw->CreateButton(pos, ddim, buildObjects[i].icon, e);
+            if ( buildObjects[i].text.size() )
+                pb->SetTooltip(gettext(buildObjects[i].text.c_str())); // TODO: gettext in separate file
+            DeadInterface(pw, e, m_main->CanBuild(buildObjects[i].output, m_object->GetTeam()));
 
-        pos.x = ox+sx*0.9f;
-        pw->CreateButton(pos, ddim, 128+32, EVENT_OBJECT_BFACTORY);
-        DeadInterface(pw, EVENT_OBJECT_BFACTORY, m_main->CanBuild(OBJECT_FACTORY, m_object->GetTeam()));
-
-        pos.x = ox+sx*1.8f;
-        pw->CreateButton(pos, ddim, 128+34, EVENT_OBJECT_BCONVERT);
-        DeadInterface(pw, EVENT_OBJECT_BCONVERT, m_main->CanBuild(OBJECT_CONVERT, m_object->GetTeam()));
-
-        pos.x = ox+sx*2.7f;
-        pw->CreateButton(pos, ddim, 128+36, EVENT_OBJECT_BSTATION);
-        DeadInterface(pw, EVENT_OBJECT_BSTATION, m_main->CanBuild(OBJECT_STATION, m_object->GetTeam()));
-
-        pos.x = ox+sx*3.6f;
-        pw->CreateButton(pos, ddim, 128+40, EVENT_OBJECT_BRADAR);
-        DeadInterface(pw, EVENT_OBJECT_BRADAR, m_main->CanBuild(OBJECT_RADAR, m_object->GetTeam()));
-
-        pos.x = ox+sx*4.5f;
-        pw->CreateButton(pos, ddim, 128+41, EVENT_OBJECT_BREPAIR);
-        DeadInterface(pw, EVENT_OBJECT_BREPAIR, m_main->CanBuild(OBJECT_REPAIR, m_object->GetTeam()));
-
-        pos.x = ox+sx*5.4f;
-        pw->CreateButton(pos, ddim, 128+44, EVENT_OBJECT_BINFO);
-        DeadInterface(pw, EVENT_OBJECT_BINFO, m_main->CanBuild(OBJECT_INFO, m_object->GetTeam()));
-
-        pos.y = oy+sy*2.7f;
-
-        pos.x = ox+sx*0.0f;
-        pw->CreateButton(pos, ddim, 128+37, EVENT_OBJECT_BTOWER);
-        DeadInterface(pw, EVENT_OBJECT_BTOWER, m_main->CanBuild(OBJECT_TOWER, m_object->GetTeam()));
-
-        pos.x = ox+sx*0.9f;
-        pw->CreateButton(pos, ddim, 128+39, EVENT_OBJECT_BENERGY);
-        DeadInterface(pw, EVENT_OBJECT_BENERGY, m_main->CanBuild(OBJECT_ENERGY, m_object->GetTeam()));
-
-        pos.x = ox+sx*1.8f;
-        pw->CreateButton(pos, ddim, 128+33, EVENT_OBJECT_BDERRICK);
-        DeadInterface(pw, EVENT_OBJECT_BDERRICK, m_main->CanBuild(OBJECT_DERRICK, m_object->GetTeam()));
-
-        pos.x = ox+sx*2.7f;
-        pw->CreateButton(pos, ddim, 128+42, EVENT_OBJECT_BNUCLEAR);
-        DeadInterface(pw, EVENT_OBJECT_BNUCLEAR, m_main->CanBuild(OBJECT_NUCLEAR, m_object->GetTeam()));
-
-        pos.x = ox+sx*3.6f;
-        pw->CreateButton(pos, ddim, 128+38, EVENT_OBJECT_BLABO);
-        DeadInterface(pw, EVENT_OBJECT_BLABO, m_main->CanBuild(OBJECT_LABO, m_object->GetTeam()));
-
-        pos.x = ox+sx*4.5f;
-        pw->CreateButton(pos, ddim, 128+46, EVENT_OBJECT_BPARA);
-        DeadInterface(pw, EVENT_OBJECT_BPARA, m_main->CanBuild(OBJECT_PARA, m_object->GetTeam()));
-
-        pos.x = ox+sx*5.4f;
-        pw->CreateButton(pos, ddim, 128+47, EVENT_OBJECT_BSAFE);
-        DeadInterface(pw, EVENT_OBJECT_BSAFE, m_main->CanBuild(OBJECT_SAFE, m_object->GetTeam()));
+        }
 
         if ( m_main->IsBuildingEnabled(BUILD_GFLAT) )
         {
@@ -1544,10 +1169,10 @@ void CObjectInterface::UpdateInterface(float rTime)
 {
     CWindow*    pw;
     CButton*    pb;
+    Ui::CGauge* pg;
     CGroup*     pgr;
     CTarget*    ptg;
-    glm::vec3    pos, hPos;
-    glm::vec2     ppos;
+    glm::vec2   ppos;
     float       range;
     int         icon;
     bool        bOnBoard;
@@ -1570,17 +1195,12 @@ void CObjectInterface::UpdateInterface(float rTime)
     pw = static_cast< CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
     if ( pw == nullptr )  return;
 
-    CGauge* pg = static_cast< CGauge* >(pw->SearchControl(EVENT_OBJECT_GENERGY));
+    pg = static_cast<Ui::CGauge*>(pw->SearchControl(EVENT_OBJECT_GENERGY));
     if (pg != nullptr)
     {
-        float energy = 0.0f;
-        float limit = 0.0f;
+        float energy = GetObjectEnergyLevel(m_object);
+        float limit = GetObjectEnergy(m_object);
 
-        if (CPowerContainerObject* powerContainer = GetObjectPowerCell(m_object))
-        {
-            energy = powerContainer->GetEnergyLevel();
-            limit = powerContainer->GetEnergy();
-        }
         icon = 0;  // red/green
 
         if ( limit < 0.2f && energy != 0.0f )  // low but not zero?
@@ -1600,7 +1220,7 @@ void CObjectInterface::UpdateInterface(float rTime)
         pg->SetIcon(icon);
     }
 
-    pg = static_cast< CGauge* >(pw->SearchControl(EVENT_OBJECT_GSHIELD));
+    pg = static_cast<Ui::CGauge*>(pw->SearchControl(EVENT_OBJECT_GSHIELD));
     if ( pg != nullptr )
     {
         assert(m_object->Implements(ObjectInterfaceType::Shielded));
@@ -1625,7 +1245,7 @@ void CObjectInterface::UpdateInterface(float rTime)
         pg->SetIcon(icon);
     }
 
-    pg = static_cast< CGauge* >(pw->SearchControl(EVENT_OBJECT_GRANGE));
+    pg = static_cast<Ui::CGauge*>(pw->SearchControl(EVENT_OBJECT_GRANGE));
     if ( pg != nullptr )
     {
         assert(m_object->Implements(ObjectInterfaceType::JetFlying));
@@ -1735,12 +1355,12 @@ void CObjectInterface::UpdateInterface(float rTime)
 
 void CObjectInterface::UpdateInterface()
 {
-    ObjectType  type;
+    CObjectControlsDetails controlsDetails;
     CWindow*    pw;
     CButton*    pb;
     CSlider*    ps;
     CColor*     pc;
-    bool        bFly, bRun;
+    bool        bRun;
 
     if ( !m_object->GetSelect() )  return;
 
@@ -1754,8 +1374,6 @@ void CObjectInterface::UpdateInterface()
         SetSelScript(m_programStorage->GetProgramIndex(m_programmable->GetCurrentProgram()));
     }
 
-    type = m_object->GetType();
-
     bool bEnable = ( !m_taskExecutor->IsForegroundTask() && !m_programmable->IsProgram() ) && m_main->CanPlayerInteract();
     bool bProgEnable = !m_programmable->IsProgram() && m_main->CanPlayerInteract();
     bool scriptSelected = m_selScript >= 0 && m_selScript < m_programStorage->GetProgramCount();
@@ -1767,6 +1385,7 @@ void CObjectInterface::UpdateInterface()
     EnableInterface(pw, EVENT_OBJECT_PROGCLONE,   bProgEnable && scriptSelected && m_programStorage->GetProgram(m_selScript)->runnable);
     EnableInterface(pw, EVENT_OBJECT_PROGMOVEUP,  bProgEnable && scriptSelected && m_programStorage->GetProgramCount() >= 2 && m_selScript > 0);
     EnableInterface(pw, EVENT_OBJECT_PROGMOVEDOWN,bProgEnable && scriptSelected && m_programStorage->GetProgramCount() >= 2 && m_selScript < m_programStorage->GetProgramCount()-1);
+
     EnableInterface(pw, EVENT_OBJECT_LEFT,        bEnable);
     EnableInterface(pw, EVENT_OBJECT_RIGHT,       bEnable);
     EnableInterface(pw, EVENT_OBJECT_UP,          bEnable);
@@ -1799,43 +1418,20 @@ void CObjectInterface::UpdateInterface()
     EnableInterface(pw, EVENT_OBJECT_REC,         bEnable);
     EnableInterface(pw, EVENT_OBJECT_STOP,        bEnable);
 
-    if ( type == OBJECT_HUMAN    ||  // builder?
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib )
-    {
-        EnableInterface(pw, EVENT_OBJECT_BFACTORY,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BDERRICK,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BCONVERT,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BSTATION,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BREPAIR,   bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BTOWER,    bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BRESEARCH, bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BRADAR,    bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BENERGY,   bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BLABO,     bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BNUCLEAR,  bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BPARA,     bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BINFO,     bEnable);
-        EnableInterface(pw, EVENT_OBJECT_BSAFE,     bEnable);
-    }
+    for (int i = EVENT_OBJECT_BUILD_01; i < EVENT_OBJECT_BUILD_MAX; i++ )
+        EnableInterface(pw, EventType(i), bEnable);
 
-    if ( type == OBJECT_HUMAN    ||  // can create flags?
-         type == OBJECT_TECH     ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis )
-    {
-        CheckInterface(pw, EVENT_OBJECT_FCOLORb, m_flagColor==0);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORr, m_flagColor==1);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORg, m_flagColor==2);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORy, m_flagColor==3);
-        CheckInterface(pw, EVENT_OBJECT_FCOLORv, m_flagColor==4);
-    }
+    CheckInterface(pw, EVENT_OBJECT_FCOLORb,      m_uiParam==0);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORr,      m_uiParam==1);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORg,      m_uiParam==2);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORy,      m_uiParam==3);
+    CheckInterface(pw, EVENT_OBJECT_FCOLORv,      m_uiParam==4);
+    CheckInterface(pw, EVENT_OBJECT_MFRONT,       m_uiParam==0);
+    CheckInterface(pw, EVENT_OBJECT_MBACK,        m_uiParam==1);
+    CheckInterface(pw, EVENT_OBJECT_MPOWER,       m_uiParam==2);
 
-    if ( type == OBJECT_MOBILErs )  // shield?
+    controlsDetails = GetObjectControllableDetails(m_object).controls;
+    if ( controlsDetails.hasShielderUIRobot )
     {
         if ( (!m_taskExecutor->IsBackgroundTask() || !m_taskExecutor->GetBackgroundTask()->IsBusy()) && !m_programmable->IsProgram() )
         {
@@ -1855,60 +1451,36 @@ void CObjectInterface::UpdateInterface()
         ps = static_cast< CSlider* >(pw->SearchControl(EVENT_OBJECT_DIMSHIELD));
         if ( ps != nullptr )
         {
-            ps->SetVisibleValue((RADIUS_SHIELD_MIN/g_unit)+dynamic_cast<CShielder&>(*m_object).GetShieldRadius()*((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
+            assert(m_object->Implements(ObjectInterfaceType::Shielder));
+            ps->SetVisibleValue((RADIUS_SHIELD_MIN/g_unit)+dynamic_cast<CShielderObject&>(*m_object).GetShieldRadius()*((RADIUS_SHIELD_MAX-RADIUS_SHIELD_MIN)/g_unit));
         }
     }
 
-    if ( (type == OBJECT_MOBILEfb ||
-          type == OBJECT_MOBILEtb ||
-          type == OBJECT_MOBILEwb ||
-          type == OBJECT_MOBILEib) &&  // builder?
-         !m_object->GetTrainer() )
+    if ( controlsDetails.hasBuilderUIRobot && !m_object->GetTrainer() )
     {
         if(!bEnable) m_buildInterface = false;
         CheckInterface(pw, EVENT_OBJECT_BUILD, m_buildInterface);
 
         pb = static_cast< CButton* >(pw->SearchControl(EVENT_WINDOW3));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
 
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BFACTORY));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BDERRICK));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BCONVERT));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BSTATION));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BREPAIR));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BTOWER));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BRESEARCH));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BRADAR));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BENERGY));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BLABO));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BNUCLEAR));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BPARA));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BSAFE));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
-        pb = static_cast< CButton* >(pw->SearchControl(EVENT_OBJECT_BINFO));
-        pb->SetState(STATE_VISIBLE, m_buildInterface);
+        for (int i = EVENT_OBJECT_BUILD_01; i < EVENT_OBJECT_BUILD_MAX; i++ )
+        {
+            pb = static_cast< CButton* >(pw->SearchControl(EventType(i)));
+            if(pb) pb->SetState(STATE_VISIBLE, m_buildInterface);
+        }
     }
 
-    bFly = bEnable;
-    if ( bFly && (type == OBJECT_HUMAN || type == OBJECT_TECH) )
     {
-        if (dynamic_cast<CSlottedObject&>(*m_object).GetSlotContainedObjectOpt(CSlottedObject::Pseudoslot::CARRYING) != nullptr)
+        bool bFly = bEnable && m_main->CanPlayerInteract();
+        if ( bFly && controlsDetails.disableFlyWhileGrabbing && HasObjectInCargoSlot(m_object) )
+        {
             bFly = false;
+        }
+        EnableInterface(pw, EVENT_OBJECT_GASUP,   bFly);
+        EnableInterface(pw, EVENT_OBJECT_GASDOWN, bFly);
     }
-    EnableInterface(pw, EVENT_OBJECT_GASUP,   bFly && m_main->CanPlayerInteract());
-    EnableInterface(pw, EVENT_OBJECT_GASDOWN, bFly && m_main->CanPlayerInteract());
+
     if ( m_object->GetTrainer() )  // Training?
     {
         DeadInterface(pw, EVENT_OBJECT_GASUP,   false);
@@ -1920,47 +1492,7 @@ void CObjectInterface::UpdateInterface()
         DeadInterface(pw, EVENT_OBJECT_GASDOWN, m_main->IsResearchDone(RESEARCH_FLY, m_object->GetTeam()));
     }
 
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_TECH     ||
-         type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEtg ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_MOTHER   ||
-         type == OBJECT_ANT      ||
-         type == OBJECT_SPIDER   ||
-         type == OBJECT_BEE      ||
-         type == OBJECT_WORM     ||
-         type == OBJECT_CONTROLLER)  // vehicle?
+    if ( controlsDetails.hasProgramUIBlink )
     {
         bRun = false;
         if (m_selScript >= 0 && m_selScript < m_programStorage->GetProgramCount())
@@ -1995,16 +1527,6 @@ void CObjectInterface::UpdateInterface()
 //?     }
 
         BlinkScript(m_programmable->IsProgram());  // blinks if script execution
-    }
-
-    if ( type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia )  // arm?
-    {
-        CheckInterface(pw, EVENT_OBJECT_MPOWER, m_manipStyle==EVENT_OBJECT_MPOWER);
-        CheckInterface(pw, EVENT_OBJECT_MBACK,  m_manipStyle==EVENT_OBJECT_MBACK);
-        CheckInterface(pw, EVENT_OBJECT_MFRONT, m_manipStyle==EVENT_OBJECT_MFRONT);
     }
 
     CTraceDrawingObject* traceDrawing = nullptr;

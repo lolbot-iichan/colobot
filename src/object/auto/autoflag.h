@@ -27,15 +27,12 @@
 class CAutoFlag : public CAuto
 {
 public:
-    CAutoFlag(COldObject* object);
+    CAutoFlag(CObject* object);
     ~CAutoFlag();
-
-    void        DeleteObject(bool bAll=false) override;
 
     void        Init() override;
     void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
 
 protected:
     float       m_strong = 0.0f;

@@ -17,6 +17,8 @@
  * along with this program. If not, see http://gnu.org/licenses
  */
 
+#include <glm/glm.hpp>
+
 #include "level/scene_conditions.h"
 
 #include "level/parser/parserline.h"
@@ -26,12 +28,11 @@
 #include "object/object.h"
 #include "object/object_manager.h"
 
-#include "object/interface/power_container_object.h"
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/level_helpers.h"
+#include "object/helpers/power_helpers.h"
 
 #include <limits>
-
 
 void CObjectCondition::Read(CLevelParserLine* line)
 {
@@ -55,8 +56,8 @@ bool CObjectCondition::CheckForObject(CObject* obj)
 
     ObjectType type = obj->GetType();
 
-    ToolType tool = GetToolFromObject(type);
-    DriveType drive = GetDriveFromObject(type);
+    ToolType tool = GetToolType(type);
+    DriveType drive = GetDriveType(type);
     if (this->tool != ToolType::Other &&
         tool != this->tool)
         return false;
@@ -76,26 +77,17 @@ bool CObjectCondition::CheckForObject(CObject* obj)
         return false;
 
     float energyLevel = -1;
-    CPowerContainerObject* power = nullptr;
-    if (obj->Implements(ObjectInterfaceType::PowerContainer))
-    {
-        power = dynamic_cast<CPowerContainerObject*>(obj);
-    }
-    else
-    {
-        power = GetObjectPowerCell(obj);
-    }
 
-    if (power != nullptr)
+    if (HasObjectPowerContainer(obj))
     {
-        energyLevel = power->GetEnergy();
-        if (power->GetCapacity() > 1.0f) energyLevel *= 10; // TODO: Who designed it like that ?!?!
+        energyLevel = GetObjectEnergy(obj);
+        if (GetObjectEnergyCapacity(obj) > 1.0f) energyLevel *= 10; // TODO: Who designed it like that ?!?!
     }
     if (energyLevel < this->powermin || energyLevel > this->powermax) return false;
 
     glm::vec3 oPos{};
     if (IsObjectBeingTransported(obj))
-        oPos = dynamic_cast<CTransportableObject&>(*obj).GetTransporter()->GetPosition();
+        oPos = GetObjectTransporter(obj)->GetPosition();
     else
         oPos = obj->GetPosition();
     oPos.y = 0.0f;
@@ -157,7 +149,8 @@ Error CSceneEndCondition::GetMissionResult()
 {
     if (CheckLost())
     {
-        if (this->type == OBJECT_HUMAN)
+        
+        if (IsObjectQuickLost(this->type))
             return INFO_LOSTq;
         else
             return INFO_LOST;

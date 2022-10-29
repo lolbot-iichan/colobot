@@ -59,6 +59,8 @@
 #include "level/scoreboard.h"
 
 #include "level/parser/parser.h"
+#include "level/parser/parserexceptions.h"
+#include "level/parser/path_inject.h"
 
 #include "math/const.h"
 #include "math/func.h"
@@ -66,23 +68,33 @@
 
 #include "object/object.h"
 #include "object/object_create_exception.h"
+#include "object/object_details.h"
 #include "object/object_manager.h"
+#include "object/old_object.h"
 
 #include "object/auto/auto.h"
 
+#include "object/details/details_provider.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
+
+#include "object/interface/controllable_object.h"
+#include "object/interface/interactive_object.h"
+#include "object/interface/program_storage_object.h"
+#include "object/interface/programmable_object.h"
+#include "object/interface/ranged_object.h"
+#include "object/interface/shielded_object.h"
 #include "object/interface/slotted_object.h"
+#include "object/interface/task_executor_object.h"
 
 #include "object/motion/motion.h"
 #include "object/motion/motionhuman.h"
 #include "object/motion/motiontoto.h"
 
-#include "object/subclass/exchange_post.h"
-
 #include "object/task/task.h"
 #include "object/task/taskbuild.h"
 #include "object/task/taskmanip.h"
-
-#include "physics/physics.h"
 
 #include "script/cbottoken.h"
 #include "script/script.h"
@@ -118,6 +130,7 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <libintl.h>
 
 // Global variables.
 
@@ -138,6 +151,7 @@ const Gfx::Color COLOR_REF_WATER = Gfx::Color( 25.0f/256.0f, 255.0f/256.0f, 240.
 CRobotMain::CRobotMain()
 {
     m_app        = CApplication::GetInstancePointer();
+    m_objectDetails = std::make_unique<CObjectDetails>();
 
     m_eventQueue = m_app->GetEventQueue();
     m_sound      = m_app->GetSound();
@@ -1069,7 +1083,9 @@ bool CRobotMain::ProcessEvent(Event &event)
 
                 obj = DetectObject(event.mousePos);
                 if (!m_shortCut) obj = nullptr;
-                if (obj != nullptr && obj->GetType() == OBJECT_TOTO)
+
+                auto assistant = GetObjectAssistantDetails(obj);
+                if (assistant.enabled && assistant.clickable)
                 {
                     if (m_displayInfo != nullptr)  // current info?
                     {
@@ -1393,11 +1409,9 @@ void CRobotMain::ExecuteCmd(const std::string& cmd)
 
         if (cmd == "fullpower")
         {
-            CObject* object = GetSelect();
-            if (object != nullptr)
+            if (CObject* object = GetSelect())
             {
-                if (CPowerContainerObject *power = GetObjectPowerCell(object))
-                    power->SetEnergyLevel(1.0f);
+                SetObjectEnergyLevel(object, 1.0);
 
                 if (object->Implements(ObjectInterfaceType::Shielded))
                     dynamic_cast<CShieldedObject&>(*object).SetShield(1.0f);
@@ -1410,12 +1424,9 @@ void CRobotMain::ExecuteCmd(const std::string& cmd)
 
         if (cmd == "fullenergy")
         {
-            CObject* object = GetSelect();
-
-            if (object != nullptr)
+            if (CObject* object = GetSelect())
             {
-                if (CPowerContainerObject *power = GetObjectPowerCell(object))
-                    power->SetEnergyLevel(1.0f);
+                SetObjectEnergyLevel(object, 1.0);
             }
             return;
         }
@@ -1431,10 +1442,9 @@ void CRobotMain::ExecuteCmd(const std::string& cmd)
         if (cmd == "fullrange")
         {
             CObject* object = GetSelect();
-            if (object != nullptr)
+            if (object != nullptr && object->Implements(ObjectInterfaceType::JetFlying))
             {
-                if (object->Implements(ObjectInterfaceType::JetFlying))
-                    dynamic_cast<CJetFlyingObject&>(*object).SetReactorRange(1.0f);
+                dynamic_cast<CJetFlyingObject&>(*object).SetReactorRange(1.0f);
             }
             return;
         }
@@ -1563,20 +1573,17 @@ void CRobotMain::StartDisplayInfo(int index, bool movie)
     if (m_cmdEdit || m_satComLock || m_lockedSatCom) return;
 
     CObject* obj = GetSelect();
-    bool human = obj != nullptr && obj->GetType() == OBJECT_HUMAN;
-
-    if (!m_editLock && movie && !m_movie->IsExist() && human)
+    if (!m_editLock && movie && !m_movie->IsExist()                       &&
+        obj != nullptr && obj->Implements(ObjectInterfaceType::Movable)   &&
+        GetObjectMovableDetails(obj).haveSatCom                           && 
+        dynamic_cast<CMovableObject&>(*obj).GetMotion()->GetAction() == -1 )
     {
-        assert(obj->Implements(ObjectInterfaceType::Movable));
-        if (dynamic_cast<CMovableObject&>(*obj).GetMotion()->GetAction() == -1)
-        {
-            m_movieInfoIndex = index;
-            m_movie->Start(MM_SATCOMopen, 2.5f);
-            m_satcomMoviePause = m_pause->ActivatePause(PAUSE_ENGINE|PAUSE_HIDE_SHORTCUTS);
-            m_infoObject = DeselectAll();  // removes the control buttons
-            m_displayText->HideText(true);
-            return;
-        }
+        m_movieInfoIndex = index;
+        m_movie->Start(MM_SATCOMopen, 2.5f);
+        m_satcomMoviePause = m_pause->ActivatePause(PAUSE_ENGINE|PAUSE_HIDE_SHORTCUTS);
+        m_infoObject = DeselectAll();  // removes the control buttons
+        m_displayText->HideText(true);
+        return;
     }
 
     if (m_movie->IsExist())
@@ -1773,7 +1780,7 @@ void CRobotMain::StartDisplayVisit(EventType event)
 
     ObjectCreateParams params;
     params.pos = m_displayText->GetVisitGoal(event);
-    params.type = OBJECT_SHOW;
+    params.type = GetObjectGlobalDetails().defaults.arrow;
     params.height = 10.0f;
     m_visitArrow = m_objMan->CreateObject(params);
 
@@ -1885,41 +1892,8 @@ void CRobotMain::SelectOneObject(CObject* obj, bool displayError)
     dynamic_cast<CControllableObject&>(*obj).SetSelect(true, displayError);
     m_camera->SetControllingObject(obj);
 
-    ObjectType type = obj->GetType();
-    if ( type == OBJECT_HUMAN    ||
-         type == OBJECT_MOBILEfa ||
-         type == OBJECT_MOBILEta ||
-         type == OBJECT_MOBILEwa ||
-         type == OBJECT_MOBILEia ||
-         type == OBJECT_MOBILEfb ||
-         type == OBJECT_MOBILEtb ||
-         type == OBJECT_MOBILEwb ||
-         type == OBJECT_MOBILEib ||
-         type == OBJECT_MOBILEfc ||
-         type == OBJECT_MOBILEtc ||
-         type == OBJECT_MOBILEwc ||
-         type == OBJECT_MOBILEic ||
-         type == OBJECT_MOBILEfi ||
-         type == OBJECT_MOBILEti ||
-         type == OBJECT_MOBILEwi ||
-         type == OBJECT_MOBILEii ||
-         type == OBJECT_MOBILEfs ||
-         type == OBJECT_MOBILEts ||
-         type == OBJECT_MOBILEws ||
-         type == OBJECT_MOBILEis ||
-         type == OBJECT_MOBILErt ||
-         type == OBJECT_MOBILErc ||
-         type == OBJECT_MOBILErr ||
-         type == OBJECT_MOBILErs ||
-         type == OBJECT_MOBILEsa ||
-         type == OBJECT_MOBILEft ||
-         type == OBJECT_MOBILEtt ||
-         type == OBJECT_MOBILEwt ||
-         type == OBJECT_MOBILEit ||
-         type == OBJECT_MOBILErp ||
-         type == OBJECT_MOBILEst ||
-         type == OBJECT_MOBILEdr ||
-         type == OBJECT_APOLLO2  )
+    auto cameraDetails = GetObjectControllableDetails(obj).camera;
+    if ( cameraDetails.isCameraTypePersistent )
     {
         m_camera->SetType(dynamic_cast<CControllableObject&>(*obj).GetCameraType());
     }
@@ -2005,7 +1979,7 @@ void CRobotMain::DeleteAllObjects()
 
 CObject* CRobotMain::SearchHuman()
 {
-    return m_objMan->FindNearest(nullptr, OBJECT_HUMAN);
+    return m_objMan->FindNearest(nullptr, GetObjectGlobalDetails().defaults.player);
 }
 
 CObject* CRobotMain::GetSelect()
@@ -2029,18 +2003,16 @@ CObject* CRobotMain::DetectObject(const glm::vec2& pos)
     {
         if (!obj->GetDetectable()) continue;
 
-        CObject* transporter = nullptr;
-        if (obj->Implements(ObjectInterfaceType::Transportable))
-            transporter = dynamic_cast<CTransportableObject&>(*obj).GetTransporter();
-
+        CObject* transporter = GetObjectTransporter(obj);
         if (transporter != nullptr && !transporter->GetDetectable()) continue;
+
         if (obj->GetProxyActivate()) continue;
 
         CObject* target = obj;
         // TODO: should this also apply to slots other than power cell slots?
-        if (obj->Implements(ObjectInterfaceType::PowerContainer) && obj->Implements(ObjectInterfaceType::Transportable))
+        if (obj->Implements(ObjectInterfaceType::PowerContainer))
         {
-            CObject *transporter = dynamic_cast<CTransportableObject&>(*obj).GetTransporter();  // battery connected
+            CObject *transporter = GetObjectTransporter(obj);  // battery connected
             if (transporter != nullptr && obj == GetObjectInPowerCellSlot(transporter))
                 target = transporter;
         }
@@ -2262,46 +2234,12 @@ void CRobotMain::ChangeCamera()
 
     if (controllableObj->GetCameraLock()) return;
 
-    ObjectType oType = obj->GetType();
+    auto cameraDetails = GetObjectControllableDetails(obj).camera;
+    if ( !cameraDetails.isCameraTypeChangable )  return;
+
     Gfx::CameraType type = controllableObj->GetCameraType();
 
-    if ( oType != OBJECT_HUMAN &&
-         oType != OBJECT_TECH &&
-         oType != OBJECT_MOBILEfa &&
-         oType != OBJECT_MOBILEta &&
-         oType != OBJECT_MOBILEwa &&
-         oType != OBJECT_MOBILEia &&
-         oType != OBJECT_MOBILEfb &&
-         oType != OBJECT_MOBILEtb &&
-         oType != OBJECT_MOBILEwb &&
-         oType != OBJECT_MOBILEib &&
-         oType != OBJECT_MOBILEfc &&
-         oType != OBJECT_MOBILEtc &&
-         oType != OBJECT_MOBILEwc &&
-         oType != OBJECT_MOBILEic &&
-         oType != OBJECT_MOBILEfi &&
-         oType != OBJECT_MOBILEti &&
-         oType != OBJECT_MOBILEwi &&
-         oType != OBJECT_MOBILEii &&
-         oType != OBJECT_MOBILEfs &&
-         oType != OBJECT_MOBILEts &&
-         oType != OBJECT_MOBILEws &&
-         oType != OBJECT_MOBILEis &&
-         oType != OBJECT_MOBILErt &&
-         oType != OBJECT_MOBILErc &&
-         oType != OBJECT_MOBILErr &&
-         oType != OBJECT_MOBILErs &&
-         oType != OBJECT_MOBILEsa &&
-         oType != OBJECT_MOBILEtg &&
-         oType != OBJECT_MOBILEft &&
-         oType != OBJECT_MOBILEtt &&
-         oType != OBJECT_MOBILEwt &&
-         oType != OBJECT_MOBILEit &&
-         oType != OBJECT_MOBILErp &&
-         oType != OBJECT_MOBILEst &&
-         oType != OBJECT_MOBILEdr &&
-         oType != OBJECT_APOLLO2  )  return;
-
+    ObjectType oType = obj->GetType();
     if (oType == OBJECT_MOBILEdr)  // designer?
     {
              if (type == Gfx::CAM_TYPE_PLANE  )  type = Gfx::CAM_TYPE_BACK;
@@ -2400,6 +2338,7 @@ bool CRobotMain::EventFrame(const Event &event)
     }
 
     CObject* toto = nullptr;
+
     if (!m_pause->IsPauseType(PAUSE_OBJECT_UPDATES))
     {
         // Advances all the robots, but not toto.
@@ -2411,7 +2350,8 @@ bool CRobotMain::EventFrame(const Event &event)
             if (IsObjectBeingTransported(obj))
                 continue;
 
-            if (obj->GetType() == OBJECT_TOTO)
+            auto assistant = GetObjectAssistantDetails(obj);
+            if (assistant.enabled && assistant.moveWithCamera)
                 toto = obj;
             else if (obj->Implements(ObjectInterfaceType::Interactive))
                 dynamic_cast<CInteractiveObject&>(*obj).EventProcess(event);
@@ -2730,14 +2670,20 @@ void CRobotMain::ScenePerso()
 
     m_engine->SetDrawWorld(false);  // does not draw anything on the interface
     m_engine->SetDrawFront(true);  // draws on the human interface
-    CObject* obj = SearchHuman();
+    CObject* obj = m_objMan->FindNearest(nullptr, OBJECT_NULL);
     if (obj != nullptr)
     {
         obj->SetDrawFront(true);  // draws the interface
 
-        assert(obj->Implements(ObjectInterfaceType::Movable));
-        CMotionHuman* mh = static_cast<CMotionHuman*>(dynamic_cast<CMovableObject&>(*obj).GetMotion());
-        mh->StartDisplayPerso();
+        if (!obj->Implements(ObjectInterfaceType::Movable))
+        {
+            std::unique_ptr<CMotion> simpleMotion = std::make_unique<CMotion>(dynamic_cast<COldObject*>(obj));
+            simpleMotion->Create();
+            dynamic_cast<COldObject*>(obj)->SetMovable(std::move(simpleMotion), nullptr);
+        }
+        CMotion* motion = dynamic_cast<CMovableObject&>(*obj).GetMotion();
+
+        motion->StartDisplayPerso();
     }
 }
 
@@ -3401,7 +3347,7 @@ void CRobotMain::CreateScene(bool soluce, bool fixScene, bool resetObject)
                     throw CLevelParserException("There can be only one LevelController in the level");
                 }
 
-                m_controller = m_objMan->CreateObject(glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, OBJECT_CONTROLLER);
+                m_controller = m_objMan->CreateObject(glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, GetObjectGlobalDetails().defaults.controller);
                 assert(m_controller->Implements(ObjectInterfaceType::Programmable));
                 assert(m_controller->Implements(ObjectInterfaceType::ProgramStorage));
 
@@ -3447,14 +3393,14 @@ void CRobotMain::CreateScene(bool soluce, bool fixScene, bool resetObject)
                     if (obj->Implements(ObjectInterfaceType::Controllable) && line->GetParam("select")->AsBool(false))
                         sel = obj;
 
-                    if (obj->GetType() == OBJECT_BASE)
+                    if (obj->GetType() == GetObjectGlobalDetails().defaults.base)
                         m_base = obj;
 
                     if (obj->Implements(ObjectInterfaceType::ProgramStorage))
                     {
                         CProgramStorageObject* programStorage = dynamic_cast<CProgramStorageObject*>(obj);
 
-                        if (obj->Implements(ObjectInterfaceType::Controllable) && dynamic_cast<CControllableObject&>(*obj).GetSelectable() && obj->GetType() != OBJECT_HUMAN)
+                        if (obj->Implements(ObjectInterfaceType::Controllable) && dynamic_cast<CControllableObject&>(*obj).GetSelectable() && !GetObjectProgrammableDetails(obj).noSaveState)
                         {
                             programStorage->SetProgramStorageIndex(rankObj);
                         }
@@ -3678,7 +3624,7 @@ void CRobotMain::CreateScene(bool soluce, bool fixScene, bool resetObject)
                 {
                     // Create the scoreboard
                     m_scoreboard = std::make_unique<CScoreboard>();
-                    m_scoreboard->SetSortType(line->GetParam("sort")->AsSortType(CScoreboard::SortType::SORT_ID));
+                    m_scoreboard->SetSortType(line->GetParam("sort")->AsSortType(ScoreboardSortType::SORT_ID));
                 }
                 continue;
             }
@@ -4338,24 +4284,7 @@ void CRobotMain::ShowDropZone(CObject* metal, CObject* transporter)
             }
         }
 
-        if ( type == OBJECT_DERRICK  ||
-             type == OBJECT_FACTORY  ||
-             type == OBJECT_STATION  ||
-             type == OBJECT_CONVERT  ||
-             type == OBJECT_REPAIR   ||
-             type == OBJECT_DESTROYER||
-             type == OBJECT_TOWER    ||
-             type == OBJECT_RESEARCH ||
-             type == OBJECT_RADAR    ||
-             type == OBJECT_ENERGY   ||
-             type == OBJECT_LABO     ||
-             type == OBJECT_NUCLEAR  ||
-             type == OBJECT_START    ||
-             type == OBJECT_END      ||
-             type == OBJECT_INFO     ||
-             type == OBJECT_PARA     ||
-             type == OBJECT_SAFE     ||
-             type == OBJECT_HUSTON   )  // building?
+        if ( GetObjectAutomatedDetails(obj).blocking.blocksBuilding )  // building?
         {
             for (const auto& crashSphere : obj->GetAllCrashSpheres())
             {
@@ -4525,9 +4454,7 @@ bool CRobotMain::SaveFileStack(CObject *obj, std::ostream &ostr)
     if (! obj->Implements(ObjectInterfaceType::Programmable)) return true;
 
     CProgrammableObject* programmable = dynamic_cast<CProgrammableObject*>(obj);
-
-    ObjectType type = obj->GetType();
-    if (type == OBJECT_HUMAN) return true;
+    if (GetObjectProgrammableDetails(obj).noSaveState) return true;
 
     long status = 1;
     std::stringstream sstr("");
@@ -4550,9 +4477,7 @@ bool CRobotMain::ReadFileStack(CObject *obj, std::istream &istr)
     if (! obj->Implements(ObjectInterfaceType::Programmable)) return true;
 
     CProgrammableObject* programmable = dynamic_cast<CProgrammableObject*>(obj);
-
-    ObjectType type = obj->GetType();
-    if (type == OBJECT_HUMAN) return true;
+    if (GetObjectProgrammableDetails(obj).noSaveState) return true;
 
     long status;
     if (!CBot::ReadLong(istr, status)) return false;
@@ -4617,7 +4542,7 @@ void CRobotMain::IOWriteObject(CLevelParserLine* line, CObject* obj, const std::
     line->AddParam("id", std::make_unique<CLevelParserParam>(obj->GetID()));
     line->AddParam("pos", std::make_unique<CLevelParserParam>(obj->GetPosition()/g_unit));
     line->AddParam("angle", std::make_unique<CLevelParserParam>(obj->GetRotation() * Math::RAD_TO_DEG));
-    line->AddParam("zoom", std::make_unique<CLevelParserParam>(obj->GetScale()));
+    line->AddParam("zoom", std::make_unique<CLevelParserParam>(glm::vec3(obj->GetScaleX(),obj->GetScaleY(),obj->GetScaleZ())));
 
     if (obj->Implements(ObjectInterfaceType::Old))
     {
@@ -4725,20 +4650,20 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
         levelParser.AddLine(std::move(line));
     }
 
-
     int objRank = 0;
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == OBJECT_TOTO) continue;
+        auto assistant = GetObjectAssistantDetails(obj);
+        if (assistant.enabled && assistant.ignoreOnSaveLoad) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
         if (obj->Implements(ObjectInterfaceType::Slotted))
         {
             CSlottedObject* slotted = dynamic_cast<CSlottedObject*>(obj);
-            for (int slot = slotted->GetNumSlots() - 1; slot >= 0; slot--)
+            for (int slot = GetNumSlots(obj) - 1; slot >= 0; slot--)
             {
-                if (CObject *sub = slotted->GetSlotContainedObject(slot))
+                if (CObject *sub = GetObjectInSlot(obj, slot))
                 {
                     if (slot == slotted->MapPseudoSlot(CSlottedObject::Pseudoslot::POWER))
                         line = std::make_unique<CLevelParserLine>("CreatePower");
@@ -4780,7 +4705,8 @@ bool CRobotMain::IOWriteScene(std::string filename, std::string filecbot, std::s
 
     for (CObject* obj : m_objMan->GetAllObjects())
     {
-        if (obj->GetType() == OBJECT_TOTO) continue;
+        auto assistant = GetObjectAssistantDetails(obj);
+        if (assistant.enabled && assistant.ignoreOnSaveLoad) continue;
         if (IsObjectBeingTransported(obj)) continue;
         if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -4850,7 +4776,8 @@ CObject* CRobotMain::IOReadObject(CLevelParserLine *line, const std::string& pro
         oldObj->SetRotation(line->GetParam("angle")->AsPoint() * Math::DEG_TO_RAD);
     }
 
-    if (obj->GetType() == OBJECT_BASE) m_base = obj;
+    if (obj->GetType() == GetObjectGlobalDetails().defaults.base)
+        m_base = obj;
 
     obj->Read(line);
 
@@ -4929,7 +4856,7 @@ CObject* CRobotMain::IOReadScene(std::string filename, std::string filecbot)
             CObject *slotObject = IOReadObject(line.get(), dirname, StrUtils::ToString<int>(objCounter+1)+" / "+StrUtils::ToString<int>(numObjects), static_cast<float>(objCounter) / static_cast<float>(numObjects));
             objCounter++;
 
-            assert(slots.find(slotNum) == slots.end());
+            assert(slotNum >= 0 && slots.find(slotNum) == slots.end());
             slots.emplace(slotNum, slotObject);
         }
 
@@ -4946,28 +4873,20 @@ CObject* CRobotMain::IOReadScene(std::string filename, std::string filecbot)
                 if (cargo != nullptr)
                 {
                     int slotNum = asSlotted->MapPseudoSlot(CSlottedObject::Pseudoslot::CARRYING);
-                    assert(slotNum >= 0);
-                    assert(slots.find(slotNum) == slots.end());
-                    asSlotted->SetSlotContainedObject(slotNum, cargo);
-
-                    // TODO: eww!
-                    assert(obj->Implements(ObjectInterfaceType::Old));
-                    auto task = std::make_unique<CTaskManip>(dynamic_cast<COldObject*>(obj));
-                    task->Start(TMO_AUTO, TMA_GRAB);  // holds the object!
+                    assert(slotNum >= 0 && slots.find(slotNum) == slots.end());
+                    slots.emplace(slotNum, cargo);
                 }
 
                 if (power != nullptr)
                 {
                     int slotNum = asSlotted->MapPseudoSlot(CSlottedObject::Pseudoslot::POWER);
-                    assert(slotNum >= 0);
-                    assert(slots.find(slotNum) == slots.end());
-                    asSlotted->SetSlotContainedObject(slotNum, power);
-                    dynamic_cast<CTransportableObject&>(*power).SetTransporter(obj);
+                    assert(slotNum >= 0 && slots.find(slotNum) == slots.end());
+                    slots.emplace(slotNum, power);
                 }
 
                 for (std::pair<const int, CObject*>& slot : slots)
                 {
-                    asSlotted->SetSlotContainedObject(slot.first, slot.second);
+                    SetObjectInSlot(obj, slot.first, slot.second);
                 }
 
                 cargo = nullptr;
@@ -5012,7 +4931,8 @@ CObject* CRobotMain::IOReadScene(std::string filename, std::string filecbot)
 
                 if (!bError) for (CObject* obj : m_objMan->GetAllObjects())
                 {
-                    if (obj->GetType() == OBJECT_TOTO) continue;
+                    auto assistant = GetObjectAssistantDetails(obj);
+                    if (assistant.enabled && assistant.ignoreOnSaveLoad) continue;
                     if (IsObjectBeingTransported(obj)) continue;
                     if (obj->Implements(ObjectInterfaceType::Destroyable) && dynamic_cast<CDestroyableObject&>(*obj).IsDying()) continue;
 
@@ -5734,6 +5654,16 @@ void CRobotMain::DisplayError(Error err, glm::vec3 goal, float height, float dis
     m_displayText->DisplayError(err, goal, height, dist, time);
 }
 
+void CRobotMain::DisplayText(std::string text, CObject* pObj, Ui::TextType type, float height, float dist, float time)
+{
+    if (pObj == nullptr)  return;
+    glm::vec3 pos = pObj->GetPosition();
+
+    // TODO: move i18n to restext.cpp
+    if (text.size() != 0)
+        m_displayText->DisplayText(gettext(text.c_str()), pos, height, dist, time, type);
+}
+
 void CRobotMain::UpdateCustomLevelList()
 {
     m_ui->UpdateCustomLevelList();
@@ -5942,6 +5872,9 @@ bool CRobotMain::IsBuildingEnabled(BuildType type)
 
 bool CRobotMain::IsBuildingEnabled(ObjectType type)
 {
+    // TODO TODO TODO FIXME FIXME FIXME
+    return true;
+
     if(type == OBJECT_DERRICK) return IsBuildingEnabled(BUILD_DERRICK);
     if(type == OBJECT_FACTORY) return IsBuildingEnabled(BUILD_FACTORY);
     if(type == OBJECT_STATION) return IsBuildingEnabled(BUILD_STATION);
@@ -5968,13 +5901,18 @@ bool CRobotMain::IsResearchEnabled(ResearchType type)
 
 bool CRobotMain::IsResearchDone(ResearchType type, int team)
 {
+    return IsResearchesDone(type, team);
+}
+
+bool CRobotMain::IsResearchesDone(int mask, int team)
+{
     if(team != 0 && m_researchDone.count(team) == 0)
     {
         // Initialize with defaults
         m_researchDone[team] = m_researchDone[0];
     }
 
-    return (m_researchDone[team] & type) != 0;
+    return (m_researchDone[team] & mask) == mask;
 }
 
 void CRobotMain::MarkResearchDone(ResearchType type, int team)
@@ -6027,34 +5965,6 @@ Error CRobotMain::CanBuildError(ObjectType type, int team)
 
     if(type == OBJECT_TOWER   && !IsResearchDone(RESEARCH_TOWER,  team)) return ERR_BUILD_RESEARCH;
     if(type == OBJECT_NUCLEAR && !IsResearchDone(RESEARCH_ATOMIC, team)) return ERR_BUILD_RESEARCH;
-
-    return ERR_OK;
-}
-
-Error CRobotMain::CanFactoryError(ObjectType type, int team)
-{
-    ToolType tool = GetToolFromObject(type);
-    DriveType drive = GetDriveFromObject(type);
-
-    if (tool == ToolType::Sniffer        && !IsResearchDone(RESEARCH_SNIFFER,  team)) return ERR_BUILD_RESEARCH;
-    if (tool == ToolType::Shooter        && !IsResearchDone(RESEARCH_CANON,    team)) return ERR_BUILD_RESEARCH;
-    if (tool == ToolType::OrganicShooter && !IsResearchDone(RESEARCH_iGUN,     team)) return ERR_BUILD_RESEARCH;
-    if (tool == ToolType::Builder        && !IsResearchDone(RESEARCH_BUILDER,  team)) return ERR_BUILD_RESEARCH;
-
-    if (drive == DriveType::Tracked      && !IsResearchDone(RESEARCH_TANK,     team)) return ERR_BUILD_RESEARCH;
-    if (drive == DriveType::Winged       && !IsResearchDone(RESEARCH_FLY,      team)) return ERR_BUILD_RESEARCH;
-    if (drive == DriveType::Legged       && !IsResearchDone(RESEARCH_iPAW,     team)) return ERR_BUILD_RESEARCH;
-    if (drive == DriveType::Heavy        && !IsResearchDone(RESEARCH_TANK,     team)) return ERR_BUILD_RESEARCH;
-
-    if (type == OBJECT_MOBILErt          && !IsResearchDone(RESEARCH_THUMP,    team)) return ERR_BUILD_RESEARCH;
-    if (type == OBJECT_MOBILErc          && !IsResearchDone(RESEARCH_PHAZER,   team)) return ERR_BUILD_RESEARCH;
-    if (type == OBJECT_MOBILErr          && !IsResearchDone(RESEARCH_RECYCLER, team)) return ERR_BUILD_RESEARCH;
-    if (type == OBJECT_MOBILErs          && !IsResearchDone(RESEARCH_SHIELD,   team)) return ERR_BUILD_RESEARCH;
-    if (type == OBJECT_MOBILEsa          && !IsResearchDone(RESEARCH_SUBM,     team)) return ERR_BUILD_DISABLED; // Can be only researched manually in Scene file
-    if (type == OBJECT_MOBILEst          && !IsResearchDone(RESEARCH_SUBM,     team)) return ERR_BUILD_DISABLED;
-    if (type == OBJECT_MOBILEtg          && !IsResearchDone(RESEARCH_TARGET,   team)) return ERR_BUILD_RESEARCH;
-
-    if (tool == ToolType::Other && drive == DriveType::Other && type != OBJECT_MOBILEtg)   return ERR_WRONG_OBJ;
 
     return ERR_OK;
 }

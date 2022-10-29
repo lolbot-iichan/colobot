@@ -37,16 +37,13 @@ enum AutoVaultPhase
 class CAutoVault : public CAuto
 {
 public:
-    CAutoVault(COldObject* object);
+    CAutoVault(CObject* object);
     ~CAutoVault();
 
     void        DeleteObject(bool bAll=false) override;
 
     void        Init() override;
     bool        EventProcess(const Event &event) override;
-    Error       GetError() override;
-
-    bool        CreateInterface(bool bSelect) override;
 
     bool        Write(CLevelParserLine* line) override;
     bool        Read(CLevelParserLine* line) override;
@@ -60,16 +57,20 @@ protected:
 
 protected:
     AutoVaultPhase   m_phase = ASAP_WAIT;
-    float           m_progress = 0.0f;
-    float           m_speed = 0.0f;
-    float           m_timeVirus = 0.0f;
-    float           m_lastParticle = 0.0f;
-    int             m_channelSound = 0;
-    bool            m_bLock = false;
-    int             m_countKeys = 0;
-    float           m_actualAngle = 0.0f;
-    float           m_finalAngle = 0.0f;
-    bool            m_bKey[4] = {};
-    glm::vec3       m_keyPos[4] = {};
-    int             m_keyParti[4] = {};
+    float            m_progress = 0.0f;
+    float            m_speed = 0.0f;
+    float            m_timeVirus = 0.0f;
+    float            m_lastParticle = 0.0f;
+    int              m_channelSound = 0;
+    bool             m_bLock = false;
+    int              m_countKeys = 0;
+
+    struct CVaultKeyInfo
+    {
+        bool      isPlaced   = false;
+        int       particleId = -1;
+        glm::vec3 position;
+        
+    };
+    std::vector<CVaultKeyInfo> m_keyInfo;
 };

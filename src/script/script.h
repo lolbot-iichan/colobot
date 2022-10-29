@@ -96,6 +96,8 @@ public:
     void        SetFilename(const std::string &filename);
     const std::string& GetFilename();
 
+    inline bool GetErrMode()  { return m_errMode; } 
+
 protected:
     bool        IsEmpty();
     bool        CheckToken();

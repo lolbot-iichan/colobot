@@ -69,7 +69,7 @@ enum AutoBasePhase
 class CAutoBase : public CAuto
 {
 public:
-    CAutoBase(COldObject* object);
+    CAutoBase(CObject* object);
     ~CAutoBase();
 
     void        DeleteObject(bool bAll=false) override;
@@ -78,14 +78,10 @@ public:
     void        Start(int param) override;
     bool        EventProcess(const Event &event) override;
     bool        Abort() override;
-    Error       GetError() override;
 
-    bool        CreateInterface(bool bSelect) override;
-
-    Error       TakeOff(bool printMsg);
+    Error       StartAction(int param) override;
 
 protected:
-    void        UpdateInterface();
     void        FreezeCargo(bool freeze);
     void        MoveCargo();
     Error       CheckCloseDoor();

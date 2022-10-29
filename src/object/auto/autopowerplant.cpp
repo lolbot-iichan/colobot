@@ -30,18 +30,16 @@
 
 #include "math/geometry.h"
 
+#include "object/object.h"
 #include "object/object_manager.h"
-#include "object/old_object.h"
 
-#include "object/interface/slotted_object.h"
-#include "object/interface/transportable_object.h"
+#include "object/details/details_provider.h"
+#include "object/details/automated_details.h"
+
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
 
 #include "sound/sound.h"
-
-#include "ui/controls/gauge.h"
-#include "ui/controls/interface.h"
-#include "ui/controls/window.h"
-
 
 const float POWERPLANT_POWER    =  0.4f;    // Necessary energy for a battery
 const float POWERPLANT_DELAY    = 12.0f;    // processing time
@@ -51,12 +49,12 @@ const float POWERPLANT_DELAY    = 12.0f;    // processing time
 
 // Object's constructor.
 
-CAutoPowerPlant::CAutoPowerPlant(COldObject* object) : CAuto(object)
+CAutoPowerPlant::CAutoPowerPlant(CObject* object) : CAuto(object)
 {
     m_partiSphere = -1;
     Init();
 
-    assert(m_object->GetNumSlots() == 1);
+    assert(GetNumSlots(m_object) > 0);
 }
 
 // Object's destructor.
@@ -78,20 +76,7 @@ void CAutoPowerPlant::DeleteObject(bool all)
 
     if ( !all )
     {
-        // TODO: why are we only searching for titanium and power cells? why don't we delete any object regardless of type?
-        CObject* cargo = SearchMetal();
-        if ( cargo != nullptr )
-        {
-            m_object->SetSlotContainedObject(0, nullptr);
-            CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-        }
-
-        cargo = SearchPower();
-        if ( cargo != nullptr )
-        {
-            m_object->SetSlotContainedObject(0, nullptr);
-            CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-        }
+        CObjectManager::GetInstancePointer()->DeleteObjectInSlot(m_object, 0);
     }
 
     CAuto::DeleteObject(all);
@@ -120,7 +105,7 @@ void CAutoPowerPlant::Init()
 bool CAutoPowerPlant::EventProcess(const Event &event)
 {
     CObject*    cargo;
-    glm::vec3    pos, ppos, speed;
+    glm::vec3    pos, speed;
     glm::vec2     dim, c, p;
     Gfx::TerrainRes  res;
     float       big;
@@ -159,7 +144,7 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
     UpdateInterface(event.rTime);
     EventProgress(event.rTime);
 
-    big = m_object->GetEnergy();
+    big = GetObjectEnergy(m_object);
 
     res = m_terrain->GetResource(m_object->GetPosition());
     if ( res == Gfx::TR_POWER )
@@ -175,7 +160,13 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
             cargo = SearchMetal();  // transform metal?
             if ( cargo != nullptr )
             {
-                if ( cargo->GetType() == OBJECT_METAL )
+                bool found = false;
+                for ( auto it: GetObjectAutomatedDetails(m_object).production.objects )
+                {
+                    if ( cargo->GetType() == it.input ) found = true;
+                }
+
+                if ( found )
                 {
                     if ( big > POWERPLANT_POWER )  bGO = true;
                 }
@@ -187,11 +178,19 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
 
             if ( bGO )
             {
-                if ( cargo->GetType() == OBJECT_METAL )
+                cargo->SetLock(true);  // usable metal
+
+                std::vector<CObjectProductionAutomated> matched;
+                for ( auto it : GetObjectAutomatedDetails(m_object).production.objects )
                 {
-                    cargo->SetLock(true);  // usable metal
-                    CreatePower();  // creates the battery
+                    if ( cargo->GetType() == it.input )
+                        matched.push_back(it);
                 }
+
+                CObjectProductionAutomated matchedFinal = matched[ std::rand() % matched.size() ];
+                if (matchedFinal.output != OBJECT_NULL)
+                    CreatePower(matchedFinal.output);  // creates the battery
+                m_onCompleted = matchedFinal.message;
 
                 SetBusy(true);
                 InitProgressTotal(POWERPLANT_DELAY);
@@ -258,14 +257,17 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
             cargo = SearchMetal();
             if ( cargo != nullptr )
             {
-                if ( cargo->GetType() == OBJECT_METAL )
+                bool found = false;
+                for ( auto it: GetObjectAutomatedDetails(m_object).production.objects )
                 {
+                    if ( cargo->GetType() == it.input ) found = true;
+                }
+
+                if ( found )
                     big -= event.rTime/POWERPLANT_DELAY*POWERPLANT_POWER;
-                }
                 else
-                {
                     big += event.rTime/POWERPLANT_DELAY*0.25f;
-                }
+
                 cargo->SetScale(1.0f-m_progress);
             }
 
@@ -317,25 +319,17 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
         }
         else
         {
-            cargo = SearchMetal();
-            if ( cargo != nullptr )
-            {
-                m_object->SetSlotContainedObject(0, nullptr);
-                CObjectManager::GetInstancePointer()->DeleteObject(cargo);
-            }
+            CObjectManager::GetInstancePointer()->DeleteObjectInSlot(m_object, 0);
 
             cargo = SearchPower();
             if (cargo != nullptr)
             {
-                assert(cargo->Implements(ObjectInterfaceType::Transportable));
-
                 cargo->SetScale(1.0f);
                 cargo->SetLock(false);  // usable battery
-                dynamic_cast<CTransportableObject&>(*cargo).SetTransporter(m_object);
-                cargo->SetPosition(glm::vec3(0.0f, 3.0f, 0.0f));
-                m_object->SetSlotContainedObject(0, cargo);
 
-                m_main->DisplayError(INFO_ENERGY, m_object);
+                SetObjectInSlot(m_object, 0, cargo);
+
+                m_main->DisplayText(m_onCompleted, m_object, Ui::TT_INFO);
             }
 
             SetBusy(false);
@@ -377,7 +371,7 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
 
     if ( big < 0.0f )  big = 0.0f;
     if ( big > 1.0f )  big = 1.0f;
-    m_object->SetEnergy(big);  // shift the big pile
+    SetObjectEnergy(m_object, big);  // shift the big pile
 
     return true;
 }
@@ -387,11 +381,13 @@ bool CAutoPowerPlant::EventProcess(const Event &event)
 
 CObject* CAutoPowerPlant::SearchMetal()
 {
-    CObject* obj = m_object->GetSlotContainedObject(0);
+    CObject* obj = GetObjectInSlot(m_object, 0);
     if ( obj == nullptr )  return nullptr;
 
-    ObjectType type = obj->GetType();
-    if ( type == OBJECT_METAL )  return obj;
+    for ( auto it : GetObjectAutomatedDetails(m_object).production.objects )
+    {
+        if ( obj->GetType() == it.input ) return obj;
+    }
 
     return nullptr;
 }
@@ -404,46 +400,8 @@ bool CAutoPowerPlant::SearchVehicle()
 
     for (CObject* obj : CObjectManager::GetInstancePointer()->GetAllObjects())
     {
-        ObjectType type = obj->GetType();
-        if ( type != OBJECT_HUMAN    &&
-             type != OBJECT_MOBILEfa &&
-             type != OBJECT_MOBILEta &&
-             type != OBJECT_MOBILEwa &&
-             type != OBJECT_MOBILEia &&
-             type != OBJECT_MOBILEfb &&
-             type != OBJECT_MOBILEtb &&
-             type != OBJECT_MOBILEwb &&
-             type != OBJECT_MOBILEib &&
-             type != OBJECT_MOBILEfc &&
-             type != OBJECT_MOBILEtc &&
-             type != OBJECT_MOBILEwc &&
-             type != OBJECT_MOBILEic &&
-             type != OBJECT_MOBILEfi &&
-             type != OBJECT_MOBILEti &&
-             type != OBJECT_MOBILEwi &&
-             type != OBJECT_MOBILEii &&
-             type != OBJECT_MOBILEfs &&
-             type != OBJECT_MOBILEts &&
-             type != OBJECT_MOBILEws &&
-             type != OBJECT_MOBILEis &&
-             type != OBJECT_MOBILErt &&
-             type != OBJECT_MOBILErc &&
-             type != OBJECT_MOBILErr &&
-             type != OBJECT_MOBILErs &&
-             type != OBJECT_MOBILEsa &&
-             type != OBJECT_MOBILEtg &&
-             type != OBJECT_MOBILEft &&
-             type != OBJECT_MOBILEtt &&
-             type != OBJECT_MOBILEwt &&
-             type != OBJECT_MOBILEit &&
-             type != OBJECT_MOBILErp &&
-             type != OBJECT_MOBILEst &&
-             type != OBJECT_MOBILEdr &&
-             type != OBJECT_MOTHER   &&
-             type != OBJECT_ANT      &&
-             type != OBJECT_SPIDER   &&
-             type != OBJECT_BEE      &&
-             type != OBJECT_WORM     )  continue;
+        auto blocking = GetObjectAutomatedDetails(obj).blocking;
+        if (!blocking.blocksPowerPlant) continue;
 
         if (obj->GetCrashSphereCount() == 0) continue;
 
@@ -457,12 +415,12 @@ bool CAutoPowerPlant::SearchVehicle()
 
 // Create a cell.
 
-void CAutoPowerPlant::CreatePower()
+void CAutoPowerPlant::CreatePower(ObjectType type)
 {
     glm::vec3 pos = m_object->GetPosition();
     float angle = m_object->GetRotationY();
     float powerLevel = 1.0f;
-    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, OBJECT_POWER, powerLevel);
+    CObject* power = CObjectManager::GetInstancePointer()->CreateObject(pos, angle, type, powerLevel);
     power->SetLock(true);  // battery not yet usable
 
     pos = power->GetPosition();
@@ -480,14 +438,16 @@ CObject* CAutoPowerPlant::SearchPower()
     {
         if ( !obj->GetLock() )  continue;
 
-        ObjectType  type = obj->GetType();
-        if ( type != OBJECT_POWER )  continue;
-
-        glm::vec3 oPos = obj->GetPosition();
-        if ( oPos.x == cPos.x &&
-             oPos.z == cPos.z )
+        for ( auto it : GetObjectAutomatedDetails(m_object).production.objects )
         {
-            return obj;
+            if ( obj->GetType() != it.output ) continue;
+    
+            glm::vec3 oPos = obj->GetPosition();
+            if ( oPos.x == cPos.x &&
+                 oPos.z == cPos.z )
+            {
+                return obj;
+            }
         }
     }
 
@@ -495,14 +455,11 @@ CObject* CAutoPowerPlant::SearchPower()
 }
 
 
-// Returns an error due the state of the automation.
+// Returns an error due the state of the automated.
 
 Error CAutoPowerPlant::GetError()
 {
-    if ( m_object->GetVirusMode() )
-    {
-        return ERR_BAT_VIRUS;
-    }
+    auto production = GetObjectAutomatedDetails(m_object).production;
 
     if ( m_phase != AENP_WAIT  &&
          m_phase != AENP_BLITZ )  return ERR_OK;
@@ -510,78 +467,24 @@ Error CAutoPowerPlant::GetError()
     Gfx::TerrainRes res = m_terrain->GetResource(m_object->GetPosition());
     if ( res != Gfx::TR_POWER )  return ERR_ENERGY_NULL;
 
-    if ( m_object->GetEnergy() < POWERPLANT_POWER )  return ERR_ENERGY_LOW;
+    if ( GetObjectEnergy(m_object) < POWERPLANT_POWER )  return ERR_ENERGY_LOW;
 
-    CObject* obj = m_object->GetSlotContainedObject(0);
-    if (obj == nullptr)  return ERR_ENERGY_EMPTY;
-    ObjectType type = obj->GetType();
-    if ( type == OBJECT_POWER )  return ERR_OK;
-    if ( type != OBJECT_METAL )  return ERR_ENERGY_BAD;
+    CObject* obj = GetObjectInSlot(m_object, 0);
+    if ( obj == nullptr )
+    {
+        m_main->DisplayText(production.noInput, m_object, Ui::TT_WARNING);
+        return ERR_OK;
+    }
+    if ( obj->GetLock() )  return ERR_OK;
 
+    for ( auto it : production.objects )
+    {
+        if ( obj->GetType() == it.input )  return ERR_OK;
+        if ( obj->GetType() == it.output  )  return ERR_OK;
+    }
+    m_main->DisplayText(production.badInput, m_object, Ui::TT_WARNING);
     return ERR_OK;
 }
-
-
-// Creates all the interface when the object is selected.
-
-bool CAutoPowerPlant::CreateInterface(bool bSelect)
-{
-    Ui::CWindow*    pw;
-    glm::vec2     pos, ddim;
-    float       ox, oy, sx, sy;
-
-    CAuto::CreateInterface(bSelect);
-
-    if ( !bSelect )  return true;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return false;
-
-    ox = 3.0f/640.0f;
-    oy = 3.0f/480.0f;
-    sx = 33.0f/640.0f;
-    sy = 33.0f/480.0f;
-
-    pos.x = ox+sx*14.5f;
-    pos.y = oy+sy*0;
-    ddim.x = 14.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGauge(pos, ddim, 0, EVENT_OBJECT_GENERGY);
-
-    pos.x = ox+sx*0.0f;
-    pos.y = oy+sy*0;
-    ddim.x = 66.0f/640.0f;
-    ddim.y = 66.0f/480.0f;
-    pw->CreateGroup(pos, ddim, 108, EVENT_OBJECT_TYPE);
-
-    return true;
-}
-
-// Updates the state of all buttons on the interface,
-// following the time that elapses ...
-
-void CAutoPowerPlant::UpdateInterface(float rTime)
-{
-    Ui::CWindow*    pw;
-    Ui::CGauge*     pg;
-
-    CAuto::UpdateInterface(rTime);
-
-    if ( m_time < m_lastUpdateTime+0.1f )  return;
-    m_lastUpdateTime = m_time;
-
-    if ( !m_object->GetSelect() )  return;
-
-    pw = static_cast< Ui::CWindow* >(m_interface->SearchControl(EVENT_WINDOW0));
-    if ( pw == nullptr )  return;
-
-    pg = static_cast< Ui::CGauge* >(pw->SearchControl(EVENT_OBJECT_GENERGY));
-    if ( pg != nullptr )
-    {
-        pg->SetLevel(m_object->GetEnergy());
-    }
-}
-
 
 // Saves all parameters of the controller.
 

@@ -23,13 +23,16 @@
 #include "app/app.h"
 
 #include "graphics/engine/engine.h"
+#include "graphics/engine/water.h"
 
 #include "level/robotmain.h"
 
 #include "object/old_object.h"
 
-#include "object/interface/programmable_object.h"
+#include "object/helpers/cargo_helpers.h"
+#include "object/helpers/power_helpers.h"
 
+#include "physics/physics.h"
 
 // Object's constructor.
 
@@ -46,11 +49,6 @@ CTask::CTask(COldObject* object)
 
     m_object      = object;
     m_physics     = m_object->GetPhysics();
-    m_programmable       = nullptr;
-    if (object->Implements(ObjectInterfaceType::Programmable))
-    {
-        m_programmable = dynamic_cast<CProgrammableObject*>(m_object);
-    }
     m_motion      = m_object->GetMotion();
 }
 
@@ -90,4 +88,33 @@ bool CTask::IsBusy()
 bool CTask::Abort()
 {
     return true;
+}
+
+
+// Some generic checks useful for most tasks
+
+Error CTask::CanStartTask(const CTaskConditions* cond, float minPower)
+{
+    if ( cond == nullptr || !cond->enabled )  return ERR_WRONG_BOT;
+
+    if (!cond->onCarrying && HasObjectInCargoSlot(m_object))  return ERR_MANIP_BUSY;
+    if (!cond->onCarried && IsObjectBeingTransported(m_object))  return ERR_MANIP_FLY;
+
+    if (m_object->Implements(ObjectInterfaceType::Movable))
+    {
+        glm::vec3 pos = m_object->GetPosition();
+        if (!cond->onWater  && !m_physics->GetLand() && pos.y < m_water->GetLevel() )  return ERR_MANIP_WATER;
+        if (!cond->onFlying && !m_physics->GetLand() && pos.y >= m_water->GetLevel() )  return ERR_MANIP_FLY;
+
+        glm::vec3 speed = m_physics->GetMotorSpeed();
+        if (!cond->onMoving && (speed.x != 0.0f || speed.z != 0.0f) )  return ERR_MANIP_MOTOR;
+    }
+
+    if (minPower > 0.0f)
+    {
+        float energy = GetObjectEnergy(m_object);
+        if ( energy < minPower )  return ERR_RECOVER_ENERGY;
+    }
+    
+    return ERR_OK;
 }

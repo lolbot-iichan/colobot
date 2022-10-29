@@ -22,7 +22,8 @@
 
 #include "object/task/task.h"
 
-class CExchangePost;
+class CObject;
+class CExchangePostObject;
 
 class CTaskInfo : public CForegroundTask
 {
@@ -36,7 +37,7 @@ public:
     Error       IsEnded() override;
     bool        Abort() override;
 
-    CExchangePost* FindExchangePost(float power);
+    CObject*    FindExchangePost(float power);
 
 protected:
     float           m_progress = 0.0f;

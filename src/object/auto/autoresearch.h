@@ -36,7 +36,7 @@ enum AutoResearchPhase
 class CAutoResearch : public CAuto
 {
 public:
-    CAutoResearch(COldObject* object);
+    CAutoResearch(CObject* object);
     ~CAutoResearch();
 
     void        DeleteObject(bool bAll=false) override;
@@ -53,7 +53,6 @@ public:
 
 protected:
     void        UpdateInterface();
-    void        UpdateInterface(float rTime);
     void        OkayButton(Ui::CWindow *pw, EventType event);
     bool        TestResearch(EventType event);
     void        FireStopUpdate(float progress, bool bLightOn);
