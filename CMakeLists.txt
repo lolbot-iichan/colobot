@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.21)
 cmake_policy(SET CMP0025 NEW)
 
 project(colobot
-    VERSION 0.2.1
+    VERSION 0.3.0
     LANGUAGES C CXX
 )
 
