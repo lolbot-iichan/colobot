@@ -4775,6 +4775,15 @@ CObject* CRobotMain::IOReadScene(const std::filesystem::path& filename,
             if (line->GetParam("select")->AsBool(false))
                 sel = obj;
 
+            if (m_controller == nullptr && obj->GetType() == OBJECT_CONTROLLER)
+            {
+                m_controller = obj;
+                assert(m_controller->Implements(ObjectInterfaceType::Programmable));
+                assert(m_controller->Implements(ObjectInterfaceType::ProgramStorage));
+                assert(m_controller->Implements(ObjectInterfaceType::Old));
+                dynamic_cast<COldObject&>(*m_controller).SetCheckToken(false);
+            }
+
             if (obj->Implements(ObjectInterfaceType::Slotted))
             {
                 CSlottedObject* asSlotted = dynamic_cast<CSlottedObject*>(obj);
