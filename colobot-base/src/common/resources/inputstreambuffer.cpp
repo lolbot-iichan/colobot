@@ -20,6 +20,7 @@
 #include "common/resources/inputstreambuffer.h"
 
 #include "common/resources/resourcemanager.h"
+#include "common/resources/physfs_utils.h"
 
 #include <stdexcept>
 #include <sstream>
@@ -46,7 +47,7 @@ CInputStreamBuffer::~CInputStreamBuffer()
 void CInputStreamBuffer::open(const std::filesystem::path& path)
 {
     if (PHYSFS_isInit())
-        m_file = PHYSFS_openRead(CResourceManager::CleanPath(path.generic_u8string()).c_str());
+        m_file = LoudOpenRead(CResourceManager::CleanPath(path.generic_u8string()).c_str());
 }
 
 

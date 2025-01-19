@@ -22,6 +22,7 @@
 
 #include "common/logger.h"
 #include "common/stringutils.h"
+#include "common/resources/physfs_utils.h"
 
 #include <physfs.h>
 
@@ -37,7 +38,7 @@ CSDLMemoryWrapper::CSDLMemoryWrapper(const std::filesystem::path& filename)
         return;
     }
 
-    PHYSFS_File *file = PHYSFS_openRead(StrUtils::ToString(filename.lexically_normal()).c_str());
+    PHYSFS_File *file = LoudOpenRead(StrUtils::ToString(filename.lexically_normal()).c_str());
     if (file == nullptr)
     {
         GetLogger()->Error("Error opening file with PHYSFS: \"%%\"", filename);
