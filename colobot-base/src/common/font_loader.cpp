@@ -58,7 +58,8 @@ bool CFontLoader::Init()
 
             while (std::getline(*stream, line))
             {
-                if (line.ends_with('\r')) {
+                if (line.ends_with('\r'))
+                {
                     line.pop_back();
                 }
 
