@@ -8,7 +8,6 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        target_os: [linux]
         include:
           - host_os: ubuntu-20.04
             container: ''
