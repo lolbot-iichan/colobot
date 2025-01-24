@@ -62,9 +62,9 @@ jobs:
       run: patchelf --set-rpath '.' install/colobot
       if: ${{ env.APPIMAGE == true }}
     - name: Upload build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{matrix.target_os}}-debug
+        name: ${{ matrix.target_os }}-${{ matrix.host_os }}-${{ matrix.container }}-${{ matrix.preset }}-debug
         path: install
       if: ${{ env.APPIMAGE == true }}
     - name: Create AppImage
@@ -86,9 +86,9 @@ jobs:
         cp -p Colobot-x86_64.AppImage appimage/colobot
       if: ${{ env.APPIMAGE == true }}
     - name: Upload AppImage
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{matrix.target_os}}-debug-AppImage
+        name: ${{ matrix.target_os }}-${{ matrix.host_os }}-${{ matrix.container }}-${{ matrix.preset }}-debug-AppImage
         path: build/appimage
       if: ${{ env.APPIMAGE == true }}
     - name: Run tests
@@ -96,9 +96,9 @@ jobs:
       working-directory: build
       run: ./Colobot-UnitTests --gtest_output=xml:gtestresults.xml
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }})
+        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }}, ${{ matrix.container }}, ${{ matrix.preset }})
         path: build/gtestresults.xml
   build-macos:
     runs-on: ${{ matrix.host_os }}
@@ -131,9 +131,9 @@ jobs:
       run: ./Colobot-UnitTests --gtest_output=xml:gtestresults.xml
       if: matrix.target_os == 'macos'
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }})
+        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }}, ${{ matrix.container }})
         path: build/gtestresults.xml
       if: matrix.target_os == 'macos'
   build-windows:
@@ -202,7 +202,7 @@ jobs:
     - name: Install
       run: cmake --build --preset Windows-CI --target install
     - name: Upload build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-msvc-debug-${{ matrix.arch }}
         path: install
@@ -210,7 +210,7 @@ jobs:
       working-directory: build
       run: ./Colobot-UnitTests --gtest_output=xml:gtestresults.xml
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: 'Test results (windows, MSVC, ${{ matrix.arch }})'
         path: build/gtestresults.xml
@@ -231,7 +231,7 @@ jobs:
       working-directory: build
       run: make doc
     - name: Upload docs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: doc
         path: build/doc
