@@ -9,18 +9,27 @@ jobs:
     strategy:
       matrix:
         target_os: [linux]
-        host_os: [ubuntu-20.04, ubuntu-22.04]
-        container: ['']
-        preset: [Linux-CI-gcc]
         include:
+          - host_os: ubuntu-20.04
+            container: ''
+            preset: Linux-CI-gcc
+            artifact-tag: ubuntu-20.04-gcc
+          - host_os: ubuntu-22.04
+            container: ''
+            preset: Linux-CI-gcc
+            artifact-tag: ubuntu-22.04-gcc
           - host_os: ubuntu-22.04
             container: 'debian:unstable-slim'
             preset: Linux-CI-gcc
+            artifact-tag: debian-unstable-gcc
           - host_os: ubuntu-22.04
             container: 'debian:testing-slim'
             preset: Linux-CI-gcc
+            artifact-tag: debian-testing-gcc
           - host_os: ubuntu-22.04
+            container: ''
             preset: Linux-CI-clang
+            artifact-tag: ubuntu-22.04-clang
       fail-fast: false
     env:
       # Actions run as root in-container, as normal user outside
@@ -64,7 +73,7 @@ jobs:
     - name: Upload build
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.target_os }}-${{ matrix.host_os }}-${{ matrix.container }}-${{ matrix.preset }}-debug
+        name: ${{ matrix.artifact-tag }}-debug
         path: install
       if: ${{ env.APPIMAGE == true }}
     - name: Create AppImage
@@ -88,7 +97,7 @@ jobs:
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.target_os }}-${{ matrix.host_os }}-${{ matrix.container }}-${{ matrix.preset }}-debug-AppImage
+        name: ${{ matrix.artifact-tag }}-debug-AppImage
         path: build/appimage
       if: ${{ env.APPIMAGE == true }}
     - name: Run tests
@@ -98,7 +107,7 @@ jobs:
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
-        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }}, ${{ matrix.container }}, ${{ matrix.preset }})
+        name: Test results (${{ matrix.artifact-tag }})
         path: build/gtestresults.xml
   build-macos:
     runs-on: ${{ matrix.host_os }}
@@ -133,7 +142,7 @@ jobs:
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
-        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }}, ${{ matrix.container }})
+        name: Test results (${{ matrix.target_os }}, ${{ matrix.host_os }})
         path: build/gtestresults.xml
       if: matrix.target_os == 'macos'
   build-windows:
