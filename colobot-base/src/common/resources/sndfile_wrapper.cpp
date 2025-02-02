@@ -20,6 +20,7 @@
 #include "common/resources/sndfile_wrapper.h"
 
 #include "common/stringutils.h"
+#include "common/resources/physfs_utils.h"
 
 #include <cstring>
 
@@ -72,7 +73,7 @@ CSNDFileWrapper::CSNDFileWrapper(const std::filesystem::path& filename)
     m_snd_callbacks = { SNDLength, SNDSeek, SNDRead, SNDWrite, SNDTell };
     if (PHYSFS_isInit())
     {
-        m_file = PHYSFS_openRead(StrUtils::ToString(filename).c_str());
+        m_file = LoudOpenRead(StrUtils::ToString(filename).c_str());
     }
     else
     {
@@ -88,8 +89,7 @@ CSNDFileWrapper::CSNDFileWrapper(const std::filesystem::path& filename)
     }
     else
     {
-        PHYSFS_ErrorCode errorCode = PHYSFS_getLastErrorCode();
-        m_last_error = std::string(PHYSFS_getErrorByCode(errorCode));
+        m_last_error = "Error in PHYSFS_openRead()";
     }
 }
 

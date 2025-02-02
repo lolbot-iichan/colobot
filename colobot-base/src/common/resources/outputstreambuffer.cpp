@@ -20,6 +20,7 @@
 #include "common/resources/outputstreambuffer.h"
 
 #include "common/resources/resourcemanager.h"
+#include "common/resources/physfs_utils.h"
 
 #include <stdexcept>
 #include <sstream>
@@ -48,9 +49,9 @@ void COutputStreamBuffer::open(const std::filesystem::path& path, std::ios_base:
     if (PHYSFS_isInit())
     {
         if ( mode == std::ios_base::out )
-            m_file = PHYSFS_openWrite(CResourceManager::CleanPath(path.generic_u8string()).c_str());
+            m_file = LoudOpenWrite(CResourceManager::CleanPath(path.generic_u8string()).c_str());
         else if ( mode == std::ios_base::app )
-            m_file = PHYSFS_openAppend(CResourceManager::CleanPath(path.generic_u8string()).c_str());
+            m_file = LoudOpenAppend(CResourceManager::CleanPath(path.generic_u8string()).c_str());
     }
 }
 

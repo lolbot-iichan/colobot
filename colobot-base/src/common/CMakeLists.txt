@@ -35,6 +35,8 @@ target_sources(Colobot-Base PRIVATE
     resources/outputstream.h
     resources/outputstreambuffer.cpp
     resources/outputstreambuffer.h
+    resources/physfs_utils.cpp
+    resources/physfs_utils.h
     resources/resourcemanager.cpp
     resources/resourcemanager.h
     resources/sdl_file_wrapper.cpp

@@ -25,6 +25,7 @@
 
 #include "common/image.h"
 #include "common/logger.h"
+#include "common/resources/physfs_utils.h"
 
 #include <SDL.h>
 #include <physfs.h>
@@ -325,7 +326,7 @@ std::string GetLastShaderError()
 
 std::string LoadSource(const std::string& path)
 {
-    PHYSFS_file* file = PHYSFS_openRead(path.c_str());
+    PHYSFS_file* file = LoudOpenRead(path.c_str());
     if (file == nullptr)
     {
         GetLogger()->Error("Cannot read shader source file");
@@ -380,7 +381,7 @@ GLint CreateShader(GLint type, const std::vector<std::string>& sources)
 
 GLint LoadShader(GLint type, const char* filename)
 {
-    PHYSFS_file *file = PHYSFS_openRead(filename);
+    PHYSFS_file *file = LoudOpenRead(filename);
     if (file == nullptr)
     {
         GetLogger()->Error("Cannot read shader source file");

@@ -23,6 +23,7 @@
 #include "common/config.h"
 #include "common/logger.h"
 #include "common/stringutils.h"
+#include "common/resources/physfs_utils.h"
 
 #include <algorithm>
 #include <physfs.h>
@@ -233,7 +234,7 @@ long long CResourceManager::GetFileSize(const std::filesystem::path& filename)
 {
     if (PHYSFS_isInit())
     {
-        PHYSFS_File* file = PHYSFS_openRead(CleanPath(filename).c_str());
+        PHYSFS_File* file = LoudOpenRead(CleanPath(filename).c_str());
         if(file == nullptr) return -1;
         long long size = PHYSFS_fileLength(file);
         PHYSFS_close(file);
