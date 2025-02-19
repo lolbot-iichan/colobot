@@ -24,10 +24,16 @@
 
 #include "object/interface/trace_drawing_object.h"
 
-#include "object/task/taskflag.h"
-#include "object/task/taskgoto.h"
-#include "object/task/taskmanip.h"
-#include "object/task/taskshield.h"
+#include "object/task/task.h"
+
+enum TaskFlagOrder : unsigned char;
+enum TaskManipOrder : unsigned char;
+enum TaskManipArm : unsigned char;
+enum TaskShieldMode : unsigned char;
+
+enum TaskGotoGoal : signed char;
+enum TaskGotoCrash : signed char;
+
 
 /**
  * \class CTaskExecutorObject

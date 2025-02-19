@@ -53,6 +53,11 @@
 #include "object/interface/task_executor_object.h"
 #include "object/interface/trace_drawing_object.h"
 
+#include "object/task/taskgoto.h"
+#include "object/task/taskflag.h"
+#include "object/task/taskmanip.h"
+#include "object/task/taskshield.h"
+
 #include "object/subclass/base_alien.h"
 #include "object/subclass/exchange_post.h"
 #include "object/subclass/shielder.h"

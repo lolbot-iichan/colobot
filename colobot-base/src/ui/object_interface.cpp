@@ -43,6 +43,10 @@
 #include "object/motion/motion.h"
 #include "object/motion/motionvehicle.h"
 
+#include "object/task/taskflag.h"
+#include "object/task/taskmanip.h"
+#include "object/task/taskshield.h"
+
 #include "object/subclass/shielder.h"
 
 #include "physics/physics.h"
