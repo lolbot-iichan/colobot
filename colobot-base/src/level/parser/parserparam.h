@@ -27,9 +27,6 @@
 #include "graphics/core/color.h"
 
 #include "graphics/engine/camera.h"
-#include "graphics/engine/planet_type.h"
-#include "graphics/engine/pyro_type.h"
-#include "graphics/engine/water.h"
 
 #include "object/mission_type.h"
 #include "object/object_type.h"
@@ -57,6 +54,9 @@ namespace Gfx
 class CEngine;
 
 enum EngineObjectType : unsigned char;
+enum PlanetType : unsigned char;
+enum PyroType : unsigned char;
+enum WaterType : unsigned char;
 }
 
 class CLevelParserParam
