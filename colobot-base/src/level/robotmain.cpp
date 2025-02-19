@@ -3710,7 +3710,7 @@ void CRobotMain::CreateScene(bool soluce, bool fixScene, bool resetObject)
                 {
                     // Create the scoreboard
                     m_scoreboard = std::make_unique<CScoreboard>();
-                    m_scoreboard->SetSortType(line->GetParam("sort")->AsSortType(CScoreboard::SortType::SORT_ID));
+                    m_scoreboard->SetSortType(line->GetParam("sort")->AsSortType(ScoreboardSortType::SORT_ID));
                 }
                 continue;
             }
