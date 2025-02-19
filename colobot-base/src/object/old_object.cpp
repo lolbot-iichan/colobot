@@ -34,6 +34,7 @@
 #include "graphics/engine/terrain.h"
 
 #include "level/build_type.h"
+#include "level/mainmovie.h"
 #include "level/research_type.h"
 #include "level/robotmain.h"
 #include "level/scoreboard.h"
@@ -63,7 +64,6 @@
 #include "script/scriptfunc.h"
 
 #include "ui/object_interface.h"
-#include "ui/studio.h"
 
 #include "ui/controls/edit.h"
 

@@ -31,8 +31,6 @@
 #include "graphics/engine/camera.h"
 #include "graphics/engine/particle.h"
 
-#include "level/mainmovie.h"
-
 #include "object/mission_type.h"
 #include "object/object_type.h"
 
@@ -90,9 +88,12 @@ class CScoreboard;
 class CPlayerProfile;
 class CSettings;
 class COldObject;
+class CObject;
 class CPauseManager;
+class CMainMovie;
 struct ActivePause;
 
+enum MainMovieType : unsigned char;
 enum PauseType : unsigned char;
 enum PauseMusic : unsigned char;
 
