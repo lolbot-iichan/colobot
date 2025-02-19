@@ -31,9 +31,7 @@
 #include "graphics/engine/camera.h"
 #include "graphics/engine/particle.h"
 
-#include "level/build_type.h"
 #include "level/mainmovie.h"
-#include "level/research_type.h"
 
 #include "object/drive_type.h"
 #include "object/mission_type.h"
@@ -99,6 +97,9 @@ struct ActivePause;
 
 enum PauseType : unsigned char;
 enum PauseMusic : unsigned char;
+
+enum BuildType : unsigned int;
+enum ResearchType : unsigned int;
 
 enum class LevelCategory : unsigned int;
 

@@ -28,6 +28,8 @@
 
 #include "graphics/engine/engine.h"
 
+#include "level/build_type.h"
+#include "level/research_type.h"
 #include "level/robotmain.h"
 #include "level/scoreboard.h"
 

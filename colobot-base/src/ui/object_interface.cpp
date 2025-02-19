@@ -30,6 +30,8 @@
 #include "graphics/engine/terrain.h"
 #include "graphics/engine/water.h"
 
+#include "level/build_type.h"
+#include "level/research_type.h"
 #include "level/robotmain.h"
 
 #include "math/geometry.h"

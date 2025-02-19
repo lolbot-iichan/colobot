@@ -56,8 +56,10 @@
 
 #include "graphics/model/model_manager.h"
 
+#include "level/build_type.h"
 #include "level/mainmovie.h"
 #include "level/player_profile.h"
+#include "level/research_type.h"
 #include "level/scene_conditions.h"
 #include "level/scoreboard.h"
 

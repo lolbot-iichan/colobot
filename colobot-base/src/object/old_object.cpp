@@ -33,6 +33,8 @@
 #include "graphics/engine/pyro_manager.h"
 #include "graphics/engine/terrain.h"
 
+#include "level/build_type.h"
+#include "level/research_type.h"
 #include "level/robotmain.h"
 #include "level/scoreboard.h"
 
