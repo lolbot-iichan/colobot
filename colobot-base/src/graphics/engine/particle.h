@@ -68,7 +68,7 @@ const short SH_MAX = 3;
 // type == 4    ->  text     (white background)
 
 
-enum ParticleType
+enum ParticleType : unsigned int
 {
     PARTIEXPLOT     = 1,        //! < technology explosion
     PARTIEXPLOO     = 2,        //! < organic explosion

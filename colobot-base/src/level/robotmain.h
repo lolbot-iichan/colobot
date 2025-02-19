@@ -28,7 +28,7 @@
 #include "common/event.h"
 #include "common/singleton.h"
 
-#include "graphics/engine/particle.h"
+#include "graphics/core/color.h"
 
 #include "object/mission_type.h"
 #include "object/object_type.h"
@@ -105,6 +105,8 @@ enum class ToolType : unsigned int;
 
 namespace Gfx
 {
+enum ParticleType : unsigned int;
+
 class CEngine;
 class CLightManager;
 class CWater;
@@ -115,6 +117,7 @@ class CPlanet;
 class CTerrain;
 class CModelManager;
 class CCamera;
+class CParticle;
 }
 
 namespace Ui
