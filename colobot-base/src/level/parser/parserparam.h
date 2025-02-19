@@ -26,8 +26,6 @@
 
 #include "graphics/core/color.h"
 
-#include "graphics/engine/camera.h"
-
 #include "object/mission_type.h"
 #include "object/object_type.h"
 
@@ -53,6 +51,7 @@ namespace Gfx
 {
 class CEngine;
 
+enum CameraType : unsigned char;
 enum EngineObjectType : unsigned char;
 enum PlanetType : unsigned char;
 enum PyroType : unsigned char;

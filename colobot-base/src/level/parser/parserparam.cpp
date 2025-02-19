@@ -26,6 +26,7 @@
 
 #include "common/resources/resourcemanager.h"
 
+#include "graphics/engine/camera.h"
 #include "graphics/engine/engine.h"
 #include "graphics/engine/planet_type.h"
 #include "graphics/engine/pyro_type.h"

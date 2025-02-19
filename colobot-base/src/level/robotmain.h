@@ -28,7 +28,6 @@
 #include "common/event.h"
 #include "common/singleton.h"
 
-#include "graphics/engine/camera.h"
 #include "graphics/engine/particle.h"
 
 #include "object/mission_type.h"
@@ -115,6 +114,7 @@ class COldModelManager;
 class CPlanet;
 class CTerrain;
 class CModelManager;
+class CCamera;
 }
 
 namespace Ui
