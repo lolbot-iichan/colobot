@@ -28,9 +28,9 @@
 
 #include "object/interface/trace_drawing_object.h"
 
-#include "sound/sound_type.h"
-
 #include <vector>
+
+enum SoundType : signed char;
 
 class CRobotMain;
 class CObject;
