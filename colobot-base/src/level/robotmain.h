@@ -24,8 +24,6 @@
 
 #pragma once
 
-#include "app/pausemanager.h"
-
 #include "common/error.h"
 #include "common/event.h"
 #include "common/singleton.h"
@@ -99,6 +97,9 @@ class CSettings;
 class COldObject;
 class CPauseManager;
 struct ActivePause;
+
+enum PauseType : unsigned char;
+enum PauseMusic : unsigned char;
 
 namespace Gfx
 {
