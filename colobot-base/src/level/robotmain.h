@@ -32,7 +32,6 @@
 #include "graphics/engine/particle.h"
 
 #include "level/build_type.h"
-#include "level/level_category.h"
 #include "level/mainmovie.h"
 #include "level/research_type.h"
 
@@ -100,6 +99,8 @@ struct ActivePause;
 
 enum PauseType : unsigned char;
 enum PauseMusic : unsigned char;
+
+enum class LevelCategory : unsigned int;
 
 namespace Gfx
 {
