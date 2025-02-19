@@ -31,10 +31,8 @@
 #include "graphics/engine/pyro_type.h"
 #include "graphics/engine/water.h"
 
-#include "object/drive_type.h"
 #include "object/mission_type.h"
 #include "object/object_type.h"
-#include "object/tool_type.h"
 
 #include <glm/glm.hpp>
 
@@ -48,6 +46,9 @@ class CLevelParserLine;
 class CLevelParserParam;
 using CLevelParserParamUPtr = std::unique_ptr<CLevelParserParam>;
 using CLevelParserParamVec = std::vector<CLevelParserParamUPtr>;
+
+enum class DriveType : unsigned int;
+enum class ToolType : unsigned int;
 
 enum class ScoreboardSortType : int;
 

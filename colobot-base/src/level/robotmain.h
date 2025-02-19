@@ -33,10 +33,8 @@
 
 #include "level/mainmovie.h"
 
-#include "object/drive_type.h"
 #include "object/mission_type.h"
 #include "object/object_type.h"
-#include "object/tool_type.h"
 
 #include <filesystem>
 #include <deque>
@@ -101,7 +99,9 @@ enum PauseMusic : unsigned char;
 enum BuildType : unsigned int;
 enum ResearchType : unsigned int;
 
+enum class DriveType : unsigned int;
 enum class LevelCategory : unsigned int;
+enum class ToolType : unsigned int;
 
 namespace Gfx
 {
