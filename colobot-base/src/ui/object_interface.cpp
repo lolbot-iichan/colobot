@@ -643,7 +643,7 @@ bool CObjectInterface::EventProcess(const Event &event)
 
         if ( action == EVENT_OBJECT_PEN0 )  // up
         {
-            err = m_taskExecutor->StartTaskPen(false);
+            err = m_taskExecutor->StartTaskPen(false, TraceColor::Default);
         }
         if ( action == EVENT_OBJECT_PEN1 )  // black
         {

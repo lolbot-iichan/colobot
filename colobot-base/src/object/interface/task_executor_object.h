@@ -22,8 +22,6 @@
 #include "object/object.h"
 #include "object/object_interface_type.h"
 
-#include "object/interface/trace_drawing_object.h"
-
 #include "object/task/task.h"
 
 enum TaskFlagOrder : unsigned char;
@@ -33,6 +31,8 @@ enum TaskShieldMode : unsigned char;
 
 enum TaskGotoGoal : signed char;
 enum TaskGotoCrash : signed char;
+
+enum class TraceColor : signed char;
 
 
 /**
@@ -62,7 +62,7 @@ public:
     virtual Error StartTaskFire(float delay) = 0;
     virtual Error StartTaskFireAnt(glm::vec3 impact) = 0;
     virtual Error StartTaskSpiderExplo() = 0;
-    virtual Error StartTaskPen(bool down, TraceColor color = TraceColor::Default) = 0;
+    virtual Error StartTaskPen(bool down, TraceColor color) = 0;
     //@}
     //! Start a foreground task (scriptable tasks, not in UI)
     //@{

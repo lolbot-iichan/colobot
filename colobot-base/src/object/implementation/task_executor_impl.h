@@ -53,7 +53,7 @@ public:
     Error StartTaskFire(float delay) override;
     Error StartTaskFireAnt(glm::vec3 impact) override;
     Error StartTaskSpiderExplo() override;
-    Error StartTaskPen(bool down, TraceColor color = TraceColor::Default) override;
+    Error StartTaskPen(bool down, TraceColor color) override;
 
     Error StartTaskWait(float time) override;
     Error StartTaskAdvance(float length) override;

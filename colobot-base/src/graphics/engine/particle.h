@@ -26,11 +26,11 @@
 
 #include "graphics/core/color.h"
 
-#include "object/interface/trace_drawing_object.h"
-
 #include <vector>
 
 enum SoundType : signed char;
+
+enum class TraceColor : signed char;
 
 class CRobotMain;
 class CObject;
@@ -217,7 +217,7 @@ struct Track
 
 struct WheelTrace
 {
-    TraceColor      color = TraceColor::Black;
+    TraceColor      color;
     glm::vec3    pos[4];
 };
 
