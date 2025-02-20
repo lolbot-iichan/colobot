@@ -22,8 +22,6 @@
 #include "object/object.h"
 #include "object/object_interface_type.h"
 
-#include "object/task/task.h"
-
 enum TaskFlagOrder : unsigned char;
 enum TaskManipOrder : unsigned char;
 enum TaskManipArm : unsigned char;
@@ -34,6 +32,10 @@ enum TaskGotoCrash : signed char;
 
 enum class TraceColor : signed char;
 
+enum Error : unsigned int;
+
+class CBackgroundTask;
+class CForegroundTask;
 
 /**
  * \class CTaskExecutorObject

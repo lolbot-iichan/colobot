@@ -54,6 +54,8 @@
 #include "object/motion/motion.h"
 #include "object/motion/motionvehicle.h"
 
+#include "object/task/task.h"
+
 #include "object/subclass/base_alien.h"
 #include "object/subclass/exchange_post.h"
 

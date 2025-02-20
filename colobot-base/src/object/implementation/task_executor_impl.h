@@ -24,6 +24,7 @@
 #include <memory>
 
 class CObject;
+struct Event;
 
 class CTaskExecutorObjectImpl : public CTaskExecutorObject
 {
