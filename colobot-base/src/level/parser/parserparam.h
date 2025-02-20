@@ -26,7 +26,6 @@
 
 #include "graphics/core/color.h"
 
-#include "object/mission_type.h"
 #include "object/object_type.h"
 
 #include <glm/glm.hpp>
@@ -41,6 +40,8 @@ class CLevelParserLine;
 class CLevelParserParam;
 using CLevelParserParamUPtr = std::unique_ptr<CLevelParserParam>;
 using CLevelParserParamVec = std::vector<CLevelParserParamUPtr>;
+
+enum MissionType : unsigned char;
 
 enum class DriveType : unsigned int;
 enum class ToolType : unsigned int;

@@ -32,6 +32,8 @@
 #include "graphics/engine/pyro_type.h"
 #include "graphics/engine/water.h"
 
+#include "object/mission_type.h"
+
 #include "level/build_type.h"
 #include "level/research_type.h"
 #include "level/robotmain.h"
