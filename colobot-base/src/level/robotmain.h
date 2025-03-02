@@ -33,6 +33,7 @@
 #include "object/mission_type.h"
 #include "object/object_type.h"
 
+#include <array>
 #include <filesystem>
 #include <deque>
 #include <map>
