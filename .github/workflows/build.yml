@@ -25,6 +25,10 @@ jobs:
             container: ''
             preset: Linux-CI-clang
             artifact-tag: ubuntu-22.04-clang
+          - host_os: ubuntu-24.04
+            container: ''
+            preset: Linux-CI-gcc
+            artifact-tag: ubuntu-24.04-gcc
       fail-fast: false
     env:
       # Actions run as root in-container, as normal user outside
