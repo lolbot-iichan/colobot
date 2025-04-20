@@ -36,7 +36,7 @@ jobs:
       # Shortcuts the autodetection
       DEBIAN_FRONTEND: noninteractive
       # Only build the appImage
-      APPIMAGE: ${{ matrix.host_os == 'ubuntu-20.04' }}
+      APPIMAGE: ${{ matrix.artifact-tag == 'ubuntu-22.04-gcc' }}
     steps:
     - name: Install various indirect dependencies in slim containers
       run: $SUDO apt-get update && $SUDO apt-get install -y --no-install-recommends git ca-certificates wget
